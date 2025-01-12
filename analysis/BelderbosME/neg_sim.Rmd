@@ -1,0 +1,1283 @@
+---
+title: "Neg_sim"
+author: "LF"
+date: "2024-05-31"
+output: html_document
+---
+
+
+# Load Library
+
+```{r load library}
+library(readxl)
+library(purrr)
+library(dplyr)
+library(dbscan)
+library(ggbiplot)
+library(gridExtra)
+library(ComplexHeatmap)
+library(Rtsne)
+library(dbscan)
+library(rpart)
+library(rpart.plot)
+library(pROC)
+library(sjPlot)
+library(glmnet)
+library(logistf)
+
+# Define the directory containing the R files - Barbie 
+directory <- "/Users/feiliyang/Desktop/Barbie/R"
+
+# Get the list of R files in the directory
+file_list <- list.files(directory, pattern = "\\.R$", full.names = TRUE)
+
+# Loop through each file and load it
+for (file in file_list) {
+  source(file)
+}
+```
+
+# Read Object
+
+```{r read data}
+Belderbos <- readRDS(file = "/Users/feiliyang/Desktop/published_analysis_tools/barcodetrackRData/datasets/BelderbosME_etal/Belderbos_Barbie.RDS")
+```
+
+
+# Trim Data
+
+```{r trim data}
+del_out <- Belderbos$metadata$Time %in% c("library", "time0")
+
+# |Belderbos$metadata$Mouse == "C23"
+Belderbos_hem <- trimColumn(Barbie = Belderbos, keep_columns = !del_out)
+
+Belderbos_hem <- getTopBar(Barbie = Belderbos_hem, cut_off = 0.90, num_appearance = 2)
+
+sum(Belderbos_hem$is_top)
+
+Belderbos_hem <- trimRow(Barbie = Belderbos_hem, keep_rows = Belderbos_hem$is_top)
+```
+
+# PCA
+
+```{r PCA, fig.width=9, fig.height=12}
+plotPsmp <- function(Barbie, fac, df, show_legend = TRUE){
+  
+  if(fac %in% colnames(Barbie$metadata)){
+    col_point <- Barbie$metadata[,fac]
+    col_palette <- fac
+    # col_scale <- Barbie$color_panel[[col_palette]]
+  }
+  
+  if(fac == "DBSCAN"){
+    col_point <- as.factor(paste0("Group ", df$DBSCAN))
+    col_palette <- "DBSCAN"
+    my_colors <- c("red3", "slateblue", "forestgreen", "orange", "plum", "grey",
+                   "turquoise","olivedrab2", "grey27")
+    col_scale <- my_colors[df$DBSCAN |> unique() |> seq() ]
+  }
+  
+  ggbiplot(df, ellipse = F, choices = c(1,2), 
+           groups = col_point, 
+           varname.size = 0, var.axes = F) +
+    theme(aspect.ratio = 1) +
+    # geom_point(size = 2, 
+    #            shape = 21,
+    #            stroke = 1,
+    #            fill = "white",
+    #            alpha = 0.8,
+    #            aes(color = col_point)) +
+    # scale_color_manual(values = col_scale) +
+    # fix style
+    theme_classic() +
+          labs(color = col_palette, title = paste0("Samples Colored by \"", col_palette, "\"")) +
+          theme(aspect.ratio = 1,
+          plot.title = element_text(size = 12),
+          axis.title.x = element_text(size = 10),
+          axis.title.y = element_text(size = 10),
+          axis.text.x = element_text(size = 8),
+          axis.text.y = element_text(size = 8),
+          legend.title = element_text(size = 0),
+          legend.text = element_text(size = 6),
+          legend.key.height = unit(0.4, "cm"),   # Adjust the height of the legend keys
+          legend.key.width = unit(0.4, "cm"),
+          legend.spacing = unit(0.05, "cm"),
+          legend.position = ifelse(show_legend, "top", "none"),
+          legend.justification = "left")
+}
+
+plot_sample_pca <- function(Barbie, db_tune = 0.9, show_legend = TRUE) {
+  smpt <- t(log2(1+ Barbie$CPM))
+  smpP <- as.matrix(smpt)
+  constant_columns <- apply(smpP, 2, function(col) sd(col, na.rm = TRUE) == 0)
+  smpP_filtered <- smpP[, !constant_columns]
+
+
+  p <- prcomp(smpP_filtered, center = TRUE,scale. = TRUE)
+  
+  tpsmp_dbs <- p$x[,1:2]
+  tpd <- dbscan(tpsmp_dbs, eps = db_tune, minPts = 2)
+  p$DBSCAN <- factor(tpd$cluster + 1)
+  
+  pcls <- lapply(c("Mouse", "xCondition", "Time", "Tissue", "Celltype", "Position", "DBSCAN"), function(x) {
+      plotPsmp(Barbie = Barbie, fac = x, df = p, show_legend = show_legend)
+    })
+  do.call(grid.arrange, c(pcls, ncol = 3))
+}
+
+plot_sample_pca(Barbie = Belderbos_hem)
+
+ComplexHeatmap::Heatmap(
+  matrix = log2(Belderbos_hem$CPM + 1), 
+  show_row_names = FALSE,
+  top_annotation = HeatmapAnnotation(
+    Mouse = Belderbos_hem$metadata$Mouse,
+    Celltype = Belderbos_hem$metadata$Celltype,
+    Time = Belderbos_hem$metadata$Time,
+    Tissue = Belderbos_hem$metadata$Tissue,
+    Position = Belderbos_hem$metadata$Position,
+    xCondition = Belderbos_hem$metadata$xCondition,
+    annotation_name_side = "left",
+    annotation_name_gp = gpar(fontsize = 10))
+  ) 
+```
+# tSNE
+
+!! there are duplicated columns - identical values. check it.
+
+```{r tsne}
+
+# Get a logical vector indicating duplicated rows
+duplicated_samp <- duplicated(t(Belderbos_hem$CPM))
+unique_samp <- !duplicated_samp
+
+#trim the obj
+Belderbos_uniqueCol<- trimColumn(Barbie = Belderbos_hem, keep_columns = unique_samp)
+
+tsne_results <- (Belderbos_uniqueCol$CPM + 1) %>% 
+  t() %>% 
+  log2() %>% 
+  Rtsne::Rtsne()
+tsne_coords <- tsne_results$Y
+tsne_coords <- as.data.frame(tsne_coords)
+
+ggplot(tsne_coords) +
+  geom_point(aes(x = V1, y = V2, col = Belderbos_uniqueCol$metadata$Mouse)) +
+  labs(x = "t-SNE Dimension 1", y = "t-SNE Dimension 2", col = "Mouse") +
+  theme(aspect.ratio = 1)
+
+lapply(
+  Belderbos_uniqueCol$metadata %>% ncol() %>% seq(), 
+  function(i) {
+    col_fac <- colnames(Belderbos_uniqueCol$metadata)[i]
+    ggplot(tsne_coords) +
+    geom_point(aes(x = V1, y = V2, col = Belderbos_uniqueCol$metadata[[i]])) +
+    labs(x = "t-SNE Dimension 1", y = "t-SNE Dimension 2", color = col_fac) +
+      theme_classic() +
+    theme(aspect.ratio = 1)
+  }
+  )
+
+
+
+```
+- Mouse C10 and C15,
+
+- C2, C3 and C1
+
+show high similarity.
+
+- Mouse C21, C22, C23 show low similarity.
+
+- But Mouse C21, C22, C23 show high homogeneity within a mouse.
+
+in a mouse invivo cell transplantation experiment, a factor contains values like "GK", "L", and "R". what exactly can this factor likely to be?
+ChatGPT
+In a mouse in vivo cell transplantation experiment, factors like "GK", "L", and "R" could represent different groups or conditions that are part of the experimental design. Here are some possible interpretations:
+
+Transplantation Sites:
+
+"GK": Could stand for a specific location in the mouse where the cells are transplanted, possibly "Gastrocnemius" (a muscle in the lower leg).
+"L": Likely represents the "Left" side of the mouse.
+"R": Likely represents the "Right" side of the mouse.
+Cell Types or Treatments:
+
+"GK": Might indicate a specific type of cell or treatment used in the experiment, potentially "Germline Knockout" if dealing with genetic modifications.
+"L": Could still mean "Left," or it could represent a specific treatment or cell line labeled with "L".
+"R": Similarly, this might stand for "Right" or a treatment or cell line labeled with "R".
+Genetic Modifications:
+
+"GK": Could denote a genetic modification, such as "Gene Knockout".
+"L" and "R": If they represent genetic markers, they might denote different alleles or loci.
+Experimental Groups:
+
+"GK": Might denote a specific experimental group with a unique treatment or condition.
+"L" and "R": Likely represent different groups within the experiment, possibly indicating different treatment conditions or controls.
+Given the context of in vivo cell transplantation, the most likely interpretation is that "L" and "R" indicate the sides (Left and Right) of the mouse where the transplantations are performed, and "GK" could represent a specific anatomical site or condition relevant to the experiment, such as a muscle group or a type of genetic modification.
+
+To confirm the exact meaning of these factors, it would be necessary to refer to the specific experimental protocol or design used in the study.
+
+# DBScan
+
+```{r dbscan}
+dbscan_result <- dbscan(tsne_coords, eps = 1.1, minPts = 2)
+
+ggplot(
+  data = data.frame(tsne_coords, cluster = factor(dbscan_result$cluster)), 
+  aes(x = V1, y = V2, color = cluster)
+  ) +
+  geom_point(size = 1) +
+  labs(title = "DBSCAN Clustering on t-SNE result", x = "t-SNE 1", y = "t-SNE 2") +
+  theme(aspect.ratio = 1)
+```
+
+# Decision Tree
+
+```{r decision tree}
+meta <- Belderbos_uniqueCol$metadata
+
+dt_data <- meta[,-1]
+dt_data$cluster <- factor(dbscan_result$cluster)
+dt_data$Time[dt_data$Time != "sac"] <- "live"
+
+tree_model <- rpart(cluster ~ ., data = dt_data, method = "class")
+
+rpart.plot(tree_model, type = 4, extra = 104)
+
+```
+
+Pseudo replicate groups:
+1. Mouse == C21
+2. Mouse == C22
+3. Mouse == C23
+4. Mouse == C10 | C15 & Celltype == Unsorted | Tcell
+5. Mouse == C10 | C15 & Celltype == Bcell | Grn | Other
+6. Mouse == C1 | C2 | C3 & Time == sac
+7. Mouse == C1 & Time == live 
+8. Mouse == C2 | C3 & Time == live & Celltype == Unsorted
+9. Mouse == C2 | C3 & Time == live & Celltype == Bcell | Tcell | Grn
+
+# Pseudo Replicate Groups
+
+```{r pseudo rep}
+meta <- Belderbos_uniqueCol$metadata
+
+meta$pseudo_group[meta$Mouse == "C21"] <- "C21"
+meta$pseudo_group[meta$Mouse == "C22"] <- "C22"
+meta$pseudo_group[meta$Mouse == "C23"] <- "C23"
+meta$pseudo_group[
+  meta$Mouse %in% c("C10", "C15") 
+  & meta$Celltype %in% c("Unsorted", "Tcell")] <- "C10.15_U.T"
+meta$pseudo_group[
+  meta$Mouse %in% c("C10", "C15") 
+  & meta$Celltype %in% c("Bcell", "Grn", "Other")] <- "C10.15_B.G.O"
+meta$pseudo_group[
+  meta$Mouse %in% c("C1", "C2", "C3") 
+  & meta$Time == "sac"] <- "C1.2.3_sac"
+meta$pseudo_group[
+  meta$Mouse == "C1" 
+  & meta$Time != "sac"] <- "C1.live"
+meta$pseudo_group[
+  meta$Mouse %in% c("C2", "C3") 
+  & meta$Time != "sac"
+  & meta$Celltype == "Unsorted"] <- "C2.3_live_U"
+meta$pseudo_group[
+  meta$Mouse %in% c("C2", "C3") 
+  & meta$Time != "sac"
+  & meta$Celltype %in% c("Bcell", "Tcell", "Grn")] <- "C2.3_live_B.T.G"
+
+ggplot(
+  data = data.frame(tsne_coords, pseudo_group = meta$pseudo_group), 
+  aes(x = V1, y = V2, color = pseudo_group)
+  ) +
+  geom_point(size = 1) +
+  labs(title = "Pseudo-Groups on t-SNE result", x = "t-SNE 1", y = "t-SNE 2") +
+  theme(aspect.ratio = 1)
+```
+
+# Sampling within Pseudo-Groups
+
+## Random Sample Size
+
+```{r sampling C22}
+# for example C22
+C22_bb <- trimColumn(
+   Barbie = Belderbos_uniqueCol,
+   keep_columns = meta$pseudo_group == "C22")
+
+samples <- C22_bb$metadata %>% nrow() %>% seq()
+
+# Initialize vectors to store the results
+all_pvalues <- vector("list", 100)
+all_FPRs <- numeric(100)
+
+set.seed(42) # for reproducibility
+
+for (i in 1:100) {
+  # Randomly shuffle the samples and split them
+  shuffled_samples <- sample(samples)
+  split_point <- sample(2:(length(samples) - 2), 1)
+  
+  group1_samples <- shuffled_samples[1:split_point]
+  group2_samples <- shuffled_samples[(split_point + 1):length(samples)]
+  
+  # Create a group vector
+  group_vec <- vector("character", length = length(samples))
+  names(group_vec) <- samples
+  group_vec[group1_samples] <- "group1"
+  group_vec[group2_samples] <- "group2"
+  
+  # Get the contingency table
+  c_table_i <- GetContingencyTable(Barbie = C22_bb, Vector_customized = group_vec)
+  
+  # Apply the test and get bias group
+  C22_bb <- GetOccBiasGroup(Barbie = C22_bb, contingency_table_ls = c_table_i)
+  
+  # kableExtra::kable(C22_bb$Bias_Occ)
+  # 
+  # PlotBiasVsRank(Barbie = C22_bb, passing_data = "contribution")
+  # 
+  # PlotCpmHP_0(Barbie = C22_bb, show_bias = TRUE, Vector_customized = group_vec, split_by = group_vec) 
+  
+  # Store p-values
+  p.values <- C22_bb$Bias_Occ$pvalue
+  all_pvalues[[i]] <- p.values
+  
+  # Calculate and store FDR
+  num_unbiased <- sum(C22_bb$Bias_Occ$group == "Unbiased")
+  num_biased <- sum(C22_bb$Bias_Occ$group != "Unbiased")
+  
+  FPR <- num_biased / (num_biased + num_unbiased)
+  all_FPRs[i] <- FPR
+}
+
+plot(density(all_FPRs))
+plot(density(unlist(all_pvalues)))
+
+sim_pvalues <- unlist(all_pvalues)
+ground_truth <- sample(c(0, 1), length(sim_pvalues), replace = TRUE)  
+
+# Simulated ground truth
+roc_curve <- roc(ground_truth, sim_pvalues)
+plot(roc_curve, main = "ROC Curve")
+
+# Calculate the AUC
+auc_value <- auc(roc_curve)
+print(paste("AUC:", auc_value))
+
+# Plot the ROC curve
+plot(roc_curve, main = paste("ROC Curve (AUC =", round(auc_value, 3), ")"), col = "#1c61b6", lwd = 2)
+abline(a = 1, b = -1, lty = 2, col = "red")
+
+```
+
+## Fixed Sample Size
+
+```{r sampling fixed size}
+
+set.seed(42) # for reproducibility
+
+# function for sampling once making two equal groups
+Sample_Groups <- function(Barbie, size_group = 3) {
+  
+  pool <- Barbie$metadata %>% nrow() %>% seq()
+  
+  # First sampling without replacement
+  group1_samples <- sample(pool, size = size_group, replace = FALSE)
+  # Remove the first sample from the pool
+  remaining_pool <- setdiff(pool, group1_samples)
+  
+  # Second sampling without replacement from the remaining pool
+  group2_samples <- sample(remaining_pool, size = size_group, replace = FALSE)
+  
+  # Create a group vector
+  group_vec <- vector("character", length = length(pool))
+  group_vec[group1_samples] <- "group1"
+  group_vec[group2_samples] <- "group2"
+  
+  Barbie$metadata$group <- group_vec
+  
+  # Hem data by group vector
+  sample_bb <- trimColumn(
+    Barbie = Barbie,
+    keep_columns = group_vec %in% c("group1", "group2")
+  )
+  
+  c_table_i <- GetContingencyTable(
+    Barbie = sample_bb,
+    Vector_customized = sample_bb$metadata$group)
+  
+  sample_bb <- GetOccBiasGroup(Barbie = sample_bb, contingency_table_ls = c_table_i)
+  
+  mytargets <- data.frame(sample_bb$metadata)
+  
+  # model design matrix
+  mydesign <- mytargets %>%
+    with(model.matrix(~0 + group))
+  
+  # set up block
+  myblock <- NULL
+  
+  # apply test for Bias_Prop
+  sample_bb <- getPropBiasGroup(Barbie = sample_bb, mydesign = mydesign, myblock = myblock, mytargets = mytargets)
+  
+  #logistic model
+  sample_bb <- GetLogitOcc(Barbie = sample_bb, penalized = F)
+  
+  #penalized logistic madel
+  sample_bb <- GetLogitOcc(Barbie = sample_bb, penalized = T)
+  
+  # PlotBiasVsRank(Barbie = sample_bb, passing_data = "contribution")
+  # 
+  # PlotCpmHP_0(Barbie = sample_bb, show_bias = TRUE, Vector_customized = sample_bb$metadata$group, split_by = sample_bb$metadata$group)
+  # 
+  # PlotBiasVsRank(Barbie = sample_bb, passing_data = "contribution", bias_group = sample_bb$Bias_Prop$group, bias_pvalue = sample_bb$Bias_Prop$pvalue)
+  # 
+  # PlotCpmHP_0(Barbie = sample_bb, show_bias = TRUE, Vector_customized = sample_bb$metadata$group, split_by = sample_bb$metadata$group, bias_group = sample_bb$Bias_Prop$group)
+  
+  # extract p.values and FPR
+  pvalues_occ <- sample_bb$Bias_Occ$pvalue
+  pvalues_prop <- sample_bb$Bias_Prop$pvalue
+  pvalues_LR_occ_classic <- sample_bb$LR_Occ_classic$p.values
+  pvalues_LR_occ_penalized <- sample_bb$LR_Occ_penalized$p.values
+  
+  FPR_occ <- sum(sample_bb$Bias_Occ$group != "Unbiased") / length(sample_bb$Bias_Occ$group)
+  
+  FPR_prop <- sum(sample_bb$Bias_Prop$group != "Unbiased") / length(sample_bb$Bias_Prop$group)
+  
+  FPR_LR_occ_classic <- sum(sample_bb$LR_Occ_classic$group != "Unbiased") / length(sample_bb$LR_Occ_classic$group)
+  
+  FPR_LR_occ_penalized <- sum(sample_bb$LR_Occ_penalized$group != "Unbiased") / length(sample_bb$LR_Occ_penalized$group)
+  
+  return(
+    list(FPR_occ = FPR_occ,
+         FPR_prop = FPR_prop,
+         FPR_LR_occ_classic = FPR_LR_occ_classic,
+         FPR_LR_occ_penalized = FPR_LR_occ_penalized,
+         pvalues_occ = pvalues_occ,
+         pvalues_prop = pvalues_prop,
+         pvalues_LR_occ_classic = pvalues_LR_occ_classic,
+         pvalues_LR_occ_penalized = pvalues_LR_occ_penalized,
+         group_vec = group_vec)
+  )
+
+}
+
+Loop_Samples <- function(Barbie, size_group = 3, loop_times = 100) {
+  
+  FPR_occ_list <- list(length = loop_times)
+  FPR_prop_list <- list(length = loop_times)
+  FPR_LR_occ_classic_list <- list(length = loop_times)
+  FPR_LR_occ_penalized_list <- list(length = loop_times)
+  
+  pvalues_occ_list <- list(length = loop_times)
+  pvalues_prop_list <- list(length = loop_times)
+  pvalues_LR_occ_classic_list <- list(length = loop_times)
+  pvalues_LR_occ_penalize_list <- list(length = loop_times)
+  
+  group_vec_list <- list(length = group_vec)
+  
+  for(i in 1:loop_times) {
+    results_i <- Sample_Groups(
+      Barbie = Barbie, size_group = size_group)
+    
+    FPR_occ_list[[i]] <- results_i$FPR_occ
+    FPR_prop_list[[i]] <- results_i$FPR_prop
+    FPR_LR_occ_classic_list[[i]] <- results_i$FPR_LR_occ_classic
+    FPR_LR_occ_penalized_list[[i]] <- results_i$FPR_LR_occ_penalized
+    
+    pvalues_occ_list[[i]] <- results_i$pvalues_occ
+    pvalues_prop_list[[i]] <- results_i$pvalues_prop
+    pvalues_LR_occ_classic_list[[i]] <- results_i$pvalues_LR_occ_classic
+    pvalues_LR_occ_penalize_list[[i]] <- results_i$ pvalues_LR_occ_penalize
+    
+    group_vec_list[[i]] <- results_i$group_vec
+  }
+  
+  FPR <- data.frame(
+    N_Samples = rep(size_group, loop_times),
+    Occ = FPR_occ_list %>% unlist(),
+    Prop = FPR_prop_list %>% unlist(),
+    LR_occ_classic = FPR_LR_occ_classic_list %>% unlist(),
+    LR_occ_penalized = FPR_LR_occ_penalized_list %>% unlist()
+    )
+  
+  pvalues <- data.frame(
+    N_Samples = rep(size_group, loop_times),
+    Occ = pvalues_occ_list %>% unlist(),
+    Prop = pvalues_prop_list %>% unlist(),
+    LR_occ_classic = pvalues_LR_occ_classic_list %>% unlist(),
+    LR_occ_penalized = pvalues_LR_occ_penalize_list %>% unlist()
+    )
+  
+  return(list(
+    FPR = FPR,
+    pvalues = pvalues,
+    group_vec_list = group_vec_list))
+
+}
+
+```
+
+### C22
+
+```{r random sampling C22}
+C22_bb <- trimColumn(
+  Barbie = Belderbos_uniqueCol,
+  keep_columns = meta$pseudo_group == "C22")
+# run the loop for each size of samples
+
+random_sampling <- function(Barbie) {
+
+  num_samples <- ncol(Barbie$CPM)
+  end_sampling <- floor(num_samples / 2)
+  
+  # stop running loop if end_sampling <= 3
+  if(num_samples < 3) {
+    return("not enough samples!")
+  }
+  
+  set.seed(42) # for reproducibility
+  
+  all_loops <- lapply(3:end_sampling, function(n) {
+    Loop_Samples(
+      Barbie = Barbie, size_group = n, loop_times = 100)
+  })
+  
+  all_FPR <- lapply(seq(3:end_sampling), function(n) {
+    all_loops[[n]]$FPR
+  }) 
+  
+  df_FPR <- do.call(rbind, all_FPR)
+  
+  df_FPR$N_Samples <- as.factor(df_FPR$N_Samples)
+  
+  all_pvalue <- lapply(seq(3:end_sampling), function(n) {
+    all_loops[[n]]$pvalues
+  })
+  
+  df_pvalues <- do.call(rbind, all_pvalue)
+  
+  df_pvalues$N_Samples <- as.factor(df_pvalues$N_Samples)
+  
+  gFDRocc <- ggplot(as.data.frame(df_FPR),
+    aes(x = N_Samples, y = Occ, fill = N_Samples)) +
+    # geom_violin(width = 0.5) +  # Set width for better visibility +
+    geom_boxplot(width = 0.5, outlier.shape = NA) +
+    geom_jitter(width = 0.1, height = 0, size = 1) +  # Add jittered points
+    geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+    labs(title = "Diff_Occ, Mouse C22",
+         y = "Prop. barcodes with p.value < 0.05",
+         x = "No. samples per group") +
+    theme_classic()
+  
+  gFDRprop <- ggplot(as.data.frame(df_FPR),
+    aes(x = N_Samples, y = Prop, fill = N_Samples)) +
+    # geom_violin(width = 0.5) +  # Set width for better visibility
+    geom_boxplot(width = 0.5, outlier.shape = NA) +
+    geom_jitter(width = 0.1, height = 0, size = 1) +  # Add jittered points
+    geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+    labs(title = "Diff_Prop, Mouse C22",
+         y = "Prop. barcodes with p.value < 0.05",
+         x = "No. samples per group") +
+    theme_classic()
+  
+  
+  gPocc <- ggplot(as.data.frame(df_pvalues),
+    aes(x = N_Samples, y = Occ, fill = N_Samples)) +
+    geom_violin(width = 0.5) +
+    geom_jitter(width = 0.1, height = 0, size = 1) +
+    geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+    labs(title = "Diff_Occ, Mouse C22",
+         y = "p.value")
+  
+  gPprop <- ggplot(as.data.frame(df_pvalues),
+    aes(x = N_Samples, y = Prop, fill = N_Samples)) +
+    geom_violin() +
+      geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+    labs(title = "Diff_Prop, Mouse C22",
+         y = "p.value")
+  
+  return(
+    list(gFDRocc = gFDRocc,
+         gFDRprop = gFDRprop,
+         gPocc = gPocc,
+         gPprop = gPprop))
+
+}
+
+results_negsi <- random_sampling(Barbie = C22_bb)
+
+lapply(results_negsi, plot)
+
+# Calculate the combos
+for(i in 3:8) {
+  print(choose(17,i) * choose(17-i,i))
+}
+
+```
+
+### C22 t-SNE
+
+```{r C22 tsne}
+# Ensure you have the right number of samples
+num_samples <- ncol(C22_bb$CPM)
+perplexity <- min(30, (num_samples - 1) / 3)
+
+tsne_results <- (C22_bb$CPM + 1) %>% 
+  t() %>% 
+  log2() %>% 
+  Rtsne::Rtsne(perplexity = perplexity)
+tsne_coords <- tsne_results$Y
+tsne_coords <- as.data.frame(tsne_coords)
+
+lapply(
+  C22_bb$metadata %>% ncol() %>% seq(), 
+  function(i) {
+    col_fac <- colnames(C22_bb$metadata)[i]
+    ggplot(tsne_coords) +
+    geom_point(aes(x = V1, y = V2, col = C22_bb$metadata[[i]])) +
+    labs(x = "t-SNE Dimension 1", y = "t-SNE Dimension 2", color = col_fac) +
+      theme_classic() +
+    theme(aspect.ratio = 1)
+  }
+  )
+
+# color samples by random groups
+flagN4 <- all_loops[[2]]$FPR$Occ > 0.05
+group_vec_N4 <- all_loops[[2]]$group_vec_list[flagN4]
+
+flagN8 <- all_loops[[6]]$FPR$Occ > 0.05
+group_vec_N8 <- all_loops[[6]]$group_vec_list[flagN8]
+
+flagN3 <- all_loops[[1]]$FPR$Prop > 0.05
+group_vec_N3 <- all_loops[[1]]$group_vec_list[flagN3]
+
+# function for plotting random groups
+color_rd_group <- function(group_info){
+  ggplot(tsne_coords) +
+  geom_point(aes(x = V1, y = V2, col = group_info,
+                 shape = group_info), size = 3) +
+  labs(x = "t-SNE Dimension 1", y = "t-SNE Dimension 2", col = "Random Group", shape = "Random Group") +
+  theme_classic() +
+  theme(aspect.ratio = 1) +
+  scale_color_manual(
+    values = c("grey", "group1" = "red", "group2" = "blue")) +
+  scale_shape_manual(
+    values = c(16,17,17)
+  )
+}
+
+# plot sig. simulations
+lapply(list(group_vec_N4[[1]],
+            group_vec_N4[[2]],
+            group_vec_N8[[1]],
+            group_vec_N3[[1]],
+            group_vec_N3[[2]],
+            group_vec_N3[[3]]),
+       function(x) {
+        color_rd_group(x)
+      })
+
+# Unsorted subset has 10 samples in total.
+for(i in 3:5) {
+  print(choose(10,i) * choose(10-i,i))
+}
+```
+
+### C22 details
+
+```{r C22 details, fig.width=10, fig.height=7}
+# subset of sig. simulations
+C22_bb$metadata$group <- group_vec_N3[[2]]
+NegSim_gp <- trimObjectByMetadata(
+  Barbie = C22_bb,
+  condition = "group",
+  specified = c("group1", "group2"),
+  keep = TRUE
+)
+
+ConTb_N3_1<- GetContingencyTable(
+  Barbie = NegSim_gp,
+  Factor = "group"
+)
+
+NegSim_gp <- GetOccBiasGroup(
+  Barbie = NegSim_gp,
+  contingency_table_ls = ConTb_N3_1
+)
+
+mytargets <- data.frame(NegSim_gp$metadata)
+  
+# model design matrix
+mydesign <- mytargets %>%
+    with(model.matrix(~0 + group))
+  
+# set up block
+myblock <- NULL
+  
+# apply test for Bias_Prop
+NegSim_gp <- getPropBiasGroup(
+  Barbie = NegSim_gp, 
+  mydesign = mydesign, 
+  myblock = myblock, 
+  mytargets = mytargets)
+
+row_ha <- NegSim_gp %>% with(
+  rowAnnotation(
+    Prop = Bias_Prop$group,
+    Occ = Bias_Occ$group,
+    col = list(
+      Prop = color_panel$bias_group,
+      Occ = color_panel$bias_group
+      ),
+    show_legend = TRUE,
+    show_annotation_name = TRUE,
+    annotation_name_side = "bottom",
+    annotation_name_gp = gpar(fontsize = 10)
+    )
+)
+
+PlotCpmHP_0(
+  Barbie = NegSim_gp,
+  Vector_customized = NegSim_gp$metadata$group,
+  show_bias = TRUE,
+  row_ha = row_ha
+  ) 
+
+pointer_N3_1 <- NegSim_gp$Bias_Occ$group != "Unbiased"
+
+NegSim_gp$Bias_Prop$group[pointer_N3_1]
+
+ConTb_N3_1[pointer_N3_1]
+
+
+
+# Example data:
+#            Response
+# Treatment   Yes No
+# Treatment1  3  0
+# Treatment2  0  3
+
+# Creating the table in R
+contingency_table <- matrix(c(0, 3, 3, 0), nrow = 2, byrow = TRUE)
+
+# Add row and column names (optional, but helps with readability)
+dimnames(contingency_table) <- list(
+  Treatment = c("Treatment1", "Treatment2"),
+  Response = c("Yes", "No")
+)
+
+# Print the table
+print(contingency_table)
+
+# Perform Fisher's Exact Test
+fisher.test(contingency_table)
+
+chisq.test(contingency_table)
+```
+
+#### Logistic Regression
+
+```{r C22 logistic, fig.width=7, fig.height=6}
+# NegSim_gp 
+
+Heatmap(
+  # matrix = log2(NegSim_gp$CPM + 1),
+  matrix = NegSim_gp$presence + 1 -1,
+  name = "NegSim_size8",
+  row_split = NegSim_gp$Bias_Occ$group,
+  column_split = NegSim_gp$metadata$group,
+  show_row_names = F,
+  show_column_names = F,
+  width = unit(4, "cm"),
+  height = unit(4, "cm"))
+
+# prepare df for logistic regression
+# factors in columns, samples in rows
+
+# selcte a barcode as outcome
+NegSim_gp_un <- trimRow(
+  Barbie = NegSim_gp,
+  keep_rows = NegSim_gp$Bias_Occ$group != "Unbiased")
+
+outcome <- NegSim_gp$presence + 1 - 1
+
+# Create a function to fit the logistic model to a single row
+fit_logistic_model <- function(row) {
+  dat <- data.frame(
+    Group = as.factor(NegSim_gp$metadata$group),
+    Barcode_i = factor(row)
+  )
+  
+  logiM8 <- glm(
+    Barcode_i ~ Group,
+    data = dat,
+    family = "binomial"
+  )
+  
+  plot_model(logiM8,
+  type = "pred",
+  terms = "Group"
+) +
+  labs(y = "Prob(Presence)")
+  
+  return(summary(logiM8))
+}
+
+firth_model <- function(row) {
+  dat <- data.frame(
+    Group = as.factor(NegSim_gp$metadata$group),
+    Barcode_i = factor(row)
+  )
+  
+  firthM8 <- logistf(Barcode_i ~ Group, data = dat)
+  
+  return(summary(firthM8))
+  
+}
+
+# Apply the function to each row of outcome and store the results
+results <- lapply(1:nrow(outcome), function(i) fit_logistic_model(outcome[i, ]))
+
+# View the summary of the first model as an example
+results[[1]]$coefficients[2,4]
+
+p.values.logi <- lapply(results, function(x) 
+  x$coefficients[2,4]) %>% unlist()
+
+beta.logi <- lapply(results, function(x) 
+  x$coefficients[2,1]) %>% unlist()
+
+signif.logi <- ifelse(p.values.logi >= 0.05,
+                      "Unbiased",
+                      ifelse(beta.logi > 0,
+                             "Group2", "Group1"))
+
+# Apply the function to each row of outcome and store the results
+results_firth <- lapply(1:nrow(outcome), function(i) firth_model(outcome[i, ]))
+
+# View the summary of the first model as an example
+rr <- results_firth[[1]]
+rr$prob[2]
+
+p.values.firth <- lapply(
+  results_firth, function(x) 
+  x$prob[2]) %>% unlist()
+
+beta.firth <- lapply(
+  results_firth, function(x) 
+  x$coefficients[2]) %>% unlist()
+
+signif.firth <- ifelse(p.values.firth >= 0.05,
+                      "Unbiased",
+                      ifelse(beta.firth > 0,
+                             "Group2", "Group1"))
+
+set.seed(123)
+row_logi <- rowAnnotation(
+  Prop = NegSim_gp$Bias_Prop$group,
+  Fishers = NegSim_gp$Bias_Occ$group,
+  Logi = signif.logi,
+  Firth = signif.firth
+  # p.value = anno_text(
+  #   p.values.logi %>% round(3),
+  #   gp = gpar(fontsize = 6)),
+  # beta.logi = anno_text(
+  #   beta.logi %>% round(3),
+  #   gp = gpar(fontsize = 6))
+)
+
+Heatmap(
+  matrix = log2(NegSim_gp$CPM + 1),
+  # matrix = NegSim_gp$presence + 1 -1,
+  name = "NegSim_size8",
+  row_split = factor(
+    NegSim_gp$Bias_Occ$group, 
+    levels = c("group2", "Unbiased")),
+  cluster_row_slices = F,
+  column_split = NegSim_gp$metadata$group,
+  show_row_names = F,
+  show_column_names = F,
+  width = unit(4, "cm"),
+  height = unit(10, "cm")
+  # right_annotation = row_logi
+  ) + 
+  
+  Heatmap(
+  # matrix = log2(NegSim_gp$CPM + 1),
+  matrix = NegSim_gp$presence + 1 -1,
+  name = "NegSim_size8",
+  row_split = factor(
+    NegSim_gp$Bias_Occ$group, 
+    levels = c("group2", "Unbiased")),
+  cluster_row_slices = F,
+  column_split = NegSim_gp$metadata$group,
+  show_row_names = F,
+  show_column_names = F,
+  width = unit(4, "cm"),
+  height = unit(10, "cm"),
+  right_annotation = row_logi
+  )
+
+# find the extreme situations
+flag_ex <- beta.logi > 20
+
+presence <- outcome[flag_ex,][1,] + 1 - 1
+
+# peak the extreme model
+fit_logistic_model(presence)
+
+  dat <- data.frame(
+    Barcode_i = factor(presence),
+    Group = as.factor(NegSim_gp$metadata$group)
+  )
+  
+  logiM8 <- glm(
+    Barcode_i ~ Group,
+    data = dat,
+    family = "binomial"
+  )
+  
+plot_model(logiM8,
+  type = "pred",
+  terms = "Group"
+) +
+  labs(y = "Prob(Presence)")
+
+table(dat)
+
+# we get insignificant coefficient of group2 because of perfect separation, that all outcomes for group1 are 0 and all 1 are in gruop2.
+
+# To solve this, we can use 1) Lasso Regularization 2) Firth's Penalized Likelihood.
+
+# 1)
+
+# Prepare data for glmnet
+x <- model.matrix(Barcode_i ~ Group, data = dat)
+y <- dat$Barcode_i
+
+# Fit logistic regression with lasso regularization
+fit <- glmnet(x, y, family = "binomial", alpha = 1)
+
+# Print coefficients at lambda that minimizes cross-validated error
+coef(fit, s = "lambda.min")
+
+
+# 2)
+
+# Fit logistic regression using Firth's penalized likelihood
+fit_firth <- logistf(Barcode_i ~ Group, data = dat)
+
+# Print summary of the model
+summary(fit_firth)
+```
+
+#### Test
+
+```{r logi test, fig.width=7, fig.height=6}
+source("/Users/feiliyang/Desktop/Barbie/R/Get_LR_Occ.R")
+
+NegSim_gp <-  GetLogitOcc(Barbie = NegSim_gp, penalized = F)
+NegSim_gp <- GetLogitOcc(Barbie = NegSim_gp, penalized = T)
+
+set.seed(123)
+row_logi <- rowAnnotation(
+  Prop = NegSim_gp$Bias_Prop$group,
+  Fishers = NegSim_gp$Bias_Occ$group,
+  Logi = NegSim_gp$LR_Occ_classic$group,
+  Firth = NegSim_gp$LR_Occ_penalized$group
+  # p.value = anno_text(
+  #   p.values.logi %>% round(3),
+  #   gp = gpar(fontsize = 6)),
+  # beta.logi = anno_text(
+  #   beta.logi %>% round(3),
+  #   gp = gpar(fontsize = 6))
+)
+
+Heatmap(
+  matrix = log2(NegSim_gp$CPM + 1),
+  # matrix = NegSim_gp$presence + 1 -1,
+  name = "NegSim_size8",
+  row_split = factor(
+    NegSim_gp$Bias_Occ$group, 
+    levels = c("group2", "Unbiased")),
+  cluster_row_slices = F,
+  column_split = NegSim_gp$metadata$group,
+  show_row_names = F,
+  show_column_names = F,
+  width = unit(4, "cm"),
+  height = unit(10, "cm")
+  # right_annotation = row_logi
+  ) + 
+  
+  Heatmap(
+  # matrix = log2(NegSim_gp$CPM + 1),
+  matrix = NegSim_gp$presence + 1 -1,
+  name = "NegSim_size8",
+  row_split = factor(
+    NegSim_gp$Bias_Occ$group, 
+    levels = c("group2", "Unbiased")),
+  cluster_row_slices = F,
+  column_split = NegSim_gp$metadata$group,
+  show_row_names = F,
+  show_column_names = F,
+  width = unit(4, "cm"),
+  height = unit(10, "cm"),
+  right_annotation = row_logi
+  )
+
+```
+
+
+### C22 Unsorted
+
+```{r C22 unsorted}
+C22_Un <- trimColumn(
+  Barbie = C22_bb,
+  keep_columns = C22_bb$metadata$Celltype == "Unsorted")
+
+random_sampling(Barbie = C22_Un)
+```
+
+
+### C21
+
+```{r random sampling C21}
+C21_bb <- trimColumn(
+  Barbie = Belderbos_uniqueCol,
+  keep_columns = meta$pseudo_group == "C21")
+
+C21_bb$metadata %>% nrow()
+
+# run the loop for each size of samples
+
+all_loops <- lapply(3:11, function(n) {
+  Loop_Samples(
+    Barbie = C21_bb, size_group = n, loop_times = 100)
+})
+
+all_FPR <- lapply(seq(3:11), function(n) {
+  all_loops[[n]]$FPR
+}) 
+
+df_FPR <- do.call(rbind, all_FPR)
+
+df_FPR$N_Samples <- as.factor(df_FPR$N_Samples)
+
+all_pvalue <- lapply(seq(3:11), function(n) {
+  all_loops[[n]]$pvalues
+})
+
+df_pvalues <- do.call(rbind, all_pvalue)
+
+df_pvalues$N_Samples <- as.factor(df_pvalues$N_Samples)
+
+ggplot(as.data.frame(df_FPR[201:300,]),
+  aes(x = N_Samples, y = Occ, fill = N_Samples)) +
+  geom_violin() +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+  labs(title = "Diff_Occ, Mouse C22",
+       y = "FPR")
+
+ggplot(as.data.frame(df_FPR),
+  aes(x = N_Samples, y = Prop, fill = N_Samples)) +
+  geom_violin() +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+  labs(title = "Diff_Prop, Mouse C22",
+       y = "FPR")
+
+
+ggplot(as.data.frame(df_pvalues),
+  aes(x = N_Samples, y = Occ, fill = N_Samples)) +
+  geom_violin() +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+  labs(title = "Diff_Occ, Mouse C22",
+       y = "p.value")
+
+ggplot(as.data.frame(df_pvalues),
+  aes(x = N_Samples, y = Prop, fill = N_Samples)) +
+  geom_violin() +
+    geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+  labs(title = "Diff_Prop, Mouse C22",
+       y = "p.value")
+
+
+```
+
+
+# Test Occ between Mouse
+
+```{r test mice}
+# subset: C23, C22, or C21?
+bb_1 <- trimObjectByMetadata(
+  Barbie = Belderbos_uniqueCol,
+  condition = "Mouse",
+  specified = c("C10", "C15"),
+  keep = TRUE
+)
+
+bb_1 <- trimObjectByMetadata(
+  Barbie = bb_1,
+  condition = "Celltype",
+  specified = c("Unsorted", "Tcell"),
+  keep = TRUE
+)
+
+c_table_1 <- GetContingencyTable(
+  Barbie = bb_1,
+  Vector_customized = bb_1$metadata$Mouse
+)
+
+# lapply(c_table_1[1:5], function(x) {knitr::kable(x)})
+
+# Apply test, and get Bias group
+bb_1 <- GetOccBiasGroup(Barbie = bb_1, contingency_table_ls = c_table_1)
+
+kableExtra::kable(bb_1$Bias_Occ)
+
+PlotBiasVsRank(Barbie = bb_1, passing_data = "contribution")
+
+PlotCpmHP_0(Barbie = bb_1, show_bias = TRUE, Vector_customized = bb_1$metadata$Mouse, split_by = bb_1$metadata$Mouse)
+```
+
+# Test Prop between Mouse
+
+```{r test prop between mouse}
+bb_1 <- trimObjectByMetadata(
+  Barbie = Belderbos_uniqueCol,
+  condition = "Mouse",
+  specified = c("C21", "C22"),
+  keep = TRUE
+)
+
+# make your own targets and design matrix
+# targets
+grouped_time <- bb_1$metadata$Time
+grouped_time[bb_1$metadata$Time != "sac"] <- "live"
+
+mytargets <- data.frame(
+  bb_1$metadata, 
+  grouped_time = grouped_time
+  )
+
+# model design matrix
+mydesign <- mytargets %>%
+  with(model.matrix(~0 + Mouse + Tissue + grouped_time + Celltype))
+
+# set up block
+myblock <- mytargets %>%
+    with(paste(Mouse, Tissue, grouped_time, Celltype))
+
+# apply test for Bias_Prop
+bb_1 <- getPropBiasGroup(Barbie = bb_1, mydesign = mydesign, myblock = myblock)
+
+PlotBiasVsRank(
+  Barbie = bb_1, 
+  passing_data = "contribution", 
+  bias_group = bb_1$Bias_Prop$group,
+  bias_pvalue = bb_1$Bias_Prop$pvalue
+  )
+
+PlotCpmHP_0(
+  Barbie = bb_1, 
+  show_bias = TRUE, 
+  Vector_customized = bb_1$metadata$Mouse, 
+  split_by = bb_1$metadata$Mouse,
+  bias_group = bb_1$Bias_Prop$group) 
+```
+
+
+# Homogenous Sets
+
+```{r homogenous, fig.height=15, fig.width=15}
+meta <- Belderbos_uniqueCol$metadata
+View(meta)
+kableExtra::kable(meta)
+
+# group wkxx before sac together
+grouped_time <- meta$Time
+grouped_time[grouped_time != "sac"] <- "live"
+
+# group other tissues against BM
+grouped_tissue <- meta$Tissue
+grouped_tissue[grouped_tissue != "BM"] <- "non_BM"
+
+meta <- meta %>% 
+  mutate(combined = paste(grouped_tissue, Celltype, grouped_time, xCondition, sep = "."))
+
+table(meta$combined)
+
+homo <- duplicated(meta$combined, fromLast = TRUE) | duplicated(meta$combined)
+homo_cond <- unique(meta$combined[homo])
+
+table(meta$combined[homo])
+
+tsne_coords <- as.data.frame(tsne_coords)
+
+# use facet wrap to highlight each group of duplicated conditions.
+tsne_df <- data.frame(
+  tsne_coords, 
+  combined = meta$combined,
+  Mouse.Time.Tissue = paste(meta$Mouse, meta$Time, meta$Tissue, sep = "."),
+  grouped_time = grouped_time,
+  grouped_tissue = grouped_tissue)
+
+ggplot() +
+  geom_point(data = tsne_coords, aes(x = V1, y = V2), color = "grey") +
+  geom_point(data = tsne_df[homo,], aes(x = V1, y = V2, color = combined)) +
+  geom_text(data = tsne_df[homo,], aes(x = V1+0.5, y = V2+0.5, label = Mouse.Time.Tissue), size = 2, position = position_jitter(width = 0.3, height = 0.3)) +
+  facet_wrap(~ combined) +
+  labs(x = "t-SNE Dimension 1", y = "t-SNE Dimension 2", color = "combined") +
+  theme(aspect.ratio = 1, legend.position = "none")
+```
+
+```{r homogenous dif position, fig.height=15, fig.width=15}
+meta <- Belderbos_uniqueCol$metadata
+View(meta)
+kableExtra::kable(meta)
+
+# group wkxx before sac together
+grouped_time <- meta$Time
+grouped_time[grouped_time != "sac"] <- "live"
+
+# group other tissues against BM
+grouped_tissue <- meta$Tissue
+grouped_tissue[grouped_tissue != "BM"] <- "non_BM"
+
+# group mice
+grouped_mouse <- meta$Mouse
+grouped_mouse[grouped_mouse %in% c("C1", "C2", "C3")] <- "Pseudo1"
+grouped_mouse[grouped_mouse %in% c("C10", "C15")] <- "Pseudo2"
+
+meta <- meta %>% 
+  mutate(combined = paste(grouped_mouse, Tissue, Celltype, grouped_time, xCondition, sep = "."))
+
+table(meta$combined)
+
+homo <- duplicated(meta$combined, fromLast = TRUE) | duplicated(meta$combined)
+homo_cond <- unique(meta$combined[homo])
+
+table(meta$combined[homo])
+
+BM <- meta$Tissue == "BM"
+
+tsne_coords <- as.data.frame(tsne_coords)
+
+# use facet wrap to highlight each group of duplicated conditions.
+tsne_df <- data.frame(
+  tsne_coords, 
+  combined = meta$combined,
+  Mouse.Position = paste(meta$Mouse, meta$Position, sep = "."),
+  grouped_time = grouped_time,
+  grouped_tissue = grouped_tissue)
+
+ggplot() +
+  geom_point(data = tsne_coords, aes(x = V1, y = V2), color = "grey") +
+  geom_point(data = tsne_df[homo,], aes(x = V1, y = V2, color = combined)) +
+  geom_text(data = tsne_df[homo,], aes(x = V1+0.5, y = V2+0.5, label = Mouse.Position), size = 2, position = position_jitter(width = 0.3, height = 0.3)) +
+  facet_wrap(~ combined) +
+  labs(x = "t-SNE Dimension 1", y = "t-SNE Dimension 2", color = "combined") +
+  theme(aspect.ratio = 1, legend.position = "none")
+```

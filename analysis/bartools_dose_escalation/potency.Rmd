@@ -1,0 +1,72 @@
+---
+title: "potency"
+author: "LF"
+date: "2024-08-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r aaaaaaaaa}
+# load data in the "LF_start_processed_mat.Rmd"
+# Potency = rowSum of Occ after grouping columns
+IBET_bb$occurrence %>% dim()
+
+pot <- rowSums(IBET_bb$occurrence)
+
+p1 <- ggplot(data.frame(x = pot), aes(x = x)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(title = "Clonal Potency out of IBET",
+       x = "Potency",
+       y = "Frequency")
+
+
+p2 <- ggplot(data.frame(x = rowSums(ARAC_bb$occurrence)), aes(x = x)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(title = "Clonal Potency out of ARAC",
+       x = "Potency",
+       y = "Frequency")
+
+p3 <- ggplot(data.frame(x = rowSums(DMSO_bb$occurrence)), aes(x = x)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(title = " Clonal Potency out of DMSO",
+       x = "Potency",
+       y = "Frequency")
+
+p4 <- ggplot(data.frame(x = rowSums(AML_bb$occurrence)), aes(x = x)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(title = "Clonal Potency out of All Treatments",
+       x = "Potency",
+       y = "Frequency")
+
+(p1 | p2) / (p3 | p4)
+
+
+ggplot(data.frame(x = pot), aes(x = x)) +
+  geom_density(color = "blue", fill = "skyblue", alpha = 0.3) +
+  labs(title = "Histogram of Clonal Potency out of IBET",
+       x = "Potency",
+       y = "Frequency")
+
+ggplot(data.frame(x = rowSums(ARAC_bb$occurrence)), aes(x = x)) +
+    geom_density(color = "blue", fill = "skyblue", alpha = 0.3) +
+  labs(title = "Histogram of Clonal Potency out of ARAC",
+       x = "Potency",
+       y = "Frequency")
+
+ggplot(data.frame(x = rowSums(DMSO_bb$occurrence)), aes(x = x)) +
+    geom_density(color = "blue", fill = "skyblue", alpha = 0.3) +
+  labs(title = "Histogram of Clonal Potency out of DMSO",
+       x = "Potency",
+       y = "Frequency")
+
+ggplot(data.frame(x = rowSums(AML_bb$occurrence)), aes(x = x)) +
+  geom_density(color = "blue", fill = "skyblue", alpha = 0.3) +
+  labs(title = "Histogram of Clonal Potency out of all treats",
+       x = "Potency",
+       y = "Frequency")
+
+```
+
