@@ -2,44 +2,9 @@
 title: "compare_original_analysis"
 author: "LF"
 date: "2024-12-30"
-output: 
-    html_document: 
-    toc: true
-    toc_depth: 4
-    toc_float: 
-      collapsed: false
-      smooth_scroll: false
+output: workflowr::wflow_html
+output_dir: ../../docs/WuC
 ---
-
-```{=html}
-<style>
-.scroll-plot {
-    width: 1000px;
-    height: 600px;
-    overflow-y: scroll;
-    overflow-x: scroll;
-}
-</style>
-```
-```{r dummy}
-# dummy data
-data <- data.frame(
-  METRIC = paste('var', 1:20),
-  VAL = runif(10),
-  stringsAsFactors = FALSE
-)
-```
-
-
-```{r results = 'asis'}
-# automatically generate <style> block of css for each tab
-tab_number <- 1:nrow(data)
-tab_color <- "#CCCCCC"
-css <- sprintf(".color-tabs>.nav-pills>li:nth-child(%d){background:%s;}", tab_number, tab_color)
-css <- paste(css, collapse = "\n")
-css <- paste("<style>", css, "</style>")
-cat(css)
-```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -53,6 +18,7 @@ library(magrittr)
 library(dplyr)
 library(tidyr) # for pivot_longer
 library(tibble) # for rownames_to _column
+library(knitr) # for kable()
 library(ggplot2)
 library(scales)
 library(ggVennDiagram)
@@ -63,17 +29,17 @@ library(limma)
 # Load Processed Data
 
 ```{r load rda}
-load("tagged_bq.rda")
-load("tagged_bq_min.rda")
+getwd()
+load("../../output/WuC/tagged_bq.rda")
+load("../../output/WuC/tagged_bq_min.rda")
 ```
 
 ```{r load xlsx}
 ## load dataset provided by the paper corresponding to specific figures
-paper_data <- read_excel("aat9781_table_s2.xlsx", sheet = "Figure 2 ZG66")
+paper_data <- read_excel("../../data/WuC/aat9781_table_s2.xlsx", sheet = "Figure 2 ZG66")
 paper_data <- as.data.frame(paper_data)
 rownames(paper_data) <- paper_data[[1]]
 ZG66_Fig2 <- paper_data[,-1]
-
 
 ```
 
@@ -103,7 +69,7 @@ plot(venn2, fills = c("red", "blue"), alpha = 0.5, labels = TRUE, quantities = T
 
 ## NK-secific Clone Paper Selected
 
-```{r NK }
+```{r NK by paper checking }
 
 NK_clone_contribution <- ZG66_Fig2 %>% colSums()
 dat <- data.frame(
@@ -123,7 +89,7 @@ ggplot(dat, aes(x = as.factor(id), y = contr, color = sample)) +
 
 # Model Design Matrix - filtered
 
-```{r model desing matrix}
+```{r model desing matrix 1}
 ## default Gr_1 and Gr_2 to Gr
 ## remove NKG2A_blah NK subtype, whice were collected in late timepoints
 
@@ -140,7 +106,7 @@ table(myObject$metadata$Celltype)
 
 ```
 
-```{r fit model}
+```{r fit model 1}
 ## define matrix
 ## will consider Months factor later as each cell type may have different trend
 mydesign <- model.matrix(~ 0 + Celltype, data = myObject$metadata)
@@ -162,7 +128,7 @@ myObject <- barbieQ::testBarcodeBias(
 myObject$testBarcodes$diffProp_Celltype$methods$groups
 ```
 
-```{r compare selects}
+```{r compare selects 1}
 # barbieQ::plotBarcodeBiasHeatmap(barbieQ = myObject)
 
 N6_0.99_select <- myObject$testBarcodes$diffProp_Celltype$results$direction == "group2"
@@ -181,7 +147,7 @@ NK_myObject$testBarcodes$diffProp_Celltype$results <- NK_myObject$testBarcodes$d
 barbieQ::plotBarcodeHeatmap(NK_myObject, sampleGroups = "Celltype", splitSamples = T)
 ```
 
-```{r compare hp}
+```{r compare hp 1}
 anno_sig <- rowAnnotation(
   N6_0.99 = myObject$testBarcodes$diffProp_Celltype$results$direction,
   Paper = rownames(myObject$assay) %in% rownames(ZG66_Fig2),
@@ -207,11 +173,11 @@ barcode_sup <- rownames(ZG66_Fig2)[point_sup]
 count_sup <- ZG66_bq$CPM[barcode_sup, colnames(myObject$assay)]
 # count_sup2 <- ZG66_Fig2[barcode_sup, ]
 
-print(count_sup)
+kable(count_sup)
 
 ```
 
-```{r NK }
+```{r NK 1}
 point_NK <- myObject$testBarcodes$diffProp_Celltype$results$direction == "group2"
 myNK <- barbieQ::subsetBarcodes(barbieQ = myObject, retainedRows = point_NK)
 myNK$testBarcodes <- myObject$testBarcodes
@@ -232,7 +198,7 @@ ggplot(dat, aes(x = as.factor(id), y = contr, color = sample)) +
 
 # Model Design Matrix - pre-filtering
 
-```{r model desing matrix}
+```{r model desing matrix 2}
 ## default Gr_1 and Gr_2 to Gr
 ## remove NKG2A_blah NK subtype, whice were collected in late timepoints
 
@@ -249,11 +215,11 @@ table(myObject$metadata$Celltype)
 table(myObject$metadata$Months)
 ```
 
-```{r fit model}
+```{r fit model 2}
 ## define matrix
 ## will consider Months factor later as each cell type may have different trend
 mydesign <- model.matrix(~ 0 + Celltype, data = myObject$metadata)
-View(mydesign)
+# View(mydesign)
 
 ## define contrast
 mycontrast <- limma::makeContrasts(
@@ -271,7 +237,7 @@ myObject <- barbieQ::testBarcodeBias(
 myObject$testBarcodes$diffProp_Celltype$methods$groups
 ```
 
-```{r compare selects}
+```{r compare selects 2}
 NK_myObject <- barbieQ::subsetBarcodes(
   barbieQ = myObject, retainedRows = myObject$testBarcodes$diffProp_Celltype$results$direction == "group2")
 NK_myObject$testBarcodes$diffProp_Celltype <- myObject$testBarcodes$diffProp_Celltype
@@ -288,16 +254,16 @@ venn3 <- eulerr::euler(
 plot(venn3, fills = c("red", "blue"), alpha = 0.5, labels = TRUE, quantities = TRUE)
 ```
 
-```{r compare hp}
+```{r compare hp 2}
 anno_sig <- rowAnnotation(
   Paper = rownames(NK_myObject$assay) %in% rownames(ZG66_Fig2)
 )
 
-set.seed(234)S
+set.seed(234)
 barbieQ::plotBarcodeHeatmap(barbieQ = NK_myObject, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
 ```
 
-```{r NK }
+```{r NK 3}
 point_NK <- myObject$testBarcodes$diffProp_Celltype$results$direction == "group2"
 myNK <- barbieQ::subsetBarcodes(barbieQ = myObject, retainedRows = point_NK)
 myNK$testBarcodes <- myObject$testBarcodes

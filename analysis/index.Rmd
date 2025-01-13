@@ -1,5 +1,5 @@
 ---
-title: "Home"
+title: "Analysis on public barcode count datasets"
 site: workflowr::wflow_site
 output:
   workflowr::wflow_html:
@@ -8,4 +8,20 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+# Project Aim
+
+This project collects public barcode count datasets and analyses them using the  [barbieQ](https://github.com/Oshlack/barbieQ) package. - Liyang, Jan 2025
+
+# Datasets
+
+### BelderbosME [README](../data/BelderbosME/README.md)
+ 
+### bartools_dose_escalation [README](../data/bartools_dose_escalation/README.md)
+ 
+### DEBRA (README file not ready yet)
+ 
+### WuC (README file not ready yet)
+
+ - Explore filtering strategies by comparing filtered and unfiltered data regarding statistical test results on barcode differential proportion. [filtering_explore_alter](WuC/filtering_explore_alter.html)
+
+ - When selecting NK-biased clones, compare the performance of barbieQ and the paper's strategy based on the paper's validation method. [compare_original_analysis](WuC/compare_original_analysis.html)

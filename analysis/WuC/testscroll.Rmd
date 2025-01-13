@@ -1,0 +1,32 @@
+---
+title: "filtering_explore"
+author: "LF"
+date: "2024-12-24"
+output: workflowr::wflow_html
+output_dir: ../../docs/WuC
+---
+
+# Chapter 1
+
+::: scroll-plot
+```{r test, fig.width=9, fig.height=5}
+library(ggplot2)
+
+# Create a scatter plot
+ggplot(data.frame(
+  x = rnorm(100),  # 100 random numbers from a normal distribution
+  y = rnorm(100)
+), aes(x = x, y = y)) +
+  geom_point()
+```
+:::
+
+# Chapter 2 {.color-tabs .tabset .tabset-fade .tabset-pills}
+
+## Section 1
+
+Omg
+
+## Section 2
+
+Haha

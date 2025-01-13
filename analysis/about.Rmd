@@ -7,4 +7,4 @@ editor_options:
   chunk_output_type: console
 ---
 
-Describe your project.
+- This project collects public barcode count datasets and analyses them using the  [barbieQ](https://github.com/Oshlack/barbieQ) package. - Liyang, Jan 2025

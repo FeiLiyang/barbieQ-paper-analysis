@@ -1,10 +1,5 @@
 This data is sourced from the BARtab/bartools paper, included and analysed there. - Liyang
 
-I have saved some processed data here. They are:
-
-* 
-
-
 Below is information provided by the source.
 
 # bartools/BARtab manuscript code

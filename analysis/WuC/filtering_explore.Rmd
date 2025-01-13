@@ -3,12 +3,13 @@ title: "filtering_explore"
 author: "LF"
 date: "2024-12-24"
 output: 
-    html_document: 
+  html_document: 
     toc: true
     toc_depth: 4
     toc_float: 
       collapsed: false
       smooth_scroll: false
+    number_sections: true
 ---
 
 ```{=html}
