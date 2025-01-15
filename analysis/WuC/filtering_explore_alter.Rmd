@@ -6,37 +6,6 @@ output: workflowr::wflow_html
 output_dir: ../../docs/WuC
 ---
 
-```{=html}
-<style>
-.scroll-plot {
-    width: 1000px;
-    height: 600px;
-    overflow-y: scroll;
-    overflow-x: scroll;
-}
-</style>
-```
-
-```{r dummy}
-# dummy data
-data <- data.frame(
-  METRIC = paste('var', 1:20),
-  VAL = runif(10),
-  stringsAsFactors = FALSE
-)
-```
-
-
-```{r results = 'asis'}
-# automatically generate <style> block of css for each tab
-tab_number <- 1:nrow(data)
-tab_color <- "#CCCCCC"
-css <- sprintf(".color-tabs>.nav-pills>li:nth-child(%d){background:%s;}", tab_number, tab_color)
-css <- paste(css, collapse = "\n")
-css <- paste("<style>", css, "</style>")
-cat(css)
-```
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -49,6 +18,7 @@ library(dplyr)
 library(tidyr) # for pivot_longer
 library(tibble) # for rownames_to _column
 library(ggplot2)
+library(patchwork)
 library(scales)
 library(ggVennDiagram)
 library(ComplexHeatmap)
@@ -324,9 +294,9 @@ plot(
 
 ## Sets of significant barcodes
 
- - Retain barcodes being significant in pre-filtering data, or being included in either the filtered data.
+ - Retain barcodes being significant in unfiltered data, or being included in either the filtered data.
  
- - Pointing based on the pre-filtering data.
+ - Pointing based on the unfiltered data.
 
 ```{r keep all}
 pointer <- ZG66_test$testBarcodes$diffProp_Celltype$results$direction != "n.s." |
@@ -452,36 +422,61 @@ results_all <- results_all[rownames(ZG66_all$assay),]
 
 ```{r vis barcode region}
 ## visualize adj.pvalues of different category
-ggplot(results_all) +
+p11 <- ggplot(results_all) +
   geom_point(aes(x = rowMeans(ZG66_all$rank), y = Pre_adj.p.value, shape = Pre_direction, color = region)) +
-  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) 
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("Adjusted p.values from unfiltered data") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "Adjusted p.values") +
+  theme(legend.position = "none")
 
 ## visualize adj.pvalues of different category
-ggplot(results_all) +
+p41 <- ggplot(results_all) +
   geom_point(aes(x = rowMeans(ZG66_all$rank), y = Pre_p.value, shape = Pre_direction, color = region)) +
-  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) 
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("P.values from unfiltered data") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "P.values") +
+  theme(legend.position = "none")
 
 ## visualize adj.pvalues of different category
-ggplot(results_all) +
+p12 <- ggplot(results_all) +
   geom_point(aes(x = rowMeans(ZG66_all$rank), y = N6_0.99_adj.p.value, shape = N6_0.99_direction, color = region)) +
-  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) 
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("Adjusted p.values from data filtered by N6_0.99") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "Adjusted p.values") +
+  theme(legend.position = "none")
 
 ## visualize adj.pvalues of different category
-ggplot(results_all) +
+p42 <- ggplot(results_all) +
   geom_point(aes(x = rowMeans(ZG66_all$rank), y = N6_0.99_p.value, shape = N6_0.99_direction, color = region)) +
-  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) 
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("P.values from data filtered by N6_0.99") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "P.values") +
+  theme(legend.position = "none")
 
 ## visualize adj.pvalues of different category
-ggplot(results_all) +
+p13 <- ggplot(results_all) +
   geom_point(aes(x = rowMeans(ZG66_all$rank), y = N2_0.9_adj.p.value, shape = N2_0.9_direction, color = region)) +
-  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) 
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("Adjusted p.values from data filtered by N2_0.9") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "Adjusted p.values") +
+  theme(legend.position = "none")
 
 ## visualize adj.pvalues of different category
-ggplot(results_all) +
+p43 <- ggplot(results_all) +
   geom_point(aes(x = rowMeans(ZG66_all$rank), y = N2_0.9_p.value, shape = N2_0.9_direction, color = region)) +
-  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) 
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("P.values from data filtered by N2_0.9") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "P.values") +
+  theme(legend.position = "none")
 ```
 
+### Zoom-in
 
 ```{r subset sig}
 ## flag barcodes that belongs to regions other than NA - which means being significant in at least pre/filter1/filter2 data
@@ -493,16 +488,91 @@ identical(rownames(results_all), rownames(ZG66_all$assay))
 ## subset object by the flagged barcodes
 ZG66_sig <- barbieQ::subsetBarcodes(barbieQ = ZG66_all, retainedRows = flag_sig)
 results_sig <- results_all[flag_sig,]
-ggplot(results_sig) +
+p21 <- ggplot(results_sig) +
   geom_point(aes(x = rowMeans(ZG66_sig$rank), y = Pre_adj.p.value, shape = Pre_direction, color = region)) +
-  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) 
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("(Zoom in) adjusted p.values, unfiltered") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "Adjusted p.values") 
+
+p22 <- ggplot(results_sig) +
+  geom_point(aes(x = rowMeans(ZG66_sig$rank), y = N6_0.99_adj.p.value, shape = N6_0.99_direction, color = region)) +
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("(Zoom in) adjusted p.values, N6_0.99") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "Adjusted p.values") 
+
+p23 <- ggplot(results_sig) +
+  geom_point(aes(x = rowMeans(ZG66_sig$rank), y = N2_0.9_adj.p.value, shape = N2_0.9_direction, color = region)) +
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("(Zoom in) adjusted p.values, N2_0.9") + 
+  scale_x_reverse() +
+  labs(x = "Average rank of each barcode across samples", y = "Adjusted p.values") 
 ```
+
+### Volcano plots
+
+```{r volcano}
+## visualize adj.pvalues of different category
+p31 <- ggplot(results_all) +
+  geom_point(aes(x = Pre_logFC, y = -log10(Pre_adj.p.value), shape = Pre_direction, color = region)) +
+  geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("volcano plot of unfiltered data") +
+  labs(x = "Log fold change of barcode proportion between two groups", y = "-log10 (adjusted p.values)") +
+  theme(legend.position = "none")
+
+p32 <- ggplot(results_all) +
+  geom_point(aes(x = Pre_logFC, y = -log10(N6_0.99_adj.p.value), shape = N6_0.99_direction, color = region)) +
+  geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("volcano plot of data filtered by N6_0.99") +
+  labs(x = "Log fold change of barcode proportion between two groups", y = "-log10 (adjusted p.values)") +
+  theme(legend.position = "none")
+
+p33 <- ggplot(results_all) +
+  geom_point(aes(x = Pre_logFC, y = -log10(N2_0.9_adj.p.value), shape = N2_0.9_direction, color = region)) +
+  geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed", linewidth = 1) +
+  ggtitle("volcano plot of data filtered by N2_0.9") +
+  labs(x = "Log fold change of barcode proportion between two groups", y = "-log10 (adjusted p.values)") +
+  theme(legend.position = "none")
+
+```
+
+### Visualisation
+
+::: scroll-plot
+```{r vis ggs, fig.width=20, fig.height=15}
+(p11 + p12 + p13) / (p21 + p22 + p23 ) / (p31 + p32 + p33 ) / (p41 + p42 + p43) +
+  plot_annotation(title = "Testing results among unfiltered data and filtered data of two strategies",
+                  caption = "Testing groups: (B + Gr + T + NK_CD56p_CD16n) v.s. NK_CD56n_CD16p")
+```
+:::
+
+### unfiltered v.s. N6_0.99
+
+```{r plot p.values two data}
+ggplot(results_all) +
+  geom_point(aes(x = Pre_adj.p.value, y = N6_0.99_adj.p.value, shape = Pre_direction, color = region)) +
+  geom_hline(yintercept = 0.05, color = "red", linetype = "dashed") +
+  geom_vline(xintercept = 0.05, color = "red", linetype = "dashed") +
+  geom_abline(slope = 1, intercept = 0, color = "purple", linetype = "dashed") +
+  theme(aspect.ratio = 1) +
+  labs(x = "Adjusted p.values from unfiltered data", y = "Adjusted p.values from data filtered by N6_0.99")
+
+ggplot(results_all) +
+  geom_point(aes(x = -log10(Pre_adj.p.value), y = -log10(N6_0.99_adj.p.value), shape = Pre_direction, color = region)) +
+  geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed") +
+  geom_vline(xintercept = -log10(0.05), color = "red", linetype = "dashed") +
+  geom_abline(slope = 1, intercept = 0, color = "purple", linetype = "dashed") +
+  theme(aspect.ratio = 1) +
+  labs(x = "-log10 (adjusted p.values) from unfiltered data", y = "-log10 (adjusted p.values) from data filtered by N6_0.99")
+```
+
 
 ## CPM of significant barcodes
 
  - Linear model on barcode proportion is based on only the right two slices in the heatmap (midgroup1 and midgroup2).
 
- - group1 is B, T, Gr cells; group2 is NK cells inclduing subtypes.
+ - group1 is B, T, Gr cells; group2 is NK cells including subtypes.
 
  - Statistical test results on the three pre- or post- filtering data are visualized by the row annotation in the right side of the heatmap. 
  

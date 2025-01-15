@@ -20,6 +20,7 @@ library(tidyr) # for pivot_longer
 library(tibble) # for rownames_to _column
 library(knitr) # for kable()
 library(ggplot2)
+library(patchwork)
 library(scales)
 library(ggVennDiagram)
 library(ComplexHeatmap)
@@ -34,6 +35,8 @@ load("../../output/WuC/tagged_bq.rda")
 load("../../output/WuC/tagged_bq_min.rda")
 ```
 
+ - Loading the barcodes selected by the paper for `NK_CD56n_CD16p biased` using the paper's strategy.
+
 ```{r load xlsx}
 ## load dataset provided by the paper corresponding to specific figures
 paper_data <- read_excel("../../data/WuC/aat9781_table_s2.xlsx", sheet = "Figure 2 ZG66")
@@ -43,7 +46,9 @@ ZG66_Fig2 <- paper_data[,-1]
 
 ```
 
-```{r vis paper selected barcode}
+ - 81 barcodes are selected by the paper, consisting 42% contribution out the of whole dataset based on my proportion data.
+
+```{r paper selected barcode contri}
 ## tag these barcodes selected by the paper in the pre-filtering data.
 ## compare the collective proportion of these selected barcodes.
 flag_paper <- rownames(ZG66_bq$assay) %in% rownames(ZG66_Fig2)
@@ -55,6 +60,8 @@ ZG66_bq$isTop$vec <- flag_paper
 barbieQ::plotBarcodePareto(barbieQ = ZG66_bq)
 barbieQ::plotBarcodeSankey(barbieQ = ZG66_bq)
 ```
+
+ - My filtered data included 79 out of 81 paper-selected barcodes, missing 2 of them. The two didn't make the rule of being top 99% in at least 6 samples.
 
 ```{r overlap with N6_0.99}
 ZG66_bq_min <- barbieQ::subsetBarcodes(
@@ -69,8 +76,8 @@ plot(venn2, fills = c("red", "blue"), alpha = 0.5, labels = TRUE, quantities = T
 
 ## NK-secific Clone Paper Selected
 
-```{r NK by paper checking }
-
+```{r paper barcode prop provided }
+## calculate the total proportion of the paper selected barcodes based on the proportion data provided by the paper
 NK_clone_contribution <- ZG66_Fig2 %>% colSums()
 dat <- data.frame(
   contr = NK_clone_contribution,
@@ -79,15 +86,52 @@ dat <- data.frame(
              rep("Gr", 6),
              rep("NK_CD56p_CD16n", 6),
              rep("NK_CD56n_CD16p", 6)))
+dat$sample <- factor(dat$sample, levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p"))
 
 dat <- dat %>%
   mutate(id = row_number()) 
-ggplot(dat, aes(x = as.factor(id), y = contr, color = sample)) +
+p11 <- ggplot(dat, aes(x = as.factor(id), y = contr, color = sample)) +
   geom_bar(stat = "identity", fill = NA) + 
-  theme_minimal()
+  theme_minimal() +
+  ggtitle("Paper-selected clones, paper proportion")
+```
+
+```{r paper my prop, fig.width=10, fig.height=5}
+## check out paper selected barcodes
+flag_paper_filtered <- rownames(myObject$assay) %in% rownames(ZG66_Fig2)
+paper_myObject <- barbieQ::subsetBarcodes(
+  barbieQ = myObject, retainedRows = flag_paper_filtered)
+paper_myObject$testBarcodes$diffProp_Celltype <- myObject$testBarcodes$diffProp_Celltype
+paper_myObject$testBarcodes$diffProp_Celltype$results <-   paper_myObject$testBarcodes$diffProp_Celltype$results[flag_paper_filtered,]
+
+## select barcodes selected by paper
+paper_contribution <- paper_myObject$proportion[,1:30] %>% colSums()
+dat_paper <- data.frame(
+  contr = paper_contribution,
+  sample = paper_myObject$metadata$Celltype[1:30])
+
+dat_paper <- dat_paper %>% 
+  mutate(id = row_number())
+
+p12 <- ggplot(dat_paper, aes(x = as.factor(id), y = contr, color = sample)) +
+  geom_bar(stat = "identity", fill = NA) + 
+  theme_minimal() +
+  ggtitle("Paper-selected clones, my proportion")
+
+p11 + p12 
 ```
 
 # Model Design Matrix - filtered
+
+- My selecting strategy to select `NK_CD56n_CD16p biased barcodes` by testing
+
+ - [1] "(CelltypeNK_CD56n_CD16p)" v.s.                                      
+
+ - [2] "(CelltypeB + CelltypeGr + CelltypeT + CelltypeNK_CD56p_CD16n)/4"
+
+- Only keep the samples of "mid" phase, which is of timepoints between "6.5m to 42m".
+
+## model
 
 ```{r model desing matrix 1}
 ## default Gr_1 and Gr_2 to Gr
@@ -95,7 +139,7 @@ ggplot(dat, aes(x = as.factor(id), y = contr, color = sample)) +
 
 mytargets <-ZG66_bq_min$metadata %>% 
   select(Celltype, Months) %>% 
-  mutate(Phase = ifelse(Months < 6, "early", ifelse(Months >=55, "late", "mid"))) %>% 
+  mutate(Phase = ifelse(Months < 6.5, "early", ifelse(Months >42, "late", "mid"))) %>% 
   mutate(Celltype = gsub("(Gr).*", "\\1", Celltype))
 
 myObject <- ZG66_bq_min
@@ -128,6 +172,8 @@ myObject <- barbieQ::testBarcodeBias(
 myObject$testBarcodes$diffProp_Celltype$methods$groups
 ```
 
+## visualization
+
 ```{r compare selects 1}
 # barbieQ::plotBarcodeBiasHeatmap(barbieQ = myObject)
 
@@ -140,11 +186,26 @@ venn3 <- eulerr::euler(
 
 plot(venn3, fills = c("red", "blue"), alpha = 0.5, labels = TRUE, quantities = TRUE)
 
+## order the slices
+myObject$metadata$Celltype <- factor(
+  myObject$metadata$Celltype, levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p"))
+## visualize the sig.
 NK_myObject <- barbieQ::subsetBarcodes(
   barbieQ = myObject, retainedRows = myObject$testBarcodes$diffProp_Celltype$results$direction == "group2")
 NK_myObject$testBarcodes$diffProp_Celltype <- myObject$testBarcodes$diffProp_Celltype
 NK_myObject$testBarcodes$diffProp_Celltype$results <- NK_myObject$testBarcodes$diffProp_Celltype$results[myObject$testBarcodes$diffProp_Celltype$results$direction == "group2",]
-barbieQ::plotBarcodeHeatmap(NK_myObject, sampleGroups = "Celltype", splitSamples = T)
+
+## check out my selected barcodes 
+anno_sig <- rowAnnotation(
+  N6_0.99 = NK_myObject$testBarcodes$diffProp_Celltype$results$direction,
+  Paper = rownames(NK_myObject$assay) %in% rownames(ZG66_Fig2),
+  col = list(
+    N6_0.99 = NK_myObject$factorColors$diffProp_Celltype
+    )
+  )
+set.seed(234)
+hp1 <- barbieQ::plotBarcodeHeatmap(barbieQ = NK_myObject, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
+hp1
 ```
 
 ```{r compare hp 1}
@@ -152,18 +213,22 @@ anno_sig <- rowAnnotation(
   N6_0.99 = myObject$testBarcodes$diffProp_Celltype$results$direction,
   Paper = rownames(myObject$assay) %in% rownames(ZG66_Fig2),
   col = list(
-    N6_0.99 = ZG66_test$factorColors$diffProp_Celltype
+    N6_0.99 = myObject$factorColors$diffProp_Celltype
 ))
 
+## visualize all barcodes tested
 set.seed(234)
 barbieQ::plotBarcodeHeatmap(barbieQ = myObject, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
 
 anno_sig <- rowAnnotation(
-  Paper = rownames(NK_myObject$assay) %in% rownames(ZG66_Fig2)
-)
-
+  N6_0.99 = paper_myObject$testBarcodes$diffProp_Celltype$results$direction,
+  Paper = rownames(paper_myObject$assay) %in% rownames(ZG66_Fig2),
+  col = list(
+    N6_0.99 = paper_myObject$factorColors$diffProp_Celltype
+    )
+  )
 set.seed(234)
-hp1 <- barbieQ::plotBarcodeHeatmap(barbieQ = NK_myObject, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
+barbieQ::plotBarcodeHeatmap(barbieQ = paper_myObject, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
 
 ## visualize barcodes not exist in post-filtering data.
 point_sup <- ! rownames(ZG66_Fig2) %in% rownames(myObject$assay)
@@ -177,108 +242,191 @@ kable(count_sup)
 
 ```
 
-```{r NK 1}
-point_NK <- myObject$testBarcodes$diffProp_Celltype$results$direction == "group2"
-myNK <- barbieQ::subsetBarcodes(barbieQ = myObject, retainedRows = point_NK)
-myNK$testBarcodes <- myObject$testBarcodes
-myNK$testBarcodes$diffProp_Celltype$results <- myNK$testBarcodes$diffProp_Celltype$results[point_NK,]
-barbieQ::plotBarcodeBiasHeatmap(barbieQ = myNK)
+## validation
 
-NK_clone_contribution <- myNK$proportion %>% colSums()
-dat <- data.frame(
-  contr = NK_clone_contribution,
-  sample = myNK$metadata$Celltype)
-
-dat <- dat %>%
-  mutate(id = row_number()) 
-ggplot(dat, aes(x = as.factor(id), y = contr, color = sample)) +
+```{r function validation}
+plot_validation <- function(NK_myObject) {
+  
+  NK_clone_contributionU <- NK_myObject$proportion %>% colSums()
+  dat <- data.frame(
+    contr = NK_clone_contributionU,
+    Celltype = NK_myObject$metadata$Celltype,
+    Months = NK_myObject$metadata$Months)
+  ## sort samples by celltype and months
+  dat <- dat %>%
+    arrange(Celltype, Months) %>% 
+    mutate(id = row_number()) 
+  ## add dummy rows for spacing between celltypes
+  dat <- dat %>%
+    group_by(Celltype) %>%
+    mutate(dummy = n() + 1) %>%    # Add a dummy count for spacing
+    ungroup() %>%
+    bind_rows(dat %>%             # Add dummy rows for spacing
+                group_by(Celltype) %>%
+                slice_tail(n = 1) %>%
+                mutate(id = as.numeric(id) + 0.5, contr = NA, Months = NA)) %>%
+    arrange(as.numeric(id))        # Arrange with dummy rows in place
+  
+  p <- ggplot(dat, aes(x = as.factor(id), y = contr, color = Celltype)) +
   geom_bar(stat = "identity", fill = NA) + 
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45, hjust = 0.5, size = 4),
+        panel.grid.major.x = element_blank()) +
+  scale_x_discrete(labels = ifelse(is.na(dat$Months), "", dat$Months)) + # Relabel with `Celltype`
+  labs(x = "Samples at at different time points (m)", y = "Total prop. of sig. clones") +  # Update axis labels
+  geom_tile(
+    data = dat,
+    aes(x = ifelse(is.na(Months), NA,order(id)), y = -0.02, fill = Celltype),
+    height = 0.02, width = 1
+  ) +
+  geom_text(
+    data = dat %>% 
+      mutate(id = order(id)) %>% 
+      group_by(Celltype) %>% 
+      summarize(mid_point = mean(as.numeric(id))),
+    aes(x = mid_point-0.5, y = -0.02, label = Celltype),
+    size = 2, vjust = 0.5, color = "black"
+  )
+  
+  return(p)
+}
 ```
 
-# Model Design Matrix - pre-filtering
+```{r NK my select prop}
+p22 <- plot_validation(NK_myObject = NK_myObject) + ggtitle("barbieQ-selected, filtered by N6_0.99")
+
+p22
+
+p21 <- plot_validation(NK_myObject = paper_myObject) + ggtitle("paper-selected")
+
+p21
+```
+
+
+# Model Design Matrix - unfiltered
+
+## model
 
 ```{r model desing matrix 2}
 ## default Gr_1 and Gr_2 to Gr
 ## remove NKG2A_blah NK subtype, whice were collected in late timepoints
 
-mytargets <-ZG66_bq$metadata %>% 
+mytargetsU <-ZG66_bq$metadata %>% 
   select(Celltype, Months) %>% 
   mutate(Phase = ifelse(Months < 6, "early", ifelse(Months >=55, "late", "mid"))) %>% 
   mutate(Celltype = gsub("(Gr).*", "\\1", Celltype))
 
-myObject <- ZG66_bq
-myObject$metadata <- mytargets
-myObject <- barbieQ::subsetSamplesByMetadata(barbieQ = myObject, factor = "Phase", specifiedConditions = "mid")
+myObjectU <- ZG66_bq
+myObjectU$metadata <- mytargetsU
+myObjectU <- barbieQ::subsetSamplesByMetadata(barbieQ = myObjectU, factor = "Phase", specifiedConditions = "mid")
 
-table(myObject$metadata$Celltype)
-table(myObject$metadata$Months)
+table(myObjectU$metadata$Celltype)
+table(myObjectU$metadata$Months)
 ```
 
 ```{r fit model 2}
 ## define matrix
 ## will consider Months factor later as each cell type may have different trend
-mydesign <- model.matrix(~ 0 + Celltype, data = myObject$metadata)
-# View(mydesign)
+mydesignU <- model.matrix(~ 0 + Celltype, data = myObjectU$metadata)
+# View(mydesignU)
 
 ## define contrast
 mycontrast <- limma::makeContrasts(
   (CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4,
-  levels = colnames(mydesign))
+  levels = colnames(mydesignU))
 
-myObject$factorColors$diffProp_Celltype <- NULL
-myObject <- barbieQ::testBarcodeBias(
-  barbieQ = myObject,
-  targets = myObject$metadata,
-  designMatrix = mydesign,
+myObjectU$factorColors$diffProp_Celltype <- NULL
+myObjectU <- barbieQ::testBarcodeBias(
+  barbieQ = myObjectU,
+  targets = myObjectU$metadata,
+  designMatrix = mydesignU,
   contrast = mycontrast
   )
 
-myObject$testBarcodes$diffProp_Celltype$methods$groups
+myObjectU$testBarcodes$diffProp_Celltype$methods$groups
 ```
 
+## visualization
+
 ```{r compare selects 2}
-NK_myObject <- barbieQ::subsetBarcodes(
-  barbieQ = myObject, retainedRows = myObject$testBarcodes$diffProp_Celltype$results$direction == "group2")
-NK_myObject$testBarcodes$diffProp_Celltype <- myObject$testBarcodes$diffProp_Celltype
-NK_myObject$testBarcodes$diffProp_Celltype$results <- NK_myObject$testBarcodes$diffProp_Celltype$results[myObject$testBarcodes$diffProp_Celltype$results$direction == "group2",]
-barbieQ::plotBarcodeHeatmap(NK_myObject, sampleGroups = "Celltype", splitSamples = T)
+# barbieQ::plotBarcodeBiasHeatmap(barbieQ = myObject)
 
-Pre_select <- myObject$testBarcodes$diffProp_Celltype$results$direction == "group2"
+unfiltered_select <- myObjectU$testBarcodes$diffProp_Celltype$results$direction == "group2"
 
-venn3 <- eulerr::euler(
+venn4 <- eulerr::euler(
   list(
-    Pre_select = rownames(ZG66_bq_min$assay)[N6_0.99_select], 
+    unfiltered_select = rownames(ZG66_bq$assay)[unfiltered_select], 
     Paper_select = rownames(ZG66_Fig2)))
 
-plot(venn3, fills = c("red", "blue"), alpha = 0.5, labels = TRUE, quantities = TRUE)
+plot(venn4, fills = c("red", "blue"), alpha = 0.5, labels = TRUE, quantities = TRUE)
+
+## order the slices
+myObjectU$metadata$Celltype <- factor(
+  myObjectU$metadata$Celltype, levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p"))
+## visualize the sig.
+NK_myObjectU <- barbieQ::subsetBarcodes(
+  barbieQ = myObjectU, retainedRows = unfiltered_select)
+NK_myObjectU$testBarcodes$diffProp_Celltype <- myObjectU$testBarcodes$diffProp_Celltype
+NK_myObjectU$testBarcodes$diffProp_Celltype$results <- NK_myObjectU$testBarcodes$diffProp_Celltype$results[unfiltered_select,]
+
+## check out my selected barcodes 
+anno_sig <- rowAnnotation(
+  Unfiltered = NK_myObjectU$testBarcodes$diffProp_Celltype$results$direction,
+  Paper = rownames(NK_myObjectU$assay) %in% rownames(ZG66_Fig2),
+  col = list(
+    Unfiltered = NK_myObjectU$factorColors$diffProp_Celltype
+    )
+  )
+set.seed(234)
+hp2 <- barbieQ::plotBarcodeHeatmap(barbieQ = NK_myObjectU, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
+hp2
 ```
 
 ```{r compare hp 2}
+## visualize all barcodes tested
+## over 2000 rows; don't run
+# anno_sig <- rowAnnotation(
+#   Unfiltered = myObjectU$testBarcodes$diffProp_Celltype$results$direction,
+#   Paper = rownames(myObjectU$assay) %in% rownames(ZG66_Fig2),
+#   col = list(
+#     Unfiltered = myObjectU$factorColors$diffProp_Celltype
+# ))
+# set.seed(234)
+# barbieQ::plotBarcodeHeatmap(barbieQ = myObjectU, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
+
+## check out paper selected barcodes
+flag_paper_unfiltered <- rownames(myObjectU$assay) %in% rownames(ZG66_Fig2)
+paper_myObjectU <- barbieQ::subsetBarcodes(
+  barbieQ = myObjectU, retainedRows = flag_paper_unfiltered)
+paper_myObjectU$testBarcodes$diffProp_Celltype <- myObjectU$testBarcodes$diffProp_Celltype
+paper_myObjectU$testBarcodes$diffProp_Celltype$results <-   paper_myObjectU$testBarcodes$diffProp_Celltype$results[flag_paper_unfiltered,]
+
 anno_sig <- rowAnnotation(
-  Paper = rownames(NK_myObject$assay) %in% rownames(ZG66_Fig2)
-)
+  Unfiltered = paper_myObjectU$testBarcodes$diffProp_Celltype$results$direction,
+  Paper = rownames(paper_myObjectU$assay) %in% rownames(ZG66_Fig2),
+  col = list(
+    Unfiltered = paper_myObjectU$factorColors$diffProp_Celltype
+    )
+  )
 
 set.seed(234)
-barbieQ::plotBarcodeHeatmap(barbieQ = NK_myObject, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
+barbieQ::plotBarcodeHeatmap(barbieQ = paper_myObjectU, barcodeAnnotation = anno_sig, sampleGroups = "Celltype", splitSamples = T)
+
 ```
 
-```{r NK 3}
-point_NK <- myObject$testBarcodes$diffProp_Celltype$results$direction == "group2"
-myNK <- barbieQ::subsetBarcodes(barbieQ = myObject, retainedRows = point_NK)
-myNK$testBarcodes <- myObject$testBarcodes
-myNK$testBarcodes$diffProp_Celltype$results <- myNK$testBarcodes$diffProp_Celltype$results[point_NK,]
-barbieQ::plotBarcodeBiasHeatmap(barbieQ = myNK)
+## validation
 
-NK_clone_contribution <- myNK$proportion %>% colSums()
-dat <- data.frame(
-  contr = NK_clone_contribution,
-  sample = myNK$metadata$Celltype)
+```{r NK my select prop 2}
+p23 <- plot_validation(NK_myObject = NK_myObjectU) + ggtitle("barbieQ selected, unfiltered data")
+p23
 
-dat <- dat %>%
-  mutate(id = row_number()) 
-ggplot(dat, aes(x = as.factor(id), y = contr, color = sample)) +
-  geom_bar(stat = "identity", fill = NA) + 
-  theme_minimal()
 ```
+
+::: scroll-plot
+```{r compare validation, fig.width=17, fig.height=5}
+(p21 + p22 + p23)
+```
+:::
+
 
