@@ -1,3 +1,4 @@
+public_barcode_count.Rproj
 .Rproj.user
 .Rhistory
 .RData
@@ -8,3 +9,5 @@ analysis/figure
 analysis/*png
 analysis/*_cache
 analysis/site_libs
+output/*png
+docs/site_libs
