@@ -1,0 +1,240 @@
+---
+title: "filtering after merging correlated barcodes"
+author: "LF"
+date: "2025-03-12"
+output: workflowr::wflow_html
+output_dir: ../../docs/WuC
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Dependencies
+
+```{r load library}
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+library(barbieQ)
+library(eulerr)
+```
+# Load Processed Data
+
+```{r load rda}
+getwd()
+## ../../ moves two levels up; ../ moves one level up; ./ refers to current directory
+## this processed rda file is conducted in the ./LF_start_mat.Rmd
+load("../../output/WuC/tagged_bq.rda")
+
+ZG66_bq_min <- readRDS("../../output/WuC/ZG66_bq_min.rds")
+```
+
+# Merge Barcodes
+
+```{r merge}
+## get the list of identified clusters
+clusters <- ZG66_bq_min$BarcodeCluster
+summary(clusters)
+## extract all positive numbers (clusters) in the cluster list
+to_cluster <- clusters %>% 
+  dplyr::filter(corCluster > 0)
+## create a new list to fit the barcode size in the original data (before filtering)
+## each barcode assigned to a unique negative value
+vector_to_cluster <- data.frame(group = -(1:nrow(ZG66_bq$assay)))
+rownames(vector_to_cluster) <- rownames(ZG66_bq$assay)
+
+## extract to barcode names to be clustered
+barcodes_to_cluster <- rownames(ZG66_bq$assay)[rownames(ZG66_bq$assay) %in% rownames(to_cluster)]
+## order the barcodes to align with their order in the original data
+to_cluster2 <- to_cluster[barcodes_to_cluster,]
+
+## assign barcodes identified as repeated in a cluster the positive cluster numbers
+vector_to_cluster[rownames(ZG66_bq$assay) %in% rownames(to_cluster),] <- to_cluster2
+
+summary(vector_to_cluster)
+## double check
+check1 <- vector_to_cluster[barcodes_to_cluster,]
+check2 <- to_cluster2
+identical(check1, check2)
+
+## merge barcodes based on the vector
+ZG66_bq_merged <- barbieQ::collapseBarcodes(
+  barbieQ = ZG66_bq, groupArray = vector_to_cluster)
+```
+
+# Filter Barcodes
+
+## 0.99 / minSize
+
+ - Find minimum group size.
+ 
+ - 6 it is.
+
+```{r min group size}
+ZG66_bq_merged$metadata$Celltype %>% table()
+groups <- ZG66_bq_merged$metadata %>% 
+  select(Celltype, Months) %>% 
+  mutate(Phase = ifelse(Months < 6, "early", ifelse(Months >=55, "late", "mid"))) %>% 
+  mutate(Celltype = gsub("(Gr).*", "\\1", Celltype)) %>% 
+  filter(Phase == "mid")
+groups$Celltype %>% table()
+```
+
+## Tag top barcodes
+
+```{r tag 0.99 minSize}
+## This step is very time-consuming, no need to run again
+## Just use the temporary results saved from the first run
+## Send to background job at thr first run
+# ZG66_bq_merged <- barbieQ::tagTopBarcodes(barbieQ = ZG66_bq_merged, proportionThreshold = 0.99, nSampleThreshold = 6)
+# ## wd for background job set as this project "public_barcode_count"
+# save(ZG66_bq_merged, file = "./output/WuC/ZG66_bq_merged.rda")
+
+## wd for this Rmd file is "public_barcode_count/analysis/WuC"
+load("../../output/WuC/ZG66_bq_merged.rda")
+```
+
+## Tag top 10 each
+
+```{r tag top 10 each}
+tagTop10 <- function(col) {
+  ranks <- rank(-col)
+  # summary(ranks)
+  isTop <- ranks <= 10
+  # summary(isTop)
+  return(isTop)
+}
+rank(-col) <= 10
+tester <- tagTop10(ZG66_bq_merged$CPM[,1])
+summary(tester)
+str(tester)
+
+colTags <- lapply(as.data.frame(ZG66_bq_merged$CPM), 
+                  function(col) tagTop10(col))
+colTagMat <- do.call(cbind, colTags)
+colTagVec <- rowSums(colTagMat) >= 1
+summary(colTagVec)
+
+ZG66_bq_merged_top10each <- ZG66_bq_merged
+ZG66_bq_merged_top10each$isTop$vec <- colTagVec
+ZG66_bq_merged_top10each$isTop$mat <- colTagMat
+
+ZG66_bq_merged_top10each_filtered <- barbieQ::subsetBarcodes(barbieQ = ZG66_bq_merged_top10each, retainedRows = colTagVec)
+```
+
+## Euler diagram
+
+```{r euler}
+Unfiltered <- rownames(ZG66_bq_merged$assay)
+barbieQ_filtered <- rownames(ZG66_bq_merged_filtered$assay)
+top10each_filtered <- rownames(ZG66_bq_merged_top10each_filtered$assay)
+eularData <- eulerr::euler(
+  list(
+       barbieQ_filtered = barbieQ_filtered, 
+       top10each = top10each_filtered))
+plot(eularData)
+
+## get a vector for regions
+all_elements <- union(barbieQ_filtered, top10each_filtered)  # All unique elements
+only_barbieQ_filtered <- setdiff(barbieQ_filtered, top10each_filtered)   # Elements only in barbieQ_filtered
+only_top10each_filtered <- setdiff(top10each_filtered, barbieQ_filtered)   # Elements only in top10each_filtered
+both <- intersect(barbieQ_filtered, top10each_filtered)      # Overlapping elements
+
+# Create a named vector indicating where each element belongs
+region_labels <- setNames(rep("both", length(all_elements)), all_elements)
+region_labels[only_barbieQ_filtered] <- "barbieQ_filtered only"
+region_labels[only_top10each_filtered] <- "top10each_filtered only"
+
+summary(region_labels)
+table(region_labels)
+names(region_labels)[1:3]
+```
+
+
+## Prop. top vs. bottom barcodes
+
+```{r vis tagging sankey, fig.width=5, fig.height=4}
+barbieQ::plotBarcodeSankey(barbieQ = ZG66_bq_merged)
+
+barbieQ::plotBarcodeSankey(barbieQ = ZG66_bq_merged_top10each)
+
+```
+
+```{r vis tagging pareto, fig.width=7, fig.height=7}
+png(filename = "pareto_merged.png", width = 2000, height = 2000, res = 300)
+barbieQ::plotBarcodePareto(barbieQ = ZG66_bq_merged)
+dev.off()
+
+png(filename = "pareto_top10each.png", width = 2000, height = 2000, res = 300)
+barbieQ::plotBarcodePareto(barbieQ = ZG66_bq_merged_top10each)
+dev.off()
+```
+
+## Subset barcodes
+
+```{r subset barcodes}
+ZG66_bq_merged$isTop$vec %>% table()
+ZG66_bq_merged_filtered <- barbieQ::subsetBarcodes(barbieQ = ZG66_bq_merged, retainedRows = ZG66_bq_merged$isTop$vec)
+```
+
+## Heatmap top v.s. all
+
+::: scroll-plot
+```{r heatmap min, fig.width=8, fig.height=16}
+set.seed(99)
+barbieQ::plotBarcodeHeatmap(ZG66_bq_merged_filtered)
+## tops only
+png(filename = "./HP_filtered.png", width = 2000, height = 2000, res = 300)
+Heatmap( name = "logCPM",
+  matrix = log2(ZG66_bq_merged_filtered$CPM + 1), 
+  row_title = paste0(nrow(ZG66_bq_merged_filtered$CPM), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+dev.off()
+
+## all
+Heatmap(
+  matrix = log2(ZG66_bq_merged$CPM + 1), 
+  row_title = paste0(nrow(ZG66_bq_merged$CPM), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+
+## top10 each
+png(filename = "./HP_top10each.png", width = 2000, height = 2000, res = 300)
+Heatmap( name = "logCPM",
+  matrix = log2(ZG66_bq_merged_top10each_filtered$CPM + 1), 
+  row_title = paste0(nrow(ZG66_bq_merged_top10each_filtered$CPM), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+dev.off()
+
+## overlop of each
+barcodeArray <- ZG66_bq_merged$isTop$vec | ZG66_bq_merged_top10each$isTop$vec
+
+summary(barcodeArray)
+
+region_labels %>% table()
+region_labels <- region_labels[rownames(ZG66_bq_merged$assay)[barcodeArray]]
+
+png(filename = "./HP_overlap.png", width = 1500, height = 2000, res = 300)
+Heatmap( 
+  name = "logCPM",
+  matrix = log2(ZG66_bq_merged$CPM[barcodeArray,] + 1), 
+  row_title = paste0(sum(barcodeArray), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE,
+  right_annotation = rowAnnotation(
+    Region = region_labels,
+    col = list(Region = c("barbieQ_filtered only" = "pink",
+            "both" = "purple",
+            "top10each_filtered only" = "skyblue"))
+    ),
+  split = region_labels
+  )
+dev.off()
+```
+:::

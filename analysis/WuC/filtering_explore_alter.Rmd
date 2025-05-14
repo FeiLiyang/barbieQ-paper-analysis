@@ -181,7 +181,7 @@ ZG66_test_0.9$metadata <- mytargets
 ZG66_test_0.9 <- barbieQ::subsetSamplesByMetadata(barbieQ = ZG66_test_0.9, factor = "Phase", specifiedConditions = "mid")
 table(ZG66_test_0.9$metadata$Celltype)
 
-## load pre-filtering data
+## load Unfiltered-filtering data
 load("../../output/WuC/ZJ31_ZH33_ZG66_bq.rda")
 ZG66_test <- ZG66_bq
 ZG66_test$metadata <- mytargets
@@ -231,11 +231,13 @@ ZG66_test <- barbieQ::testBarcodeBias(
 ZG66_test$testBarcodes$diffProp_Celltype$methods$groups
 ```
 
-# Compare Test Results
+# Question1: which filtering strategy to use?
+
+## Compare Test Results from Two Filtering Strategies {.color-tabs .tabset .tabset-fade .tabset-pills}
 
  - Heatmap visualization 
  
- - Less significant results were observed in the filtered data, with less barcodes being tested during multiple testing. Even though the multiple testing size of pre-filtering data is ten times the post-filtering data, leading to stronger FDR correction.
+ - Less significant results were observed in the filtered data, with less barcodes being tested during multiple testing. Even though the multiple testing size of Unfiltered-filtering data is ten times the post-filtering data, leading to stronger FDR correction.
  
 ```{r test category}
 ZG66_test_min$testBarcodes$diffProp_Celltype$results$direction %>% table()
@@ -250,49 +252,57 @@ barbieQ::plotBarcodeBiasHeatmap(ZG66_test_min)
 # barbieQ::plotBarcodeBiasHeatmap(ZG66_test_0.9)
 ```
 
-```{r group1 compare}
-plot(
-  eulerr::euler(list(
-    Pre = rownames(ZG66_test$assay)[ZG66_test$testBarcodes$diffProp_Celltype$results$direction == "group1"],
-    N6_0.99 = rownames(ZG66_test_min$assay)[ZG66_test_min$testBarcodes$diffProp_Celltype$results$direction == "group1"],
-    N2_0.9 = rownames(ZG66_test_0.9$assay)[ZG66_test_0.9$testBarcodes$diffProp_Celltype$results$direction == "group1"])),
-  fills = c("red", "blue", "green"), alpha = 0.5, labels = TRUE, quantities = TRUE
-  )
-```
+### Sig. higher prop. in NKnp
 
 ```{r group2 compare}
 plot(
   eulerr::euler(list(
-    Pre = rownames(ZG66_test$assay)[ZG66_test$testBarcodes$diffProp_Celltype$results$direction == "group2"],
+    Unfiltered = rownames(ZG66_test$assay)[ZG66_test$testBarcodes$diffProp_Celltype$results$direction == "group2"],
     N6_0.99 = rownames(ZG66_test_min$assay)[ZG66_test_min$testBarcodes$diffProp_Celltype$results$direction == "group2"],
     N2_0.9 = rownames(ZG66_test_0.9$assay)[ZG66_test_0.9$testBarcodes$diffProp_Celltype$results$direction == "group2"])),
   fills = c("red", "blue", "green"), alpha = 0.5, labels = TRUE, quantities = TRUE
   )
 ```
 
+### Sig. higher prop. in other cell types
+
+```{r group1 compare}
+plot(
+  eulerr::euler(list(
+    Unfiltered = rownames(ZG66_test$assay)[ZG66_test$testBarcodes$diffProp_Celltype$results$direction == "group1"],
+    N6_0.99 = rownames(ZG66_test_min$assay)[ZG66_test_min$testBarcodes$diffProp_Celltype$results$direction == "group1"],
+    N2_0.9 = rownames(ZG66_test_0.9$assay)[ZG66_test_0.9$testBarcodes$diffProp_Celltype$results$direction == "group1"])),
+  fills = c("red", "blue", "green"), alpha = 0.5, labels = TRUE, quantities = TRUE
+  )
+```
+
+### N.s. between two contrasts
+
 ```{r n.s. compare}
 plot(
   eulerr::euler(list(
-    Pre = rownames(ZG66_test$assay)[ZG66_test$testBarcodes$diffProp_Celltype$results$direction == "n.s."],
+    Unfiltered = rownames(ZG66_test$assay)[ZG66_test$testBarcodes$diffProp_Celltype$results$direction == "n.s."],
     N6_0.99 = rownames(ZG66_test_min$assay)[ZG66_test_min$testBarcodes$diffProp_Celltype$results$direction == "n.s."],
     N2_0.9 = rownames(ZG66_test_0.9$assay)[ZG66_test_0.9$testBarcodes$diffProp_Celltype$results$direction == "n.s."])),
   fills = c("red", "blue", "green"), alpha = 0.5, labels = TRUE, quantities = TRUE
   )
 ```
 
+### Sig. between two contrasts either direction
+
 ```{r sig. compare}
 plot(
   eulerr::euler(list(
-    Pre = rownames(ZG66_test$assay)[ZG66_test$testBarcodes$diffProp_Celltype$results$direction != "n.s."],
+    Unfiltered = rownames(ZG66_test$assay)[ZG66_test$testBarcodes$diffProp_Celltype$results$direction != "n.s."],
     N6_0.99 = rownames(ZG66_test_min$assay)[ZG66_test_min$testBarcodes$diffProp_Celltype$results$direction != "n.s."],
     N2_0.9 = rownames(ZG66_test_0.9$assay)[ZG66_test_0.9$testBarcodes$diffProp_Celltype$results$direction != "n.s."])),
   fills = c("red", "blue", "green"), alpha = 0.5, labels = TRUE, quantities = TRUE
   )
 ```
 
-# All Relevant Barcodes {.color-tabs .tabset .tabset-fade .tabset-pills}
+## All Relevant Barcodes {.color-tabs .tabset .tabset-fade .tabset-pills}
 
-## Sets of significant barcodes
+### Sets of significant barcodes
 
  - Retain barcodes being significant in unfiltered data, or being included in either the filtered data.
  
@@ -313,11 +323,11 @@ results_N6_0.99 <- ZG66_test_min$testBarcodes$diffProp_Celltype$results
 colnames(results_N6_0.99) <- paste0("N6_0.99_", colnames(results_N6_0.99))
 results_N2_0.9 <- ZG66_test_0.9$testBarcodes$diffProp_Celltype$results
 colnames(results_N2_0.9) <- paste0("N2_0.9_", colnames(results_N2_0.9))
-results_Pre <- ZG66_test$testBarcodes$diffProp_Celltype$results[pointer,]
-colnames(results_Pre) <- paste0("Pre_", colnames(results_Pre))
+results_Unfiltered <- ZG66_test$testBarcodes$diffProp_Celltype$results[pointer,]
+colnames(results_Unfiltered) <- paste0("Unfiltered_", colnames(results_Unfiltered))
 
 ## merge the results by rownames
-results_all <- merge(results_Pre, results_N6_0.99, by = "row.names", all = TRUE)
+results_all <- merge(results_Unfiltered, results_N6_0.99, by = "row.names", all = TRUE)
 rownames(results_all) <- results_all$Row.names
 results_all <- results_all[, -1] # Remove the extra row names column
 
@@ -343,11 +353,11 @@ results_all <- results_all[rownames(ZG66_all$assay),]
 ```{r venn of all}
 ggVennDiagram::ggVennDiagram(
   x = list(
-    Pre_sig = rownames(results_all)[!is.na(results_all$Pre_direction) & results_all$Pre_direction != "n.s."],
+    Unfiltered_sig = rownames(results_all)[!is.na(results_all$Unfiltered_direction) & results_all$Unfiltered_direction != "n.s."],
     N6_0.99_sig = rownames(results_all)[!is.na(results_all$N6_0.99_direction) & results_all$N6_0.99_direction != "n.s."],
     N2_0.9_sig = rownames(results_all)[!is.na(results_all$N2_0.9_direction) & results_all$N2_0.9_direction != "n.s."]),
   label = "both",
-  # category.names = c("Pre", "N6_0.99", "N2_0.9"),
+  # category.names = c("Unfiltered", "N6_0.99", "N2_0.9"),
   label_size = 3,
   set_size = 3,
   force_upset = T
@@ -355,24 +365,24 @@ ggVennDiagram::ggVennDiagram(
 
 ggVennDiagram::ggVennDiagram(
   x = list(
-    Pre_sig = rownames(results_all)[!is.na(results_all$Pre_p.value) & results_all$Pre_p.value < 0.05],
+    Unfiltered_sig = rownames(results_all)[!is.na(results_all$Unfiltered_p.value) & results_all$Unfiltered_p.value < 0.05],
     N6_0.99_sig = rownames(results_all)[!is.na(results_all$N6_0.99_p.value) & results_all$N6_0.99_p.value < 0.05],
     N2_0.9_sig = rownames(results_all)[!is.na(results_all$N2_0.9_p.value) & results_all$N2_0.9_p.value < 0.05]),
   label = "both",
-  # category.names = c("Pre", "N6_0.99", "N2_0.9"),
+  # category.names = c("Unfiltered", "N6_0.99", "N2_0.9"),
   label_size = 3,
   set_size = 3,
   force_upset = T
 ) 
 
 ## check the unexpected set.
-# ttt <- ((!is.na(results_all$N6_0.99_p.value) & results_all$N6_0.99_p.value < 0.05) & (!is.na(results_all$Pre_p.value) & results_all$Pre_p.value >= 0.05) )
+# ttt <- ((!is.na(results_all$N6_0.99_p.value) & results_all$N6_0.99_p.value < 0.05) & (!is.na(results_all$Unfiltered_p.value) & results_all$Unfiltered_p.value >= 0.05) )
 # View(results_all[ttt,])
 
 ggVennDiagram::ggVennDiagram(
   x = list(
-    Pre_Other = rownames(results_all)[!is.na(results_all$Pre_direction) & results_all$Pre_direction == "group1"],
-    Pre_NK = rownames(results_all)[!is.na(results_all$Pre_direction) & results_all$Pre_direction == "group2"],
+    Unfiltered_Other = rownames(results_all)[!is.na(results_all$Unfiltered_direction) & results_all$Unfiltered_direction == "group1"],
+    Unfiltered_NK = rownames(results_all)[!is.na(results_all$Unfiltered_direction) & results_all$Unfiltered_direction == "group2"],
     
     N6_0.99_Other = rownames(results_all)[!is.na(results_all$N6_0.99_direction) & results_all$N6_0.99_direction == "group1"],
     N6_0.99_NK = rownames(results_all)[!is.na(results_all$N6_0.99_direction) & results_all$N6_0.99_direction == "group2"],
@@ -380,21 +390,21 @@ ggVennDiagram::ggVennDiagram(
     N2_0.9_Other = rownames(results_all)[!is.na(results_all$N2_0.9_direction) & results_all$N2_0.9_direction == "group1"],
     N2_0.9_NK = rownames(results_all)[!is.na(results_all$N2_0.9_direction) & results_all$N2_0.9_direction == "group2"]),
   label = "both",
-  # category.names = c("Pre", "N6_0.99", "N2_0.9"),
+  # category.names = c("Unfiltered", "N6_0.99", "N2_0.9"),
   label_size = 3,
   set_size = 3,
   force_upset = T
 ) 
 ```
 
-## P.values of each set
+### P.values of each set
 
 ```{r barcode set}
 # Process the data for Venn diagram
 cate_adj <- ggVennDiagram::process_data(
   Venn(
     list(
-    Pre_sig = rownames(results_all)[!is.na(results_all$Pre_direction) & results_all$Pre_direction != "n.s."],
+    Unfiltered_sig = rownames(results_all)[!is.na(results_all$Unfiltered_direction) & results_all$Unfiltered_direction != "n.s."],
     N6_0.99_sig = rownames(results_all)[!is.na(results_all$N6_0.99_direction) & results_all$N6_0.99_direction != "n.s."],
     N2_0.9_sig = rownames(results_all)[!is.na(results_all$N2_0.9_direction) & results_all$N2_0.9_direction != "n.s."])
 ))
@@ -418,12 +428,12 @@ results_all <- results_all[rownames(ZG66_all$assay),]
 
 ```
 
- - The most significant barcodes (with relatively low p.values) tend to be defined as "sig" in all pre-filtering and post-filtering data. 
+ - The most significant barcodes (with relatively low p.values) tend to be defined as "sig" in all Unfiltered-filtering and post-filtering data. 
 
 ```{r vis barcode region}
 ## visualize adj.pvalues of different category
 p11 <- ggplot(results_all) +
-  geom_point(aes(x = rowMeans(ZG66_all$rank), y = Pre_adj.p.value, shape = Pre_direction, color = region)) +
+  geom_point(aes(x = rowMeans(ZG66_all$rank), y = Unfiltered_adj.p.value, shape = Unfiltered_direction, color = region)) +
   geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
   ggtitle("Adjusted p.values from unfiltered data") + 
   scale_x_reverse() +
@@ -432,7 +442,7 @@ p11 <- ggplot(results_all) +
 
 ## visualize adj.pvalues of different category
 p41 <- ggplot(results_all) +
-  geom_point(aes(x = rowMeans(ZG66_all$rank), y = Pre_p.value, shape = Pre_direction, color = region)) +
+  geom_point(aes(x = rowMeans(ZG66_all$rank), y = Unfiltered_p.value, shape = Unfiltered_direction, color = region)) +
   geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
   ggtitle("P.values from unfiltered data") + 
   scale_x_reverse() +
@@ -476,10 +486,10 @@ p43 <- ggplot(results_all) +
   theme(legend.position = "none")
 ```
 
-### Zoom-in
+#### Zoom-in
 
 ```{r subset sig}
-## flag barcodes that belongs to regions other than NA - which means being significant in at least pre/filter1/filter2 data
+## flag barcodes that belongs to regions other than NA - which means being significant in at least Unfiltered/filter1/filter2 data
 flag_sig <- !is.na(results_all$region)
 sum(flag_sig)
 
@@ -489,7 +499,7 @@ identical(rownames(results_all), rownames(ZG66_all$assay))
 ZG66_sig <- barbieQ::subsetBarcodes(barbieQ = ZG66_all, retainedRows = flag_sig)
 results_sig <- results_all[flag_sig,]
 p21 <- ggplot(results_sig) +
-  geom_point(aes(x = rowMeans(ZG66_sig$rank), y = Pre_adj.p.value, shape = Pre_direction, color = region)) +
+  geom_point(aes(x = rowMeans(ZG66_sig$rank), y = Unfiltered_adj.p.value, shape = Unfiltered_direction, color = region)) +
   geom_hline(yintercept = 0.05, color = "red", linetype = "dashed", linewidth = 1) +
   ggtitle("(Zoom in) adjusted p.values, unfiltered") + 
   scale_x_reverse() +
@@ -510,26 +520,26 @@ p23 <- ggplot(results_sig) +
   labs(x = "Average rank of each barcode across samples", y = "Adjusted p.values") 
 ```
 
-### Volcano plots
+#### Volcano plots
 
 ```{r volcano}
 ## visualize adj.pvalues of different category
 p31 <- ggplot(results_all) +
-  geom_point(aes(x = Pre_logFC, y = -log10(Pre_adj.p.value), shape = Pre_direction, color = region)) +
+  geom_point(aes(x = Unfiltered_logFC, y = -log10(Unfiltered_adj.p.value), shape = Unfiltered_direction, color = region)) +
   geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed", linewidth = 1) +
   ggtitle("volcano plot of unfiltered data") +
   labs(x = "Log fold change of barcode proportion between two groups", y = "-log10 (adjusted p.values)") +
   theme(legend.position = "none")
 
 p32 <- ggplot(results_all) +
-  geom_point(aes(x = Pre_logFC, y = -log10(N6_0.99_adj.p.value), shape = N6_0.99_direction, color = region)) +
+  geom_point(aes(x = Unfiltered_logFC, y = -log10(N6_0.99_adj.p.value), shape = N6_0.99_direction, color = region)) +
   geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed", linewidth = 1) +
   ggtitle("volcano plot of data filtered by N6_0.99") +
   labs(x = "Log fold change of barcode proportion between two groups", y = "-log10 (adjusted p.values)") +
   theme(legend.position = "none")
 
 p33 <- ggplot(results_all) +
-  geom_point(aes(x = Pre_logFC, y = -log10(N2_0.9_adj.p.value), shape = N2_0.9_direction, color = region)) +
+  geom_point(aes(x = Unfiltered_logFC, y = -log10(N2_0.9_adj.p.value), shape = N2_0.9_direction, color = region)) +
   geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed", linewidth = 1) +
   ggtitle("volcano plot of data filtered by N2_0.9") +
   labs(x = "Log fold change of barcode proportion between two groups", y = "-log10 (adjusted p.values)") +
@@ -537,7 +547,7 @@ p33 <- ggplot(results_all) +
 
 ```
 
-### Visualisation
+#### Visualisation
 
 ::: scroll-plot
 ```{r vis ggs, fig.width=20, fig.height=15}
@@ -547,11 +557,11 @@ p33 <- ggplot(results_all) +
 ```
 :::
 
-### unfiltered v.s. N6_0.99
+#### unfiltered v.s. N6_0.99
 
 ```{r plot p.values two data}
 ggplot(results_all) +
-  geom_point(aes(x = Pre_adj.p.value, y = N6_0.99_adj.p.value, shape = Pre_direction, color = region)) +
+  geom_point(aes(x = Unfiltered_adj.p.value, y = N6_0.99_adj.p.value, shape = Unfiltered_direction, color = region)) +
   geom_hline(yintercept = 0.05, color = "red", linetype = "dashed") +
   geom_vline(xintercept = 0.05, color = "red", linetype = "dashed") +
   geom_abline(slope = 1, intercept = 0, color = "purple", linetype = "dashed") +
@@ -559,7 +569,7 @@ ggplot(results_all) +
   labs(x = "Adjusted p.values from unfiltered data", y = "Adjusted p.values from data filtered by N6_0.99")
 
 ggplot(results_all) +
-  geom_point(aes(x = -log10(Pre_adj.p.value), y = -log10(N6_0.99_adj.p.value), shape = Pre_direction, color = region)) +
+  geom_point(aes(x = -log10(Unfiltered_adj.p.value), y = -log10(N6_0.99_adj.p.value), shape = Unfiltered_direction, color = region)) +
   geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed") +
   geom_vline(xintercept = -log10(0.05), color = "red", linetype = "dashed") +
   geom_abline(slope = 1, intercept = 0, color = "purple", linetype = "dashed") +
@@ -568,29 +578,29 @@ ggplot(results_all) +
 ```
 
 
-## CPM of significant barcodes
+### CPM of significant barcodes
 
  - Linear model on barcode proportion is based on only the right two slices in the heatmap (midgroup1 and midgroup2).
 
  - group1 is B, T, Gr cells; group2 is NK cells including subtypes.
 
- - Statistical test results on the three pre- or post- filtering data are visualized by the row annotation in the right side of the heatmap. 
+ - Statistical test results on the three Unfiltered- or post- filtering data are visualized by the row annotation in the right side of the heatmap. 
  
  - Mostly, results on the two post-filtering data of different filtering strategies mostly agree with each other unless barcodes are filtered out in one data.
  
- - For barcodes that are decided as significant in the post-filtering data but n.s. in pre-filtering data, they still look interesting and do show variability based on visual vibe.
+ - For barcodes that are decided as significant in the post-filtering data but n.s. in Unfiltered-filtering data, they still look interesting and do show variability based on visual vibe.
  
- - For barcodes being significant in the pre-filtering data only, they are not included in the post-filtering data, but do look interesting and do show variability based on visual vibe. So we've risked filtering our some informative barcodes using the current two strategies - but that's less than 10%.
+ - For barcodes being significant in the Unfiltered-filtering data only, they are not included in the post-filtering data, but do look interesting and do show variability based on visual vibe. So we've risked filtering our some informative barcodes using the current two strategies - but that's less than 10%.
 
 ```{r vis subset sig, fig.width=9, fig.height=5}
 barbieQ::plotBarcodeHeatmap(barbieQ = ZG66_sig)
 
 anno_sig <- rowAnnotation(
-  Pre = results_sig$Pre_direction,
+  Unfiltered = results_sig$Unfiltered_direction,
   N6_0.99 = results_sig$N6_0.99_direction,
   N2_0.9 = results_sig$N2_0.9_direction,
   col = list(
-    Pre = ZG66_test$factorColors$diffProp_Celltype,
+    Unfiltered = ZG66_test$factorColors$diffProp_Celltype,
     N6_0.99 = ZG66_test$factorColors$diffProp_Celltype,
     N2_0.9 = ZG66_test$factorColors$diffProp_Celltype)
 )
@@ -608,4 +618,3 @@ ZG66_sig$metadata <-ZG66_sig$metadata %>%
 set.seed(234)
 barbieQ::plotBarcodeHeatmap(barbieQ = ZG66_sig, barcodeAnnotation = anno_sig, sampleGroups = "Slice", splitSamples = T)
 ```
-

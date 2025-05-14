@@ -1,0 +1,839 @@
+---
+title: "neg_sim_mouse_HSOC_barbieQ"
+author: "LF"
+date: "2025-05-04"
+output: workflowr::wflow_html
+output_dir: ../../BelderbosME
+---
+
+# Load Dependencies
+
+```{r load library}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+library(edgeR)
+
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+
+# devtools::install_github("DaneVass/bartools", dependencies = TRUE, force = TRUE)
+library(bartools)
+```
+
+# Install barbieQ - devel
+
+```{r install barbieQ}
+# devtools::install_github("Oshlack/barbieQ", force = TRUE)
+BiocManager::install("barbieQ")
+
+library(barbieQ)
+```
+
+# Load rds
+
+```{r save rds}
+# rds saved in "../../analysis/BelderbosME/mouseHSPC_preprocessing.Rmd"
+
+load("../../output/BelderbosME/mouseHSPC_barbieQ.rda")
+
+assay(mouseHSPC) %>% colSums() %>% sort()
+assay(mouseHSPC_top) %>% colSums() %>% sort()
+
+(colSums(assay(mouseHSPC)) - colSums(assay(mouseHSPC_top))) %>% sort()
+
+```
+
+## t-SNE
+
+```{r tsne}
+# Set an appropriate perplexity value (e.g., num_samples / 3)
+# set.seed(12)
+# perplexity_value <- min(30, floor(ncol(mouseHSPC_top) / 3))
+# 
+# tsne_results <- (assays(mouseHSPC_top)$CPM + 1) %>% 
+#   t() %>% 
+#   log2() %>% 
+#   Rtsne::Rtsne(perplexit = perplexity_value)
+# tsne_coords <- tsne_results$Y
+# tsne_coords <- as.data.frame(tsne_coords)
+# 
+# ggplot(tsne_coords) +
+#   geom_point(aes(x = V1, y = V2, col = mouseHSPC_top$sampleMetadata$Mouse)) +
+#   labs(x = "t-SNE Dimension 1", y = "t-SNE Dimension 2", col = "Mouse") +
+#   theme_classic() +
+#   theme(aspect.ratio = 1)
+# 
+# lapply(
+#   mouseHSPC_top$sampleMetadata %>% ncol() %>% seq(), 
+#   function(i) {
+#     col_fac <- colnames(mouseHSPC_top$sampleMetadata)[i]
+#     ggplot(tsne_coords) +
+#      geom_point(aes(x = V1, y = V2, col = mouseHSPC_top$sampleMetadata[[i]])) +
+#      labs(x = "t-SNE Dimension 1", y = "t-SNE Dimension 2", color = col_fac) +
+#       theme_classic() +
+#      theme(aspect.ratio = 1)
+#   }
+#   )
+
+pca_results <- (assays(mouseHSPC_top)$CPM + 1) %>% 
+  t() %>% 
+  log2() %>% 
+  prcomp( scale. = TRUE)
+
+pca_df <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  Mouse = mouseHSPC_top$sampleMetadata$Mouse
+)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Mouse)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on logCPM", x = "PC1", y = "PC2") +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+mouseHSPC_top$sampleMetadata %>% as.data.frame() %>%  View()
+assay(mouseHSPC_top) %>% colnames()
+```
+
+## bartools
+
+```{r bartools, fig.width=30, fig.height=10}
+mouse_ids <- mouseHSPC_top$sampleMetadata$Mouse
+
+mouse_levels <- c("C22", setdiff(unique(mouse_ids), "C22"))
+
+ordered_indices <- order(factor(mouse_ids, levels = mouse_levels))
+
+
+mouseHSPC_top$sampleMetadata <- mouseHSPC_top$sampleMetadata[ordered_indices, ]
+
+ps.counts <- assay(mouseHSPC_top)
+ps.counts <- ps.counts[, ordered_indices]
+colnames(ps.counts) <- make.unique(mouseHSPC_top$sampleMetadata$Mouse)
+mouse_dge <- DGEList(
+  counts = ps.counts, 
+  group = mouseHSPC_top$sampleMetadata$Mouse)
+
+bartools::plotBarcodeHistogram(mouse_dge)
+```
+
+# mouseHSPC
+
+```{r mouseHSPC, fig.width=8, fig.height=6}
+barbieQ::plotBarcodeHeatmap(
+  mouseHSPC_top, sampleMetadata = mouseHSPC_top$sampleMetadata[,-1])
+
+barbieQ::plotBarcodeHeatmap(
+  mouseHSPC_top, sampleMetadata = mouseHSPC_top$sampleMetadata[,-1], splitSamples = T, sampleGroup = "Mouse")
+```
+
+### C21
+
+```{r C21}
+C21 <- mouseHSPC_top[, mouseHSPC_top$sampleMetadata$Mouse == "C21"]
+
+barbieQ::plotBarcodeHeatmap(
+  C21, sampleMetadata = C21$sampleMetadata[,-1])
+
+## flag C21 samples of exremely low libsize
+flag_low_C21 <- colSums(assay(C21)) < 1000
+## remove the low libsize samples
+C21 <- C21[, !flag_low_C21]
+colSums(assay(C21))
+
+barbieQ::plotBarcodeHeatmap(
+  C21, sampleMetadata = C21$sampleMetadata[,-1])
+
+assay(C21) %>% colSums() %>% sort()
+
+## tag top barcoes
+C21 <- tagTopBarcodes(C21)
+rowData(C21)$isTopBarcode %>% table()
+
+barbieQ::plotBarcodeProportion(C21, absoluteProportion = T)
+```
+
+```{r, fig.width=10}
+C21 <- mouseHSPC_top[, mouseHSPC_top$sampleMetadata$Mouse == "C21"]
+## flag C21 samples of exremely low libsize
+flag_low_C21 <- colSums(assay(C21)) < 1000
+## remove the low libsize samples
+C21 <- C21[, !flag_low_C21]
+
+C21_dge <- DGEList(
+  counts = assay(C21), 
+  group = C21$sampleMetadata$Mouse)
+
+bartools::plotBarcodeHistogram(C21_dge)
+ggsave("../../output/BelderbosME/bartool_C21.png", dpi = 300,width = 8, height = 6, bartools::plotBarcodeHistogram(C21_dge))
+```
+
+
+### C22
+
+```{r C22}
+C22 <- mouseHSPC_top[, mouseHSPC_top$sampleMetadata$Mouse == "C22"]
+## flag C21 samples of exremely low libsize
+flag_low_C22 <- colSums(assay(C22)) < 1000
+## remove the low libsize samples
+C22 <- C22[, !flag_low_C22]
+
+## check libsize
+assay(C22) %>% colSums()
+## tag top barcodes
+C22 <- tagTopBarcodes(C22)
+rowData(C22)$isTopBarcode %>% table()
+
+barbieQ::plotBarcodeHeatmap(
+  C22, sampleMetadata = C22$sampleMetadata[,-1])
+
+barbieQ::plotBarcodeProportion(C22, absoluteProportion = F)
+rowMeans(assays(C22)$proportion) %>% summary()
+rowMeans(assays(C22)$proportion) %>% sort(decreasing = T) 
+rowMeans(assays(mouseHSPC_top)$proportion) %>% summary()
+
+
+colSums(assay(C22))
+```
+
+```{r}
+C22 <- mouseHSPC_top[, mouseHSPC_top$sampleMetadata$Mouse == "C22"]
+## flag C22 samples of exremely low libsize
+flag_low_C22 <- colSums(assay(C22)) < 1000
+## remove the low libsize samples
+C22 <- C22[, !flag_low_C22]
+C22_dge <- DGEList(
+  counts = assay(C22), 
+  group = C22$sampleMetadata$Mouse)
+
+bartools::plotBarcodeHistogram(C22_dge)
+ggsave("../../output/BelderbosME/bartool_C22.png", dpi = 300,width = 8, height = 6, bartools::plotBarcodeHistogram(C22_dge))
+```
+
+
+### C23
+
+```{r C23}
+C23 <- mouseHSPC_top[, mouseHSPC_top$sampleMetadata$Mouse == "C23"]
+
+## check libsize
+assay(C23) %>% colSums()
+## tag top barcoes
+C23 <- tagTopBarcodes(C23)
+rowData(C23)$isTopBarcode %>% table()
+
+barbieQ::plotBarcodeHeatmap(
+  C23, sampleMetadata = C23$sampleMetadata[,-1])
+
+barbieQ::plotBarcodeProportion(C23, absoluteProportion = F)
+rowMeans(assays(C23)$proportion) %>% summary()
+rowMeans(assays(C23)$proportion) %>% sort(decreasing = T) 
+rowMeans(assays(mouseHSPC_top)$proportion) %>% summary()
+
+barbieQ::plotBarcodeProportion(C23, absoluteProportion = T)
+```
+
+```{r}
+C23 <- mouseHSPC_top[, mouseHSPC_top$sampleMetadata$Mouse == "C23"]
+## flag C23 samples of exremely low libsize
+flag_low_C23 <- colSums(assay(C23)) < 1000
+## remove the low libsize samples
+C23 <- C23[, !flag_low_C23]
+C23_dge <- DGEList(
+  counts = assay(C23), 
+  group = C23$sampleMetadata$Mouse)
+
+bartools::plotBarcodeHistogram(C23_dge)
+ggsave("../../output/BelderbosME/bartool_C23.png", dpi = 300,width = 8, height = 6, bartools::plotBarcodeHistogram(C23_dge))
+```
+
+# Subet C21 Mouse
+
+## NegSim
+
+```{r negsim dmso, fig.width=7, fig.height=5}
+source("../../analysis/BelderbosME/NegSim-mouseHSPC.R")
+
+library(SummarizedExperiment)
+library(magrittr)
+library(barbieQ)
+library(ggplot2)
+library(patchwork)
+
+load("../../output/BelderbosME/mouseHSPC_barbieQ.rda")
+
+C21 <- mouseHSPC_top[, mouseHSPC_top$sampleMetadata$Mouse == "C21"]
+
+## flag C21 samples of exremely low libsize
+flag_low_C21 <- colSums(assay(C21)) < 1000
+## remove the low libsize samples
+C21 <- C21[, !flag_low_C21]
+
+set.seed(2025)
+
+results_negsi <- random_sampling(barbieQ = C21, loop_times = 100)
+
+## saved to global
+save(global_all_loops, file = "../../output/BelderbosME/all_loops_C21.rda")
+
+lapply(results_negsi, plot)
+
+results_negsi[[1]] <- results_negsi[[1]] + ggtitle("Prop_asin, C21")
+results_negsi[[2]] <- results_negsi[[2]] + ggtitle("Prop_logit, C21")
+results_negsi[[3]] <- results_negsi[[3]] + ggtitle("Prop_noTrans, C21")
+results_negsi[[4]] <- results_negsi[[4]] + ggtitle("Occ_firth, C21")
+results_negsi[[5]] <- results_negsi[[5]] + ggtitle("Prop_asin, C21")
+results_negsi[[6]] <- results_negsi[[6]] + ggtitle("Prop_logit, C21")
+results_negsi[[7]] <- results_negsi[[7]] + ggtitle("Prop_noTrans, C21")
+results_negsi[[8]] <- results_negsi[[8]] + ggtitle("Occ_firth, C21")
+
+ggsave(
+  "../../output/BelderbosME/test_C21.png",
+  wrap_plots(results_negsi[1:8], ncol = 4),
+  width = 40, height = 15,
+  units = "cm"
+  )
+
+```
+
+## Inspect NegSim
+
+### load results
+
+```{r extract results from random sampling}
+load("../../output/BelderbosME/all_loops_C21.rda")
+
+  # extract results from the loops
+  end_sampling <- 11
+  
+  ## extract FPR
+  all_FPR <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$FPR
+  })
+  df_FPR <- do.call(rbind, all_FPR)
+  
+  ## extract P.Val
+  all_P.Val <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$P.Val
+  })
+  df_P.Val <- do.call(rbind, all_P.Val)
+  
+  ## extract MA
+  all_MA <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$MA
+  })
+  df_MA <- do.call(rbind, all_MA)
+  
+  all_Group_Vec <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$Group_Vec
+  })
+  df_Group_Vec <- do.call(rbind, all_Group_Vec)
+  
+  stats_barcodes <- cbind(df_P.Val[,1:4], df_MA)
+
+```
+
+
+### MA plot
+
+```{r inspect random sampling}
+## LFC and Gmean works better than linear diff and Amean
+## the x axis is actually log10 Gmean proportion
+ggplot(as.data.frame(df_MA)) +
+  geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+                 color = as.factor(df_P.Val$Prop_asin < 0.05)))
+
+ggplot(as.data.frame(df_MA)) +
+  geom_point(aes(x = Gmean_prop, y = LFC_prop,  
+                 color = as.factor(df_P.Val$Prop_logit < 0.05)))
+
+ggplot(as.data.frame(df_MA)) +
+  geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+                 color = as.factor(df_P.Val$Prop_noTrans < 0.05)))
+
+
+## flag out the FPR-high simulation
+flag_highFPR <- which(df_FPR$Prop_asin > 0.05)
+SimID_highFPR <- df_FPR[flag_highFPR,]$SimulationID
+
+# df_Group_Vec[SimID_highFPR,]
+```
+
+### P.Val vs. Prop
+
+```{r plot p.val}
+stats_barcodes <- cbind(df_P.Val[,1:4], df_MA)
+# stats_barcodes$Gmean_prop <- (2^stats_barcodes$Gmean_prop-0.5) / 1e6
+
+ggplot(stats_barcodes) +
+  geom_point(aes(y = -log10(Prop_asin), x = log10(Amean_prop + 1e-7)), color = "skyblue", alpha = 0.6) +
+  geom_point(aes(y = -log10(Prop_logit), x = log10(Amean_prop + 1e-7)), color = "yellow", alpha = 0.6) +
+  geom_point(aes(y = -log10(Prop_noTrans), x = log10(Amean_prop + 1e-7)), color = "pink", alpha = 0.6) +
+  geom_hline(yintercept = -log10(0.05))
+
+
+```
+
+### Binned P.Val vs. Prop
+
+#### Function
+
+```{r bin Amean}
+plotP.Val_binnedAmean <- function(stats_barcodes) {
+  stats_binned <- stats_barcodes %>%
+    mutate(
+    logAmean = log10(Amean_prop + 1e-7),
+    bin = cut(logAmean, breaks = seq(-7, 0, by = 1), include.lowest = TRUE)
+  ) %>% 
+    pivot_longer(
+      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
+      names_to = "method",
+      values_to = "pvalue"
+    ) %>%
+    mutate(neglog10_p = -log10(pvalue + 1e-6))
+
+ggplot(stats_binned, aes(x = bin, y = neglog10_p, fill = method)) +
+  geom_boxplot(alpha = 0.6, position = position_dodge(width = 0.8)) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  facet_wrap(~ N_Samples, nrow = 1) +
+  labs(x = "log10(barcode mean prop) bins", y = "-log10(p-value)", fill = "Method") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+
+```{r bin Amean, fig.width=27, fig.height=4}
+plotP.Val_binnedAmean(stats_barcodes)
+```
+
+
+### High FPR simulation
+
+#### locate the high FPRs
+
+```{r high asin}
+flag_highFPR_asin <- which(df_FPR$Prop_asin > 0.08)
+df_FPR[flag_highFPR_asin,"SimulationID"]
+
+flag_highFPR_logit <- which(df_FPR$Prop_logit > 0.3)
+df_FPR[flag_highFPR_logit,"SimulationID"]
+
+flag_highFPR_noTrans <- which(df_FPR$Prop_noTrans > 0.05)
+df_FPR[flag_highFPR_noTrans, "SimulationID"]
+
+
+## simulation groups
+# df_Group_Vec[flag_highFPR_asin,]
+# df_Group_Vec[flag_highFPR_logit,]
+# df_Group_Vec[flag_highFPR_noTrans,]
+
+```
+
+#### union of the high FPR
+
+```{r high union}
+flag_highFPR_union <- union(union(flag_highFPR_asin, flag_highFPR_logit), flag_highFPR_noTrans)
+
+SimID_highFPR <- df_FPR[flag_highFPR_union, "SimulationID"]
+
+stats_barcodes_SimHigh <- stats_barcodes %>% filter(SimulationID %in% SimID_highFPR)
+
+# ggplot(stats_barcodes_SimHigh) +
+#   geom_point(aes(x = -log10(Prop_asin), y = -log10(Prop_logit))) +
+#   coord_fixed() +
+#   geom_vline(xintercept = -log10(0.05)) +
+#   geom_hline(yintercept = -log10(0.05))
+# 
+# ggplot(stats_barcodes_SimHigh) +
+#   geom_point(aes(x = -log10(Prop_asin), y = -log10(Prop_noTrans))) +
+#   coord_fixed() +
+#   geom_vline(xintercept = -log10(0.05)) +
+#   geom_hline(yintercept = -log10(0.05))
+# 
+# 
+# ggplot(as.data.frame(stats_barcodes_SimHigh)) +
+#   geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+#                  color = as.factor(Prop_asin < 0.05)))
+# 
+# ggplot(as.data.frame(stats_barcodes_SimHigh)) +
+#   geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+#                  color = as.factor(Prop_logit < 0.05)))
+# 
+# ggplot(as.data.frame(stats_barcodes_SimHigh)) +
+#   geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+#                  color = as.factor(Prop_noTrans < 0.05)))
+```
+
+#### Function
+
+```{r heatmap of high sim}
+groups_highFPR <- df_Group_Vec[flag_highFPR_union,]
+
+plotSimHeatmap <- function(sim) {
+  ## the first dim is "sample_3_loop_39"
+  # sim <- "sample_3_loop_39"
+  ## add simulation groups to sample metadata
+  simData <- C21
+  simData$sampleMetadata <- cbind(simData$sampleMetadata[,-1], t(groups_highFPR[sim,, drop = F]))
+  ## locate the barcode pvalues of the chosen simulation
+  check_barcodes <- stats_barcodes_SimHigh %>% 
+    filter(SimulationID == sim) 
+  ## locate the significant barcodes in either test
+#   sig_barcodes <- which(check_barcodes$Prop_asin < 0.05 | check_barcodes$Prop_logit < 0.05 | check_barcodes$Prop_noTrans < 0.05)
+#   
+#   sig_simData <- simData[sig_barcodes,]
+#   barbieQ::plotBarcodeHeatmap(barbieQ = sig_simData, splitSamples = T, sampleGroup = sim, barcodeAnnotation = rowAnnotation(
+#     asin = check_barcodes[sig_barcodes,"Prop_asin"] < 0.05,
+#     logit = check_barcodes[sig_barcodes,"Prop_logit"] < 0.05,
+#     noTrans = check_barcodes[sig_barcodes,"Prop_noTrans"] < 0.05,
+#     col = list(
+#       asin = c(`TRUE` = "red", `FALSE` = "grey"),
+#       logit = c(`TRUE` = "red", `FALSE` = "grey"),
+#       noTrans = c(`TRUE` = "red", `FALSE` = "grey")
+#     )
+#     ))
+# }
+
+  barbieQ::plotBarcodeHeatmap(barbieQ = simData, splitSamples = T, sampleGroup = sim, barcodeAnnotation = rowAnnotation(
+    asin = check_barcodes[,"Prop_asin"] < 0.05,
+    logit = check_barcodes[,"Prop_logit"] < 0.05,
+    noTrans = check_barcodes[,"Prop_noTrans"] < 0.05,
+    col = list(
+      asin = c(`TRUE` = "red", `FALSE` = "grey"),
+      logit = c(`TRUE` = "red", `FALSE` = "grey"),
+      noTrans = c(`TRUE` = "red", `FALSE` = "grey")
+    )
+    ))
+}
+
+```
+
+#### heatmap
+
+```{r, fig.width=10, fig.height=6}
+Heatmeap_list <- lapply(rownames(groups_highFPR), plotSimHeatmap)
+
+# Set the resolution and output file for PNG
+png("../../output/BelderbosME/heatmap_simulation_C21.png", width = 45, height = 30, units = "in", res = 300)
+
+# Set layout: 2 rows × 2 columns
+n_rows <- 6
+n_cols <- 5
+
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(n_rows, n_cols)))
+
+vplayout <- function(row, col) viewport(layout.pos.row = row, layout.pos.col = col)
+
+for (i in seq_along(Heatmeap_list)) {
+  row <- ceiling(i / n_cols)
+  col <- (i - 1) %% n_cols + 1
+  pushViewport(vplayout(row, col))
+  draw(Heatmeap_list[[i]], newpage = FALSE)  # This renders the heatmap in the current viewport
+  upViewport()
+}
+
+# Close the PNG device
+dev.off()
+```
+
+# Subet C23 Mouse
+
+## NegSim
+
+```{r negsim dmso, fig.width=7, fig.height=5}
+source("../../analysis/BelderbosME/NegSim-mouseHSPC.R")
+
+library(SummarizedExperiment)
+library(magrittr)
+library(barbieQ)
+library(ggplot2)
+library(patchwork)
+
+load("../../output/BelderbosME/mouseHSPC_barbieQ.rda")
+
+C23 <- mouseHSPC_top[, mouseHSPC_top$sampleMetadata$Mouse == "C23"]
+
+set.seed(2025)
+
+results_negsi <- random_sampling(barbieQ = C23, loop_times = 100)
+
+## saved to global
+save(global_all_loops, file = "../../output/BelderbosME/all_loops_C23.rda")
+
+lapply(results_negsi, plot)
+
+results_negsi[[1]] <- results_negsi[[1]] + ggtitle("Prop_asin, C23")
+results_negsi[[2]] <- results_negsi[[2]] + ggtitle("Prop_logit, C23")
+results_negsi[[3]] <- results_negsi[[3]] + ggtitle("Prop_noTrans, C23")
+results_negsi[[4]] <- results_negsi[[4]] + ggtitle("Occ_firth, C23")
+results_negsi[[5]] <- results_negsi[[5]] + ggtitle("Prop_asin, C23")
+results_negsi[[6]] <- results_negsi[[6]] + ggtitle("Prop_logit, C23")
+results_negsi[[7]] <- results_negsi[[7]] + ggtitle("Prop_noTrans, C23")
+results_negsi[[8]] <- results_negsi[[8]] + ggtitle("Occ_firth, C23")
+
+ggsave(
+  "../../output/BelderbosME/test_C23.png",
+  wrap_plots(results_negsi[1:8], ncol = 4),
+  width = 40, height = 15,
+  units = "cm"
+  )
+
+```
+
+## Inspect NegSim
+
+### load results
+
+```{r extract results from random sampling}
+load("../../output/BelderbosME/all_loops_C23.rda")
+
+  # extract results from the loops
+  end_sampling <- 6
+  
+  ## extract FPR
+  all_FPR <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$FPR
+  })
+  df_FPR <- do.call(rbind, all_FPR)
+  
+  ## extract P.Val
+  all_P.Val <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$P.Val
+  })
+  df_P.Val <- do.call(rbind, all_P.Val)
+  
+  ## extract MA
+  all_MA <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$MA
+  })
+  df_MA <- do.call(rbind, all_MA)
+  
+  all_Group_Vec <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$Group_Vec
+  })
+  df_Group_Vec <- do.call(rbind, all_Group_Vec)
+  
+  stats_barcodes <- cbind(df_P.Val[,1:4], df_MA)
+
+```
+
+
+### MA plot
+
+```{r inspect random sampling}
+## LFC and Gmean works better than linear diff and Amean
+## the x axis is actually log10 Gmean proportion
+ggplot(as.data.frame(df_MA)) +
+  geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+                 color = as.factor(df_P.Val$Prop_asin < 0.05)))
+
+ggplot(as.data.frame(df_MA)) +
+  geom_point(aes(x = Gmean_prop, y = LFC_prop,  
+                 color = as.factor(df_P.Val$Prop_logit < 0.05)))
+
+ggplot(as.data.frame(df_MA)) +
+  geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+                 color = as.factor(df_P.Val$Prop_noTrans < 0.05)))
+
+
+## flag out the FPR-high simulation
+flag_highFPR <- which(df_FPR$Prop_asin > 0.05)
+SimID_highFPR <- df_FPR[flag_highFPR,]$SimulationID
+
+# df_Group_Vec[SimID_highFPR,]
+```
+
+### P.Val vs. Prop
+
+```{r plot p.val}
+stats_barcodes <- cbind(df_P.Val[,1:4], df_MA)
+# stats_barcodes$Gmean_prop <- (2^stats_barcodes$Gmean_prop-0.5) / 1e6
+
+ggplot(stats_barcodes) +
+  geom_point(aes(y = -log10(Prop_asin), x = log10(Amean_prop + 1e-7)), color = "skyblue", alpha = 0.6) +
+  geom_point(aes(y = -log10(Prop_logit), x = log10(Amean_prop + 1e-7)), color = "yellow", alpha = 0.6) +
+  geom_point(aes(y = -log10(Prop_noTrans), x = log10(Amean_prop + 1e-7)), color = "pink", alpha = 0.6) +
+  geom_hline(yintercept = -log10(0.05))
+
+
+```
+
+### Binned P.Val vs. Prop
+
+#### Function
+
+```{r bin Amean}
+plotP.Val_binnedAmean <- function(stats_barcodes) {
+  stats_binned <- stats_barcodes %>%
+    mutate(
+    logAmean = log10(Amean_prop + 1e-7),
+    bin = cut(logAmean, breaks = seq(-7, 0, by = 1), include.lowest = TRUE)
+  ) %>% 
+    pivot_longer(
+      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
+      names_to = "method",
+      values_to = "pvalue"
+    ) %>%
+    mutate(neglog10_p = -log10(pvalue + 1e-6))
+
+ggplot(stats_binned, aes(x = bin, y = neglog10_p, fill = method)) +
+  geom_boxplot(alpha = 0.6, position = position_dodge(width = 0.8)) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  facet_wrap(~ N_Samples, nrow = 1) +
+  labs(x = "log10(barcode mean prop.) bins", y = "-log10(p-value)", fill = "Method") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+
+```{r bin Amean, fig.width=12, fig.height=4}
+plotP.Val_binnedAmean(stats_barcodes)
+```
+
+
+### High FPR simulation
+
+#### locate the high FPRs
+
+```{r high asin}
+flag_highFPR_asin <- which(df_FPR$Prop_asin > 0.08)
+df_FPR[flag_highFPR_asin,"SimulationID"]
+
+flag_highFPR_logit <- which(df_FPR$Prop_logit > 0.2)
+df_FPR[flag_highFPR_logit,"SimulationID"]
+
+flag_highFPR_noTrans <- which(df_FPR$Prop_noTrans > 0.05)
+df_FPR[flag_highFPR_noTrans, "SimulationID"]
+
+
+## simulation groups
+# df_Group_Vec[flag_highFPR_asin,]
+# df_Group_Vec[flag_highFPR_logit,]
+# df_Group_Vec[flag_highFPR_noTrans,]
+
+```
+
+#### union of the high FPR
+
+```{r high union}
+flag_highFPR_union <- union(union(flag_highFPR_asin, flag_highFPR_logit), flag_highFPR_noTrans)
+
+SimID_highFPR <- df_FPR[flag_highFPR_union, "SimulationID"]
+
+stats_barcodes_SimHigh <- stats_barcodes %>% filter(SimulationID %in% SimID_highFPR)
+
+# ggplot(stats_barcodes_SimHigh) +
+#   geom_point(aes(x = -log10(Prop_asin), y = -log10(Prop_logit))) +
+#   coord_fixed() +
+#   geom_vline(xintercept = -log10(0.05)) +
+#   geom_hline(yintercept = -log10(0.05))
+# 
+# ggplot(stats_barcodes_SimHigh) +
+#   geom_point(aes(x = -log10(Prop_asin), y = -log10(Prop_noTrans))) +
+#   coord_fixed() +
+#   geom_vline(xintercept = -log10(0.05)) +
+#   geom_hline(yintercept = -log10(0.05))
+# 
+# 
+# ggplot(as.data.frame(stats_barcodes_SimHigh)) +
+#   geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+#                  color = as.factor(Prop_asin < 0.05)))
+# 
+# ggplot(as.data.frame(stats_barcodes_SimHigh)) +
+#   geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+#                  color = as.factor(Prop_logit < 0.05)))
+# 
+# ggplot(as.data.frame(stats_barcodes_SimHigh)) +
+#   geom_point(aes(x = Gmean_prop, y = LFC_prop, 
+#                  color = as.factor(Prop_noTrans < 0.05)))
+```
+
+#### Function
+
+```{r heatmap of high sim}
+groups_highFPR <- df_Group_Vec[flag_highFPR_union,]
+
+plotSimHeatmap <- function(sim) {
+  ## the first dim is "sample_3_loop_39"
+  # sim <- "sample_3_loop_39"
+  ## add simulation groups to sample metadata
+  simData <- C23
+  simData$sampleMetadata <- cbind(simData$sampleMetadata[,-1], t(groups_highFPR[sim,, drop = F]))
+  ## locate the barcode pvalues of the chosen simulation
+  check_barcodes <- stats_barcodes_SimHigh %>% 
+    filter(SimulationID == sim) 
+  ## locate the significant barcodes in either test
+#   sig_barcodes <- which(check_barcodes$Prop_asin < 0.05 | check_barcodes$Prop_logit < 0.05 | check_barcodes$Prop_noTrans < 0.05)
+#   
+#   sig_simData <- simData[sig_barcodes,]
+#   barbieQ::plotBarcodeHeatmap(barbieQ = sig_simData, splitSamples = T, sampleGroup = sim, barcodeAnnotation = rowAnnotation(
+#     asin = check_barcodes[sig_barcodes,"Prop_asin"] < 0.05,
+#     logit = check_barcodes[sig_barcodes,"Prop_logit"] < 0.05,
+#     noTrans = check_barcodes[sig_barcodes,"Prop_noTrans"] < 0.05,
+#     col = list(
+#       asin = c(`TRUE` = "red", `FALSE` = "grey"),
+#       logit = c(`TRUE` = "red", `FALSE` = "grey"),
+#       noTrans = c(`TRUE` = "red", `FALSE` = "grey")
+#     )
+#     ))
+# }
+
+  barbieQ::plotBarcodeHeatmap(barbieQ = simData, splitSamples = T, sampleGroup = sim, barcodeAnnotation = rowAnnotation(
+    asin = check_barcodes[,"Prop_asin"] < 0.05,
+    logit = check_barcodes[,"Prop_logit"] < 0.05,
+    noTrans = check_barcodes[,"Prop_noTrans"] < 0.05,
+    col = list(
+      asin = c(`TRUE` = "red", `FALSE` = "grey"),
+      logit = c(`TRUE` = "red", `FALSE` = "grey"),
+      noTrans = c(`TRUE` = "red", `FALSE` = "grey")
+    )
+    ))
+}
+
+```
+
+#### heatmap
+
+```{r, fig.width=10, fig.height=6}
+Heatmeap_list <- lapply(rownames(groups_highFPR), plotSimHeatmap)
+
+# Set the resolution and output file for PNG
+png("../../output/BelderbosME/heatmap_simulation_C23.png", width = 45, height = 30, units = "in", res = 300)
+
+# Set layout: 2 rows × 2 columns
+n_rows <- 6
+n_cols <- 5
+
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(n_rows, n_cols)))
+
+vplayout <- function(row, col) viewport(layout.pos.row = row, layout.pos.col = col)
+
+for (i in seq_along(Heatmeap_list)) {
+  row <- ceiling(i / n_cols)
+  col <- (i - 1) %% n_cols + 1
+  pushViewport(vplayout(row, col))
+  draw(Heatmeap_list[[i]], newpage = FALSE)  # This renders the heatmap in the current viewport
+  upViewport()
+}
+
+# Close the PNG device
+dev.off()
+```
+

@@ -1,0 +1,188 @@
+---
+title: "perturb_preprocessing"
+author: "LF"
+date: "2025-04-03"
+output: workflowr::wflow_html
+output_dir: ../../docs/DEBRA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Dependencies
+
+```{r load library}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+# library(edgeR)
+
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+
+```
+
+# Install barbieQ - devel
+
+```{r install barbieQ}
+devtools::install_github("Oshlack/barbieQ")
+
+library(barbieQ)
+```
+
+# Read data
+
+```{r read data}
+EV1 <- read.csv(
+  "../../data/DEBRA/msb199195-sup-0004-datasetev1.csv", 
+  row.names = 1)
+
+```
+
+# Clean up data
+
+```{r clean up data}
+
+sampleName <- colnames(EV1)
+
+## extract P1P2, nulls and perturbs
+Subset <- gsub("m_null_.*", "perturb", sampleName)
+Subset <- gsub("null.*", "null", Subset)
+Subset <- gsub("P.*", "premix", Subset)
+
+## extract cell size (Barcode size, i.e. total number of Barcodes in each sample)
+BarcodeSize <- gsub(".*null_(\\d+)\\..*", "\\1", sampleName)
+BarcodeSize <- gsub("(P\\d)", "", BarcodeSize)
+
+## extract perturbation level in the perturb samples
+Perturbation <- gsub(".*p(\\d+).*", "\\1", sampleName)
+Perturbation <- gsub("[A-Za-z]+.*", "0", Perturbation)
+
+## extract technical rep
+TechRep <- gsub(".*\\.(\\d)", "\\1", sampleName)
+TechRep <- gsub("P\\d", "1", TechRep)
+
+## combine these into a data.frame
+Design <- data.frame(
+  Subset = factor(Subset, levels = c("premix", "null", "perturb")),
+  BarcodeSize = as.numeric(BarcodeSize) * 1000,
+  Perturbation = as.numeric(Perturbation) / 100,
+  TechRep = factor(TechRep)
+)
+```
+
+# Save to barbieQ
+
+```{r create barbieQ}
+perturb <- createBarbieQ(object = EV1, sampleMetadata = Design)
+```
+
+# Tag top barcodes
+
+```{r tag top}
+## check min group size
+table(paste(perturb$sampleMetadata$Subset, perturb$sampleMetadata$Perturbation, sep = "_"))
+
+perturb <- tagTopBarcodes(perturb, nSampleThreshold = 2)
+
+rowData(perturb)$isTopBarcode$isTop %>% table()
+```
+
+# Barcode correlation
+
+No correlated barcodes detected!!!
+
+```{r bar cor}
+ggsave(
+  "../../output/DEBRA/bar_cor.png",
+  plotBarcodePairCorrelation(barbieQ = perturb[rowData(perturb)$isTopBarcode$isTop,])
+  )
+
+```
+
+# Filter top barcode 
+
+```{r tag after cor}
+ggsave("../../output/DEBRA/pareto.png", 
+       plot = barbieQ::plotBarcodePareto(barbieQ = perturb), 
+       width = 10, height = 7, dpi = 300)
+ggsave("../../output/DEBRA/sankey.png", 
+       plot = barbieQ::plotBarcodeSankey(barbieQ = perturb), 
+       width = 5, height = 5, dpi = 300)
+
+```
+
+# Heatmap
+
+```{r hp}
+# png(filename = "../../output/DEBRA/HP_unfilter.png", width = 2000, height = 2000, res = 300)
+# Heatmap(name = "logCPM",
+#   matrix = log2(assays(perturb)$CPM + 1), 
+#   row_title = paste0(nrow(perturb_agg), " Barcodes"), 
+#   show_row_names = FALSE, show_column_names = FALSE)
+# dev.off()
+
+perturb_top <- perturb[rowData(perturb)$isTopBarcode$isTop,]
+
+# png(filename = "../../output/DEBRA/HP_filtered.png", width = 2000, height = 2000, res = 300)
+# Heatmap(name = "logCPM",
+#   matrix = log2(assays(perturb_top)$CPM + 1), 
+#   row_title = paste0(nrow(perturb_top), " Barcodes"), 
+#   show_row_names = FALSE, show_column_names = FALSE)
+# dev.off()
+```
+
+# Save rds
+
+```{r save rds}
+save(
+  perturb, perturb_top, file = "../../output/DEBRA/perturb_barbieQ.rda")
+
+load("../../output/DEBRA/perturb_barbieQ.rda")
+```
+
+# Top10
+
+```{r}
+tagTop10 <- function(col) {
+  ranks <- rank(-col)
+  # summary(ranks)
+  isTop <- ranks <= 10
+  # summary(isTop)
+  return(isTop)
+}
+
+tester <- tagTop10(assays(perturb)$CPM[,1])
+summary(tester)
+
+colTags <- lapply(as.data.frame(assays(perturb)$CPM), 
+                  function(col) tagTop10(col))
+colTagMat <- do.call(cbind, colTags)
+colTagVec <- rowSums(colTagMat) >= 1
+summary(colTagVec)
+
+perturb_top10 <- perturb
+rowData(perturb_top10)$isTopBarcode <- DataFrame(isTop = colTagVec)
+summary(rowData(perturb_top10)$isTopBarcode$isTop)
+
+
+
+ggsave("../../output/DEBRA/pareto_top10.png", 
+       plot = barbieQ::plotBarcodePareto(barbieQ = perturb_top10), 
+       width = 10, height = 7, dpi = 300)
+ggsave("../../output/DEBRA/sankey_top10.png", 
+       plot = barbieQ::plotBarcodeSankey(barbieQ = perturb_top10), 
+       width = 5, height = 5, dpi = 300)
+```

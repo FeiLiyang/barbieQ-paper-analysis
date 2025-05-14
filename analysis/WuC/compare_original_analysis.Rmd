@@ -25,6 +25,10 @@ library(scales)
 library(ggVennDiagram)
 library(ComplexHeatmap)
 library(limma)
+
+library(SummarizedExperiment)
+library(S4Vectors)
+library(barbieQ)
 ```
 
 # Load Processed Data
@@ -148,6 +152,39 @@ myObject <- barbieQ::subsetSamplesByMetadata(barbieQ = myObject, factor = "Phase
 
 table(myObject$metadata$Celltype)
 
+```
+
+
+```{r checkcout df after contrast}
+mytargets <-ZG66_bq_min$metadata %>%
+  select(Celltype, Months) %>%
+  mutate(Phase = ifelse(Months < 6.5, "early", ifelse(Months >42, "late", "mid"))) %>%
+  mutate(Celltype = gsub("(Gr).*", "\\1", Celltype))
+mid_flag <- mytargets$Phase == "mid"
+mydata <- ZG66_bq_min$proportion[,mid_flag]
+mydata <- asin(sqrt(mydata))
+mytargets <- mytargets[mid_flag,]
+mydesign <- model.matrix(~ 0 + Celltype, data = mytargets)
+
+## complex contrast
+mycontrast <- limma::makeContrasts(
+  (CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4,
+  levels = colnames(mydesign))
+## fit design
+fit1 <- limma::lmFit(mydata, design = mydesign)
+fit2 <- limma::contrasts.fit(fit1, contrasts = mycontrast)
+identical(fit1$df.residual, fit2$df.residual)
+
+## simple contrast
+mycontrast <- limma::makeContrasts(
+  (CelltypeNK_CD56n_CD16p) - (CelltypeNK_CD56p_CD16n),
+  levels = colnames(mydesign))
+## fit design
+fit1B <- limma::lmFit(mydata, design = mydesign)
+fit2B <- limma::contrasts.fit(fit1, contrasts = mycontrast)
+identical(fit1B$df.residual, fit2B$df.residual)
+
+identical(fit1B$df.residual, fit1$df.residual)
 ```
 
 ```{r fit model 1}

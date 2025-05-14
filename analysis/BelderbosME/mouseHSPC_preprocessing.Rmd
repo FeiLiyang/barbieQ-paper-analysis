@@ -1,29 +1,48 @@
-# Load Library 
+---
+title: "mouseHSPC_preprocessing"
+author: "LF"
+date: "2025-04-03"
+output: workflowr::wflow_html
+output_dir: ../../docs/BelderbosME
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Dependencies
 
 ```{r load library}
 library(readxl)
-library(purrr)
+library(magrittr)
 library(dplyr)
-library(dbscan)
-library(ggbiplot)
-library(gridExtra)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
 library(ComplexHeatmap)
+library(limma)
+library(edgeR)
 
-# Define the directory containing the R files
-directory <- "/Users/feiliyang/Desktop/Barbie/R"
-
-# Get the list of R files in the directory
-file_list <- list.files(directory, pattern = "\\.R$", full.names = TRUE)
-
-# Loop through each file and load it
-for (file in file_list) {
-  source(file)
-}
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
 
 ```
 
+# Install barbieQ - devel
 
-# Read Files
+```{r install barbieQ}
+devtools::install_github("Oshlack/barbieQ")
+
+library(barbieQ)
+```
+
+# Read data
 
 Read every sheet in the excel.
 
@@ -36,9 +55,9 @@ mouse-specific barcodes: 1-2k.
 I think 'library' in columns refers to time cell pool.
 
 ```{r read xl}
-sheets <- readxl::excel_sheets("mmc2.xlsx")
+sheets <- readxl::excel_sheets("../../data/BelderbosME/mmc2.xlsx")
 
-data_list <- purrr::map(sheets, ~readxl::read_excel("mmc2.xlsx", sheet = .x))
+data_list <- purrr::map(sheets, ~readxl::read_excel("../../data/BelderbosME/mmc2.xlsx", sheet = .x))
 
 # bind sheets
 # library(dplyr)
@@ -70,7 +89,7 @@ ggVennDiagram::ggVennDiagram(x = bar_list)
 
 ```
 
-# Clean-Up
+# Clean up data
 
 ## C1
 
@@ -800,7 +819,7 @@ C23_meta <- data.frame(
 View(data_list$C23)
 ```
 
-# Combine Metadata & CountData
+## Combine mice
 
 ```{r combine}
 Metadata <- dplyr::bind_rows(C1_meta, C2_meta, C3_meta, C10_meta, C15_meta, C22_meta, C21_meta, C23_meta)
@@ -811,128 +830,213 @@ CountData <- dplyr::bind_rows(data_list)
 CountData <- t(CountData)
 ```
 
-# Filter
+# Save to barbieQ
 
-```{r filter}
-Belderbos <- createBarbie(
-  counts = CountData,
-  metadata = Metadata,
-  color_panel = NULL
+```{r save to barbieQ}
+mouseHSPC <- createBarbieQ(object = CountData, sampleMetadata = Metadata)
+```
+
+# Tag top barcodes
+
+```{r tag top}
+dim(mouseHSPC)
+## find minimum group size
+targets <- as.data.frame(mouseHSPC$sampleMetadata) %>% 
+  mutate(Group = paste0(Mouse, Tissue, Celltype))
+targets$Group %>% table()
+
+## select sample to consider, exclude TP0 when tagging
+mouseHSPC <- barbieQ::tagTopBarcodes(barbieQ = mouseHSPC, 
+  activeSamples = mouseHSPC$sampleMetadata$Sample != "library", 
+  nSampleThreshold = 2
+  )
+
+rowData(mouseHSPC)$isTopBarcode$isTop %>% table()
+```
+
+```{r vis tag}
+barbieQ::plotBarcodePareto(barbieQ = mouseHSPC)
+barbieQ::plotBarcodeSankey(barbieQ = mouseHSPC)
+```
+
+# Barcode Correlation
+
+```{r bar cor}
+ggsave(
+  "../../output/BelderbosME//bar_cor.png",
+  plotBarcodePairCorrelation(
+    barbieQ = mouseHSPC[rowData(mouseHSPC)$isTopBarcode$isTop,], 
+    cpmThresh = 2^11)
+  )
+
+mouseHSPC_top_cluster <- clusterCorrelatingBarcodes(
+  barbieQ = mouseHSPC[rowData(mouseHSPC)$isTopBarcode$isTop,], 
+  cpmThresh = 2^11
+  )
+
+## check out clusters
+identifiedCluster <- rowData(mouseHSPC_top_cluster)$barcodeCorrelatedCluster %>% as.data.frame()
+
+N.single <- identifiedCluster$cluster %>% min()
+
+## send the results back to unfiltered data
+DF <- DataFrame(row.names = rownames(mouseHSPC))
+DF[rownames(identifiedCluster),"cluster"] <- identifiedCluster
+N.single.add <- is.na(DF$cluster) %>% sum()
+DF$cluster[is.na(DF$cluster)] <- -seq_len(N.single.add) + N.single
+
+rowData(mouseHSPC)$barcodeCorrelatedCluster <- DF
+```
+
+```{r collapse barcodes}
+identifiedCluster <- rowData(mouseHSPC)$barcodeCorrelatedCluster %>% as.data.frame()
+
+mouseHSPC_agg <- SEtools::aggSE(mouseHSPC, by = identifiedCluster$cluster, assayFun = "max")
+
+row_sums <- rowSums(assay(mouseHSPC))
+
+max_rows_per_cluster <- tapply(
+  rownames(identifiedCluster),  # Row names
+  identifiedCluster$cluster,  # Grouping variable
+  function(rows) rows[which.max(row_sums[rows])]  # Get row with max sum per cluster
 )
 
-Belderbos <- getTopBar(Barbie = Belderbos)
+max_rows_df <- data.frame(cluster = names(max_rows_per_cluster), rowname = unlist(max_rows_per_cluster))
 
-Belderbos <- trimRow(Barbie = Belderbos, keep_rows = Belderbos$is_top)
+max_rows_df <-max_rows_df[rownames(mouseHSPC_agg), ]
+
+rownames(mouseHSPC_agg) <- max_rows_df$rowname
+
+## recreate barbieQ
+mouseHSPC_agg <- createBarbieQ(
+  object = assay(mouseHSPC_agg), sampleMetadata = mouseHSPC$sampleMetadata)
+metadata(mouseHSPC_agg) <- metadata(mouseHSPC)
 ```
 
-# Store Data
+```{r vis cluster}
+## extract clusters
+identifiedCluster$cluster[identifiedCluster$cluster < 0] <- -1
 
-```{r store data}
-saveRDS(
-  object = Belderbos,
-  file = "/Users/feiliyang/Desktop/published_analysis_tools/barcodetrackRData/datasets/BelderbosME_etal/Belderbos_Barbie.RDS")
+plot3 <- ggplot(data = identifiedCluster) +
+  geom_histogram(data = filter(identifiedCluster, cluster > 0), 
+                 aes(x = cluster, fill = as.factor(cluster)), 
+                 binwidth = 1, color = "white") +
+  theme_classic() +
+  scale_x_continuous(breaks = 1:14, labels = 1:14) +
+  theme(aspect.ratio = 1, legend.position = "none")
+
+ggsave("../../output/BelderbosME/cluster_hist.png", plot = plot3, width = 3, height = 3, dpi = 300)
+
+identifiedCluster <- identifiedCluster %>% 
+  mutate(logMeanCPM = log2(rowMeans(assays(mouseHSPC)$CPM)+1))
+
+plot4 <- ggplot(data = identifiedCluster) +
+  geom_point(aes(x = cluster, y = logMeanCPM),
+             color = "grey", shape = 1, size = 4) +
+  geom_point(data = filter(identifiedCluster, cluster > 0),
+             aes(x = cluster, 
+                 y = logMeanCPM,
+                 color = factor(cluster)),
+             shape = 1, size = 4, stroke = 1) +
+  scale_x_continuous(breaks = 1:14, labels = 1:14) +
+  theme_classic() +
+  theme(aspect.ratio = 1, legend.position = "none")
+
+ggsave("../../output/BelderbosME/cluster_mean.png", plot = plot4, width = 3, height = 3, dpi = 300)
+```
+
+# Tag top barcode after collapsing
+
+```{r tag after cor}
+mouseHSPC_agg <- tagTopBarcodes(
+  barbieQ = mouseHSPC_agg, 
+  activeSamples = mouseHSPC_agg$sampleMetadata$Sample != "library",
+  nSampleThreshold = 2)
+
+rowData(mouseHSPC_agg)$isTopBarcode$isTop %>% table()
+(assays(mouseHSPC_agg)$isTopAssay %>% rowSums() >= 2) %>% table()
+
+barbieQ::plotBarcodePareto(barbieQ = mouseHSPC_agg)
+barbieQ::plotBarcodeSankey(barbieQ = mouseHSPC_agg)
+
+ggsave("../../output/BelderbosME/pareto.png", 
+       plot = barbieQ::plotBarcodePareto(barbieQ = mouseHSPC_agg), 
+       width = 10, height = 7, dpi = 300)
+ggsave("../../output/BelderbosME/sankey.png", 
+       plot = barbieQ::plotBarcodeSankey(barbieQ = mouseHSPC_agg), 
+       width = 5, height = 5, dpi = 300)
 
 ```
 
+# Heatmap
 
-# PCA
+```{r hp}
+# png(filename = "../../output/BelderbosME/HP_unfilter.png", width = 2000, height = 2000, res = 300)
+# Heatmap(name = "logCPM",
+#   matrix = log2(assays(mouseHSPC_agg)$CPM + 1), 
+#   row_title = paste0(nrow(mouseHSPC_agg), " Barcodes"), 
+#   show_row_names = FALSE, show_column_names = FALSE)
+# dev.off()
 
-```{r PCA, fig.width=9, fig.height=12}
-plotPsmp <- function(Barbie, fac, df, show_legend = TRUE){
-  
-  if(fac %in% colnames(Barbie$metadata)){
-    col_point <- Barbie$metadata[,fac]
-    col_palette <- fac
-    # col_scale <- Barbie$color_panel[[col_palette]]
-  }
-  
-  if(fac == "DBSCAN"){
-    col_point <- as.factor(paste0("Group ", df$DBSCAN))
-    col_palette <- "DBSCAN"
-    my_colors <- c("red3", "slateblue", "forestgreen", "orange", "plum", "grey",
-                   "turquoise","olivedrab2", "grey27")
-    col_scale <- my_colors[df$DBSCAN |> unique() |> seq() ]
-  }
-  
-  ggbiplot(df, ellipse = F, choices = c(1,2), 
-           groups = col_point, 
-           varname.size = 0, var.axes = F) +
-    theme(aspect.ratio = 1) +
-    # geom_point(size = 2, 
-    #            shape = 21,
-    #            stroke = 1,
-    #            fill = "white",
-    #            alpha = 0.8,
-    #            aes(color = col_point)) +
-    # scale_color_manual(values = col_scale) +
-    # fix style
-    theme_classic() +
-          labs(color = col_palette, title = paste0("Samples Colored by \"", col_palette, "\"")) +
-          theme(aspect.ratio = 1,
-          plot.title = element_text(size = 12),
-          axis.title.x = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          axis.text.x = element_text(size = 8),
-          axis.text.y = element_text(size = 8),
-          legend.title = element_text(size = 0),
-          legend.text = element_text(size = 6),
-          legend.key.height = unit(0.4, "cm"),   # Adjust the height of the legend keys
-          legend.key.width = unit(0.4, "cm"),
-          legend.spacing = unit(0.05, "cm"),
-          legend.position = ifelse(show_legend, "top", "none"),
-          legend.justification = "left")
+mouseHSPC_top <- mouseHSPC_agg[rowData(mouseHSPC_agg)$isTopBarcode$isTop,]
+
+png(filename = "../../output/BelderbosME/HP_filtered.png", width = 2000, height = 2000, res = 300)
+Heatmap(name = "logCPM",
+  matrix = log2(assays(mouseHSPC_top)$CPM + 1), 
+  row_title = paste0(nrow(mouseHSPC_top), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+dev.off()
+```
+
+# Save rds
+
+```{r save rds}
+save(
+  mouseHSPC, mouseHSPC_agg, mouseHSPC_top,
+  file = "../../output/BelderbosME/mouseHSPC_barbieQ.rda")
+
+load("../../output/BelderbosME/mouseHSPC_barbieQ.rda")
+```
+
+# Top10
+
+```{r}
+tagTop10 <- function(col) {
+  ranks <- rank(-col)
+  # summary(ranks)
+  isTop <- ranks <= 10
+  # summary(isTop)
+  return(isTop)
 }
 
-plot_sample_pca <- function(Barbie, db_tune = 0.9, show_legend = TRUE) {
-  smpt <- t(log2(1+ Barbie$CPM))
-  smpP <- as.matrix(smpt)
-  constant_columns <- apply(smpP, 2, function(col) sd(col, na.rm = TRUE) == 0)
-  smpP_filtered <- smpP[, !constant_columns]
+tester <- tagTop10(assays(mouseHSPC_agg)$CPM[,1])
+summary(tester)
+
+colTags <- lapply(as.data.frame(assays(mouseHSPC_agg)$CPM), 
+                  function(col) tagTop10(col))
+colTagMat <- do.call(cbind, colTags)
+colTagVec <- rowSums(colTagMat[,mouseHSPC_agg$sampleMetadata$Sample != "library"]) >= 1
+summary(colTagVec)
+
+mouseHSPC_agg_top10 <- mouseHSPC_agg
+rowData(mouseHSPC_agg_top10)$isTopBarcode <- DataFrame(isTop = colTagVec)
+summary(rowData(mouseHSPC_agg_top10)$isTopBarcode$isTop)
 
 
-  p <- prcomp(smpP_filtered, center = TRUE,scale. = TRUE)
-  
-  tpsmp_dbs <- p$x[,1:2]
-  tpd <- dbscan(tpsmp_dbs, eps = db_tune, minPts = 2)
-  p$DBSCAN <- factor(tpd$cluster + 1)
-  
-  pcls <- lapply(c("Mouse", "xCondition", "Time", "Tissue", "Celltype", "Position", "DBSCAN"), function(x) {
-      plotPsmp(Barbie = Barbie, fac = x, df = p, show_legend = show_legend)
-    })
-  do.call(grid.arrange, c(pcls, ncol = 3))
-}
 
-plot_sample_pca(Barbie = Belderbos)
+ggsave("../../output/BelderbosME/pareto_top10.png", 
+       plot = barbieQ::plotBarcodePareto(barbieQ = mouseHSPC_agg_top10), 
+       width = 10, height = 7, dpi = 300)
+ggsave("../../output/BelderbosME/sankey_top10.png", 
+       plot = barbieQ::plotBarcodeSankey(barbieQ = mouseHSPC_agg_top10), 
+       width = 5, height = 5, dpi = 300)
 ```
 
-# Trim Data
+```{r check}
+load("../../output/BelderbosME/mouseHSPC_barbieQ.rda")
 
-```{r trim data, fig.width=9, fig.height=12}
-del_out <- Belderbos$metadata$Time %in% c("library", "time0")
+View(mouseHSPC_top$sampleMetadata %>% as.data.frame())
 
-# |Belderbos$metadata$Mouse == "C23"
-Belderbos_hem <- trimColumn(Barbie = Belderbos, keep_columns = !del_out)
-
-Belderbos_hem <- getTopBar(Barbie = Belderbos_hem, cut_off = 0.90, num_appearance = 2)
-
-sum(Belderbos_hem$is_top)
-
-Belderbos_hem <- trimRow(Barbie = Belderbos_hem, keep_rows = Belderbos_hem$is_top)
-
-plot_sample_pca(Barbie = Belderbos_hem)
-
-ComplexHeatmap::Heatmap(
-  matrix = log2(Belderbos_hem$CPM + 1), 
-  show_row_names = FALSE,
-  top_annotation = HeatmapAnnotation(
-    Mouse = Belderbos_hem$metadata$Mouse,
-    Celltype = Belderbos_hem$metadata$Celltype,
-    Time = Belderbos_hem$metadata$Time,
-    Tissue = Belderbos_hem$metadata$Tissue,
-    Position = Belderbos_hem$metadata$Position,
-    xCondition = Belderbos_hem$metadata$xCondition,
-    annotation_name_side = "left",
-    annotation_name_gp = gpar(fontsize = 10))
-  ) 
+colnames(assay(mouseHSPC_top))
 ```
 

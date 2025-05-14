@@ -1,0 +1,445 @@
+---
+title: "monkey_preprocessing_barbieQ"
+author: "LF"
+date: "2025-04-03"
+output: workflowr::wflow_html
+output_dir: ../../docs/WuC
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Dependencies
+
+```{r load library}
+suppressMessages({
+  library(readxl)
+  library(magrittr)
+  library(dplyr)
+  library(tidyr) # for pivot_longer
+  library(tibble) # for rownames_to _column
+  library(knitr) # for kable()
+  library(ggplot2)
+  library(patchwork)
+  library(scales)
+  library(ggVennDiagram)
+  library(ComplexHeatmap)
+  library(limma)
+  # library(edgeR)
+  
+  library(SummarizedExperiment)
+  library(SEtools)
+  library(S4Vectors)
+  library(devtools)
+})
+
+```
+
+# Install barbieQ - devel
+
+```{r install barbieQ}
+# devtools::install_github("Oshlack/barbieQ", force = TRUE)
+
+library(barbieQ)
+```
+
+# Read data
+
+Sourced from the NK paper. But loading from pkg data.
+
+```{r load data}
+data(monkeyHSPC, package = "barbieQ")
+```
+
+# Subset samples
+
+```{r tag top}
+## clean up sample metadata
+updateSampleMetadata <- monkeyHSPC$sampleMetadata %>% 
+  as.data.frame() %>% 
+  select(Celltype, Months) %>% 
+  mutate(Phase = ifelse(Months < 6, "early", ifelse(Months >=55, "late", "mid"))) %>% 
+  mutate(Celltype = gsub("(Gr).*", "\\1", Celltype))
+## update sample metadata
+monkeyHSPC$sampleMetadata <- S4Vectors::DataFrame(updateSampleMetadata)
+## add more info
+metadata(monkeyHSPC) <- list("Monkey" = "ZG66")
+
+## subset samples
+monkeyHSPC <- monkeyHSPC[, monkeyHSPC$sampleMetadata$Phase == "mid"]
+
+```
+
+# Tag top barcodes
+
+```{r tag top}
+## check min group size
+table(monkeyHSPC$sampleMetadata$Celltype)
+
+monkeyHSPC <- tagTopBarcodes(monkeyHSPC, nSampleThreshold = 6)
+
+rowData(monkeyHSPC)$isTopBarcode$isTop %>% table()
+```
+
+# Barcode correlation
+
+```{r bar cor}
+ggsave(
+  "../../output/WuC/bar_cor.png",
+  plotBarcodePairCorrelation(barbieQ = monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])
+  )
+
+## determine barcode clusters
+monkeyHSPC_top_cluster <- clusterCorrelatingBarcodes(monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])
+
+## check out clusters
+identifiedCluster <- rowData(monkeyHSPC_top_cluster)$barcodeCorrelatedCluster %>% as.data.frame()
+
+N.single <- identifiedCluster$cluster %>% min()
+
+## send the results back to unfiltered data
+DF <- DataFrame(row.names = rownames(monkeyHSPC))
+DF[rownames(identifiedCluster),"cluster"] <- identifiedCluster
+N.single.add <- is.na(DF$cluster) %>% sum()
+DF$cluster[is.na(DF$cluster)] <- -seq_len(N.single.add) + N.single
+
+rowData(monkeyHSPC)$barcodeCorrelatedCluster <- DF
+```
+
+
+```{r collapse barcodes}
+identifiedCluster <- rowData(monkeyHSPC)$barcodeCorrelatedCluster %>% as.data.frame()
+
+summary(identifiedCluster$cluster)
+
+monkeyHSPC_agg <- SEtools::aggSE(monkeyHSPC, by = identifiedCluster$cluster, assayFun = "max")
+
+row_sums <- rowSums(assay(monkeyHSPC))
+
+max_rows_per_cluster <- tapply(
+  rownames(identifiedCluster),  # Row names
+  identifiedCluster$cluster,  # Grouping variable
+  function(rows) rows[which.max(row_sums[rows])]  # Get row with max sum per cluster
+)
+
+max_rows_df <- data.frame(cluster = names(max_rows_per_cluster), rowname = unlist(max_rows_per_cluster))
+
+max_rows_df <-max_rows_df[rownames(monkeyHSPC_agg), ]
+
+rownames(monkeyHSPC_agg) <- max_rows_df$rowname
+
+## recreate barbieQ
+monkeyHSPC_agg <- createBarbieQ(
+  object = assay(monkeyHSPC_agg), sampleMetadata = monkeyHSPC$sampleMetadata)
+metadata(monkeyHSPC_agg) <- metadata(monkeyHSPC)
+```
+
+## Inspect clusters
+
+```{r barcode MA}
+identifiedCluster <- rowData(monkeyHSPC)$barcodeCorrelatedCluster %>% as.data.frame()
+flag_high_cor <- identifiedCluster$cluster > 0
+sum(flag_high_cor)
+BBQ_high_cor <- monkeyHSPC[flag_high_cor,]
+
+rownames(BBQ_high_cor) <- paste0("B", seq_len(nrow(BBQ_high_cor)))
+
+png("../../output/WuC/AA_barCluster.png", width = 7, height = 7, units = "in", res = 300)
+clusterCorrelatingBarcodes(BBQ_high_cor)
+dev.off()
+png("../../output/WuC/AA_barCor.png", width = 2000, height = 2000, res = 300)
+plotBarcodePairCorrelation(BBQ_high_cor)
+dev.off()
+plotBarcodePairCorrelation(BBQ_high_cor, plotMA = T)
+
+
+## color pairs by clusters
+BBQ_CPM <- assays(BBQ_high_cor)$CPM
+BBQ_meanCPM <- rowMeans(BBQ_CPM)
+BBQ_cluster <- rowData(BBQ_high_cor)$barcodeCorrelatedCluster$cluster
+
+pairMean <- outer(BBQ_meanCPM, BBQ_meanCPM, function(x, y) (x+y)/2)
+pairGMean <- outer(BBQ_meanCPM, BBQ_meanCPM, function(x, y) sqrt((x+0.5)*(y+0.5))-0.5)
+pairLFC <- outer(BBQ_meanCPM, BBQ_meanCPM, function(x, y) log2((x+0.5)/(y+0.5)))
+pairRelation <- outer(BBQ_cluster, BBQ_cluster, function(x,y) ifelse(x==y, x, -1))
+pairCor <- cor(t(BBQ_CPM))
+pairCorLog <- cor(t(log1p(BBQ_CPM)))
+pairNames <- outer(rownames(BBQ_high_cor), rownames(BBQ_high_cor), function(x,y) paste(x, y, sep = "_"))
+
+upperInx <- which(upper.tri(pairMean), arr.ind = TRUE)
+
+longPairs <- data.frame(
+  Mean = pairMean[upperInx],
+  GMean = pairGMean[upperInx],
+  LFC = pairLFC[upperInx],
+  Cluster = pairRelation[upperInx],
+  Cor = pairCor[upperInx],
+  CorLog = pairCorLog[upperInx],
+  Names = pairNames[upperInx]
+)
+longPairs$r = ifelse(longPairs$Cor > 0.95, "high.r", "low.r")
+longPairs$r.Log = ifelse(longPairs$CorLog > 0.95, "high.r", "low.r")
+```
+
+```{r vis cluster MA}
+## plot LFC vs. Mean of barcode pairs
+ggA0 <- ggplot(data = longPairs) +
+  geom_point(aes(y = LFC, x =  log2(Mean+1), shape = r), 
+             color = "grey") +
+  geom_point(data = filter(longPairs, Cluster > 0), 
+             aes(y = LFC, x =  log2(Mean+1), 
+                 color = Cor,
+                 shape = r)) +
+   geom_text(data = filter(longPairs, Cluster > 0),
+            aes(y = LFC, x =  log2(Mean + 1), label = Names),
+            hjust = -0.2, vjust = 0.5, size = 2) + 
+  theme(legend.position = "top")
+
+ggA1 <- ggplot(data = longPairs) +
+  geom_point(aes(y = LFC, x =  log2(Mean+1), shape = r), 
+             color = "grey") +
+  geom_point(data = filter(longPairs, Cluster > 0), 
+             aes(y = LFC, x =  log2(Mean+1), 
+                 color = as.factor(Cluster),
+                 shape = r)) +
+   geom_text(data = filter(longPairs, Cluster > 0),
+            aes(y = LFC, x =  log2(Mean + 1), label = Names),
+            hjust = -0.2, vjust = 0.5, size = 2) + 
+  theme(legend.position = "top")
+
+## y axis: Geometrix mean, i.e. mean of log CPM
+## orthogonal to x axix
+ggA2 <- ggplot(data = longPairs) +
+  geom_point(aes(y = LFC, x =  log2(GMean+1), shape = r), 
+             color = "grey") +
+  geom_point(data = filter(longPairs, Cluster > 0), 
+             aes(y = LFC, x =  log2(GMean+1), 
+                 color = Cor,
+                 shape = r)) +
+   geom_text(data = filter(longPairs, Cluster > 0),
+            aes(y = LFC, x =  log2(GMean + 1), label = Names),
+            hjust = -0.2, vjust = 0.5, size = 2) + 
+  theme(legend.position = "top")
+
+ggA3 <- ggplot(data = longPairs) +
+  geom_point(aes(y = LFC, x =  log2(GMean+1), shape = r), 
+             color = "grey") +
+  geom_point(data = filter(longPairs, Cluster > 0), 
+             aes(y = LFC, x =  log2(GMean+1), 
+                 color = as.factor(Cluster),
+                 shape = r)) +
+  geom_text(data = filter(longPairs, Cluster > 0),
+            aes(y = LFC, x =  log2(GMean + 1), label = Names),
+            hjust = -0.2, vjust = 0.5, size = 2) + 
+  theme(legend.position = "top")
+
+png("../../output/WuC/AA_barMA.png", width = 3000, height = 3750, res = 300)
+(ggA0 | ggA1) / (ggA2 | ggA3)
+dev.off()
+
+BBQ_DF <- rowData(BBQ_high_cor)$barcodeCorrelatedCluster %>% as.data.frame()
+BBQ_DF$Name <- rownames(BBQ_high_cor)
+BBQ_DF$meanCPM <- BBQ_meanCPM
+ggAA <- ggplot(data = BBQ_DF) +
+  geom_point(aes(x = cluster, y = log2(meanCPM + 1)),
+             color = "grey", shape = 1, size = 4) +
+  geom_point(data = filter(BBQ_DF, cluster > 0),
+             aes(x = cluster, 
+                 y = log2(meanCPM + 1),
+                 color = factor(cluster)),
+             shape = 1, size = 4, stroke = 1) +
+  geom_text(data = filter(BBQ_DF, cluster > 0),
+             aes(x = cluster, 
+                 y = log2(meanCPM + 1),
+                 label = Name),
+             hjust = -0.5, vjust = 0.5, size = 2) +
+  scale_x_continuous(breaks = 1:12, labels = 1:12) +
+  theme_classic() +
+  theme(aspect.ratio = 1, legend.position = "none")
+
+ggsave("../../output/WuC/AA_bar.png", plot = ggAA, width = 3, height = 3, dpi = 300)
+```
+
+```{r fig.width=10, fig.height=6}
+ggA2 | ggA3
+```
+
+
+```{r vis cluster}
+## extract clusters
+identifiedCluster$cluster[identifiedCluster$cluster < 0] <- -1
+
+plot3 <- ggplot(data = identifiedCluster) +
+  geom_histogram(data = filter(identifiedCluster, cluster > 0), 
+                 aes(x = cluster, fill = as.factor(cluster)), 
+                 binwidth = 1, color = "white") +
+  theme_classic() +
+  scale_x_continuous(breaks = 1:12, labels = 1:12) +
+  theme(aspect.ratio = 1, legend.position = "none")
+
+ggsave("../../output/WuC//cluster_hist.png", plot = plot3, width = 3, height = 3, dpi = 300)
+
+identifiedCluster <- identifiedCluster %>% 
+  mutate(logMeanCPM = log2(rowMeans(assays(monkeyHSPC)$CPM)+1))
+
+plot4 <- ggplot(data = identifiedCluster) +
+  geom_point(aes(x = cluster, y = logMeanCPM),
+             color = "grey", shape = 1, size = 4) +
+  geom_point(data = filter(identifiedCluster, cluster > 0),
+             aes(x = cluster, 
+                 y = logMeanCPM,
+                 color = factor(cluster)),
+             shape = 1, size = 4, stroke = 1) +
+  scale_x_continuous(breaks = 1:12, labels = 1:12) +
+  theme_classic() +
+  theme(aspect.ratio = 1, legend.position = "none")
+
+ggsave("../../output/WuC//cluster_mean.png", plot = plot4, width = 3, height = 3, dpi = 300)
+```
+
+## Inspect barcodes
+
+```{r vis barcode dynamics}
+identifiedCluster <- rowData(monkeyHSPC)$barcodeCorrelatedCluster %>% as.data.frame()
+flag_high_cor <- identifiedCluster$cluster > 0
+sum(flag_high_cor)
+BBQ_high_cor <- monkeyHSPC[flag_high_cor,]
+
+rownames(BBQ_high_cor) <- paste0("B", seq_len(nrow(BBQ_high_cor)))
+
+BBQ_CPM <- assays(BBQ_high_cor)$CPM
+BBQ_cluster <- rowData(BBQ_high_cor)$barcodeCorrelatedCluster$cluster
+
+wide_data <- data.frame(cluster = as.factor(BBQ_cluster), barcode = rownames(BBQ_high_cor),BBQ_CPM)
+
+## pivot to long data to fit ggplot
+long_data <- wide_data %>% 
+  pivot_longer(
+    cols = -c(cluster, barcode),
+    names_to = "sample",
+    values_to = "CPM"
+  )
+
+## order samples on mean CPM within clusters - to better visualise the trend and systematic differences
+sample_order <- long_data %>%
+  group_by(cluster, sample) %>%
+  summarise(mean_cpm = mean(CPM, na.rm = TRUE), .groups = "drop") %>%
+  arrange(cluster, desc(mean_cpm)) %>%
+  group_by(cluster) %>%
+  mutate(sample_order = factor(sample, levels = unique(sample)))
+
+long_data_ordered <- long_data %>%
+  left_join(sample_order %>% select(cluster, sample, sample_order),
+            by = c("cluster", "sample"))
+
+ggplot(long_data_ordered, aes(x = sample_order, y = log2(CPM +1), group = barcode)) +
+  facet_wrap(~ cluster, scales = "free_x") +
+  geom_point(aes(color = barcode)) +
+  geom_line(aes(color = barcode, linetype = barcode)) +
+  theme_minimal() +
+  labs(x = "Sample (ordered by mean CPM)", y = "log2(CPM + 1)")
+
+## split the data by clusters, to enable every cluster an individual kegend for barcodes
+xc <- split(long_data, f = long_data$cluster)
+
+p_list <- lapply(1:9, function(i) {
+  sample_order <- xc[[i]] %>%
+  group_by(cluster, sample) %>%
+  summarise(mean_cpm = mean(CPM, na.rm = TRUE), .groups = "drop") %>%
+  arrange(cluster, desc(mean_cpm)) %>%
+  group_by(cluster) %>%
+  mutate(sample_order = factor(sample, levels = unique(sample)))
+
+  xc_ordered <- xc[[i]] %>%
+    left_join(sample_order %>% select(cluster, sample, sample_order),
+              by = c("cluster", "sample"))
+  
+  ggplot(xc_ordered, aes(x = sample_order, y = log2(CPM +1), group = barcode)) +
+  facet_wrap(~ cluster, scales = "free_x") +
+  geom_point(aes(color = barcode)) +
+  geom_line(aes(color = barcode, linetype = barcode)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 2) )+
+  labs(x = "Sample (ordered by mean CPM)", y = "log2(CPM + 1)")
+})
+
+## scale y back to linear
+p_list_li <- lapply(1:9, function(i) {
+  sample_order <- xc[[i]] %>%
+  group_by(cluster, sample) %>%
+  summarise(mean_cpm = mean(CPM, na.rm = TRUE), .groups = "drop") %>%
+  arrange(cluster, desc(mean_cpm)) %>%
+  group_by(cluster) %>%
+  mutate(sample_order = factor(sample, levels = unique(sample)))
+
+  xc_ordered <- xc[[i]] %>%
+    left_join(sample_order %>% select(cluster, sample, sample_order),
+              by = c("cluster", "sample"))
+  
+  ggplot(xc_ordered, aes(x = sample_order, y = CPM, group = barcode)) +
+  facet_wrap(~ cluster, scales = "free_x") +
+  geom_point(aes(color = barcode)) +
+  geom_line(aes(color = barcode, linetype = barcode)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 2) )+
+  labs(x = "Sample (ordered by mean CPM)", y = "CPM")
+})
+```
+
+```{r vis clusters line, fig.width=12, fig.height=12}
+png("../../output/WuC/AA_cluster_line.png", width = 3000, height = 3000, res = 300)
+wrap_plots(p_list, ncol = 3)
+dev.off()
+
+png("../../output/WuC/AA_cluster_line_li.png", width = 3000, height = 3000, res = 300)
+wrap_plots(p_list_li, ncol = 3)
+dev.off()
+```
+
+
+# Tag top barcode after collapsing
+
+```{r tag after cor}
+monkeyHSPC_agg <- tagTopBarcodes(barbieQ = monkeyHSPC_agg, nSampleThreshold = 6)
+
+barbieQ::plotBarcodePareto(barbieQ = monkeyHSPC_agg)
+barbieQ::plotBarcodeSankey(barbieQ = monkeyHSPC_agg)
+
+ggsave("../../output/WuC/pareto.png", 
+       plot = barbieQ::plotBarcodePareto(barbieQ = monkeyHSPC_agg), 
+       width = 10, height = 7, dpi = 300)
+ggsave("../../output/WuC/sankey.png", 
+       plot = barbieQ::plotBarcodeSankey(barbieQ = monkeyHSPC_agg), 
+       width = 5, height = 5, dpi = 300)
+
+```
+
+# Heatmap
+
+```{r hp}
+# png(filename = "../../output/WuC/HP_unfilter.png", width = 2000, height = 2000, res = 300)
+# Heatmap(name = "logCPM",
+#   matrix = log2(assays(monkeyHSPC_agg)$CPM + 1), 
+#   row_title = paste0(nrow(monkeyHSPC_agg), " Barcodes"), 
+#   show_row_names = FALSE, show_column_names = FALSE)
+# dev.off()
+
+monkeyHSPC_top <- monkeyHSPC_agg[rowData(monkeyHSPC_agg)$isTopBarcode$isTop,]
+
+png(filename = "../../output/WuC/HP_filtered.png", width = 2000, height = 2000, res = 300)
+Heatmap(name = "logCPM",
+  matrix = log2(assays(monkeyHSPC_top)$CPM + 1), 
+  row_title = paste0(nrow(monkeyHSPC_top), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+dev.off()
+```
+
+# Save rda
+
+```{r save rds}
+save(
+  monkeyHSPC, monkeyHSPC_agg, monkeyHSPC_top, file = "../../output/WuC/monkeyHSPC_barbieQ.rda")
+
+# load("../../output/WuC/monkeyHSPC_barbieQ.rda")
+```

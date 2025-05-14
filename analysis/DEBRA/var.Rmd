@@ -1,0 +1,205 @@
+---
+title: "negsim_perturb_barbieQ"
+author: "LF"
+date: "2025-05-07"
+output: workflowr::wflow_html
+output_dir: ../../DEBRA
+---
+
+# Load Dependencies
+
+```{r load library}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+library(edgeR)
+
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+
+# devtools::install_github("DaneVass/bartools", dependencies = TRUE, force = TRUE)
+library(bartools)
+```
+
+# Install barbieQ - devel
+
+```{r install barbieQ}
+devtools::install_github("Oshlack/barbieQ", force = TRUE)
+
+library(barbieQ)
+```
+
+# Load rds
+
+```{r save rds}
+# rda saved in "../../analysis/DEBRA/perturb_preprocessing.Rmd"
+
+# then in "../../analysis/DEBRA/negsim_perturb_barbieQ.Rmd"
+
+## load the corect rda
+load("../../output/DEBRA/perturb_barbieQ.rda")
+```
+
+# Var of barcodes
+
+```{r var barcodes}
+nulls <- perturb_top[,perturb_top$sampleMetadata$Subset == "null"]
+
+prop_nulls <- assays(nulls)$proportion
+
+barcode_var_nulls <- apply(prop_nulls, 1, var)
+
+barcode_mean_nulls <- rowMeans(prop_nulls)
+
+summary(barcode_var_nulls)
+summary(log10(barcode_var_nulls))
+
+ggplot(data.frame(var = barcode_var_nulls, mean = barcode_mean_nulls)) +
+  geom_point(aes(y = sqrt(var)/mean, x = mean))
+ggplot(data.frame(var = barcode_var_nulls, mean = barcode_mean_nulls)) +
+  geom_point(aes(y = var, x = mean))
+ggplot(data.frame(var = barcode_var_nulls, mean = barcode_mean_nulls)) +
+  geom_point(aes(y = log10((var)) , x = log10(mean)))
+
+plotBarcodeHeatmap(nulls)
+```
+
+# Load testing results
+
+```{r extract results from random sampling}
+load("../../output/DEBRA/all_loops.rda")
+
+  # extract results from the loops
+  end_sampling <- 6
+  
+  ## extract FPR
+  all_FPR <- lapply(seq(3:end_sampling), function(n) {
+    all_loops[[n]]$FPR
+  })
+  df_FPR <- do.call(rbind, all_FPR)
+  
+  ## extract P.Val
+  all_P.Val <- lapply(seq(3:end_sampling), function(n) {
+    all_loops[[n]]$P.Val
+  })
+  df_P.Val <- do.call(rbind, all_P.Val)
+  
+  ## extract MA
+  all_MA <- lapply(seq(3:end_sampling), function(n) {
+    all_loops[[n]]$MA
+  })
+  df_MA <- do.call(rbind, all_MA)
+  
+  all_Group_Vec <- lapply(seq(3:end_sampling), function(n) {
+    all_loops[[n]]$Group_Vec
+  })
+  df_Group_Vec <- do.call(rbind, all_Group_Vec)
+  
+  stats_barcodes <- cbind(df_P.Val[,1:4], df_MA)
+
+```
+
+
+## locate the high FPRs
+
+```{r high asin}
+flag_highFPR_asin <- which(df_FPR$Prop_asin > 0.1)
+df_FPR[flag_highFPR_asin,"SimulationID"]
+
+flag_highFPR_logit <- which(df_FPR$Prop_logit > 0.2)
+df_FPR[flag_highFPR_logit,"SimulationID"]
+
+flag_highFPR_noTrans <- which(df_FPR$Prop_noTrans > 0.07)
+df_FPR[flag_highFPR_noTrans, "SimulationID"]
+
+# View(df_FPR[flag_highFPR_noTrans,])
+
+
+flag_highFPR_union <- union(union(flag_highFPR_asin, flag_highFPR_logit), flag_highFPR_noTrans)
+groups_highFPR <- df_Group_Vec[flag_highFPR_union,]
+
+SimID_highFPR <- df_FPR[flag_highFPR_union, "SimulationID"]
+stats_barcodes_SimHigh <- stats_barcodes %>% filter(SimulationID %in% SimID_highFPR)
+```
+
+## Function Heatmap
+
+```{r heatmap of high sim}
+plotSimHeatmap <- function(sim) {
+  ## the first sim is "sample_3_loop_29"
+  sim <- "sample_3_loop_29"
+  ## add simulation groups to sample metadata
+  simData <- nulls
+  simData$sampleMetadata <- cbind(simData$sampleMetadata, t(groups_highFPR[sim,, drop = F]))
+  ## locate the barcode pvalues of the chosen simulation
+  check_barcodes <- stats_barcodes_SimHigh %>% 
+    filter(SimulationID == sim) 
+  ## locate the significant barcodes in either test
+  sig_barcodes <- which(check_barcodes$Prop_asin < 0.05 | check_barcodes$Prop_logit< 0.05 | check_barcodes$Prop_noTrans < 0.05)
+  
+  sig_barcodes <- 2001:2883 ## mute
+  
+  sig_simData <- simData[sig_barcodes,]
+  
+  p3 <- barbieQ::plotBarcodeHeatmap(barbieQ = sig_simData, splitSamples = T, sampleGroup = sim, barcodeAnnotation = rowAnnotation(
+    asin = check_barcodes[sig_barcodes,"Prop_asin"] < 0.05,
+    logit = check_barcodes[sig_barcodes,"Prop_logit"] < 0.05,
+    noTrans = check_barcodes[sig_barcodes,"Prop_noTrans"] < 0.05,
+    # log10Var = log10(barcode_var_nulls[sig_barcodes]),
+    SD_Mean = (sqrt(barcode_var_nulls) / (barcode_mean_nulls + 1e-7))[sig_barcodes],
+    col = list(
+      asin = c(`TRUE` = "red", `FALSE` = "grey"),
+      logit = c(`TRUE` = "red", `FALSE` = "grey"),
+      noTrans = c(`TRUE` = "red", `FALSE` = "grey"),
+      SD_Mean = colorRamp2(c(0, 1, 2, 3), c("blue", "white", "pink", "red"))
+    )
+    ))
+  
+}
+
+```
+
+```{r, fig.width=6, fig.height=12}
+p1 %v% p2 %v% p3
+```
+
+
+```{r}
+plotSimHeatmap(rownames(groups_highFPR)[2])
+Heatmeap_list <- lapply(rownames(groups_highFPR), plotSimHeatmap)
+
+# Set the resolution and output file for PNG
+png("../../output/DEBRA/heatmap_highFPR_simulation_var.png", width = 30, height = 15, units = "in", res = 300)
+
+# Set layout: 2 rows × 2 columns
+n_rows <- 4
+n_cols <- 4
+
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(n_rows, n_cols)))
+
+vplayout <- function(row, col) viewport(layout.pos.row = row, layout.pos.col = col)
+
+for (i in seq_along(Heatmeap_list)) {
+  row <- ceiling(i / n_cols)
+  col <- (i - 1) %% n_cols + 1
+  pushViewport(vplayout(row, col))
+  draw(Heatmeap_list[[i]], newpage = FALSE)  # This renders the heatmap in the current viewport
+  upViewport()
+}
+
+# Close the PNG device
+dev.off()
+```
+
