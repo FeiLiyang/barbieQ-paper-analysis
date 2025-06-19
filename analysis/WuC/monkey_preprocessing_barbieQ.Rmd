@@ -67,7 +67,8 @@ monkeyHSPC$sampleMetadata <- S4Vectors::DataFrame(updateSampleMetadata)
 metadata(monkeyHSPC) <- list("Monkey" = "ZG66")
 
 ## subset samples
-monkeyHSPC <- monkeyHSPC[, monkeyHSPC$sampleMetadata$Phase == "mid"]
+## Update: June 2025, do not subset early/late time points
+# monkeyHSPC <- monkeyHSPC[, monkeyHSPC$sampleMetadata$Phase == "mid"]
 
 ```
 
@@ -77,22 +78,46 @@ monkeyHSPC <- monkeyHSPC[, monkeyHSPC$sampleMetadata$Phase == "mid"]
 ## check min group size
 table(monkeyHSPC$sampleMetadata$Celltype)
 
-monkeyHSPC <- tagTopBarcodes(monkeyHSPC, nSampleThreshold = 6)
+monkeyHSPC <- barbieQ::tagTopBarcodes(monkeyHSPC, nSampleThreshold = 3)
 
 rowData(monkeyHSPC)$isTopBarcode$isTop %>% table()
+
+## check out NK subtypes (those mature CD16p)
+monkeyHSPC$sampleMetadata[monkeyHSPC$sampleMetadata$Celltype=="NK_NKG2Ap_CD16p",]
+monkeyHSPC$sampleMetadata[monkeyHSPC$sampleMetadata$Celltype=="NK_NKG2Ap_CD16p_KIR3DL01n",]
+monkeyHSPC$sampleMetadata[monkeyHSPC$sampleMetadata$Celltype=="NK_NKG2Ap_CD16p_KIR3DL01p",]
+
+## check out late timepoints
+## late time points are all about the NK subtypes (those mature CD16p)
+monkeyHSPC$sampleMetadata[monkeyHSPC$sampleMetadata$Phase=="late",]
+
+monkeyHSPC$sampleMetadata[monkeyHSPC$sampleMetadata$Phase=="early",]
+```
+
+# Save Rds
+
+Saved on 18 June, 2025.
+
+```{r save rds}
+save(monkeyHSPC, file = "../../output/WuC/monkeyHSPC_ZG66_allPhases_barbieQ.rda")
+
+# load("../../output/WuC/monkeyHSPC_barbieQ.rda")
 ```
 
 # Barcode correlation
 
 ```{r bar cor}
 ggsave(
-  "../../output/WuC/bar_cor.png",
+  "../../output/WuC/bar_cor_allsample.png",
   plotBarcodePairCorrelation(barbieQ = monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])
   )
 
 ## determine barcode clusters
 monkeyHSPC_top_cluster <- clusterCorrelatingBarcodes(monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])
 
+
+```
+```{r}
 ## check out clusters
 identifiedCluster <- rowData(monkeyHSPC_top_cluster)$barcodeCorrelatedCluster %>% as.data.frame()
 
@@ -343,7 +368,7 @@ ggplot(long_data_ordered, aes(x = sample_order, y = log2(CPM +1), group = barcod
 ## split the data by clusters, to enable every cluster an individual kegend for barcodes
 xc <- split(long_data, f = long_data$cluster)
 
-p_list <- lapply(1:9, function(i) {
+p_list <- lapply(1:12, function(i) {
   sample_order <- xc[[i]] %>%
   group_by(cluster, sample) %>%
   summarise(mean_cpm = mean(CPM, na.rm = TRUE), .groups = "drop") %>%
@@ -365,7 +390,7 @@ p_list <- lapply(1:9, function(i) {
 })
 
 ## scale y back to linear
-p_list_li <- lapply(1:9, function(i) {
+p_list_li <- lapply(1:12, function(i) {
   sample_order <- xc[[i]] %>%
   group_by(cluster, sample) %>%
   summarise(mean_cpm = mean(CPM, na.rm = TRUE), .groups = "drop") %>%
@@ -387,7 +412,7 @@ p_list_li <- lapply(1:9, function(i) {
 })
 ```
 
-```{r vis clusters line, fig.width=12, fig.height=12}
+```{r vis clusters line, fig.width=12, fig.height=16}
 png("../../output/WuC/AA_cluster_line.png", width = 3000, height = 3000, res = 300)
 wrap_plots(p_list, ncol = 3)
 dev.off()

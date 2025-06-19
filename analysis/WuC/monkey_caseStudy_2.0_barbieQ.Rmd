@@ -1,7 +1,7 @@
 ---
 title: "case_study"
 author: "LF"
-date: "2025-04-22"
+date: "2025-06-17"
 output: workflowr::wflow_html
 output_dir: ../../docs/WuC
 ---
@@ -24,6 +24,7 @@ library(patchwork)
 library(scales)
 library(ggVennDiagram)
 library(ComplexHeatmap)
+library(circlize)
 library(limma)
 
 library(SummarizedExperiment)
@@ -107,6 +108,9 @@ ggsave("../../output/WuC/venn_filtering.png", dpi = 300, width = 6, height = 4,
        plot(venn1, fills = c("white", "grey", "black"), alpha = 0.5, labels = TRUE, quantities = TRUE))
 ```
 
+# Clone Paper Selected (top10)
+
+Selected barcodes downloaded from the table in the supplementary materials of the original paper differ from the set of barcodes selected using "top10each" from the downloaded whole ZG66 dataset. I think it's because the downloaded table doesn't include the later time points. But I cannot find the corresponding table from the paper's materials. For the sake of consistency, I'll use the set of barcodes selected by "top10each" from the downloaded dataset that processed by myself.
 
 ```{r overlap}
 venn2 <- eulerr::euler(
@@ -114,10 +118,8 @@ venn2 <- eulerr::euler(
     barbieQ = rownames(monkeyHSPC_top), 
     Paper_select = rownames(ZG66_Fig2)))
 
-plot(venn2, fills = c("red", "blue"), alpha = 0.5, labels = TRUE, quantities = TRUE)
+plot(venn2, fills = c("white", "grey"), alpha = 0.5, labels = TRUE, quantities = TRUE)
 ```
-
-## NK-secific Clone Paper Selected
 
 ```{r paper barcode prop provided }
 ## calculate the total proportion of the paper selected barcodes based on the proportion data provided by the paper
@@ -142,83 +144,7 @@ p11
 ```
 
 
-## bartools
-
-```{r bartools, fig.width=10, fig.height=5}
-temp <- assay(monkeyHSPC_top)[,1:30]
-tp_condi <- monkeyHSPC_top$sampleMetadata[1:30,]
-colnames(temp)
-paste(tp_condi$Celltype, tp_condi$Months, sep = "_")
-od_smp <- factor(colnames(temp), levels = unique(colnames(temp)))
-colnames(temp) <- od_smp
-monkey_dge <- DGEList(counts = temp)
-bartools::plotBarcodeHistogram(monkey_dge)
-cust_histogram(monkey_dge)
-
-
-cust_histogram <- function (dgeObject, topN = 10, seedColors = 1, samples = NULL, 
-    orderSamples = NULL, alphaLowFreq = 1) 
-{
-    # inputChecks(dgeObject, samples = c(samples, orderSamples))
-    if (topN > 74) {
-        message("Warning: number of labelled barcodes larger than number of colors in palette (74)")
-    }
-    counts <- as.data.frame(dgeObject$counts)
-    if (is.null(samples)) {
-        samples <- colnames(counts)
-    }
-    counts <- counts[, samples]
-    if (!is.null(orderSamples)) {
-        if (!all(orderSamples %in% samples)) {
-            stop("samples to order by are not present or among selected samples")
-        }
-    }
-    else {
-        orderSamples <- samples
-    }
-    barcode_freqs <- counts %>% as.data.frame() %>% tibble::rownames_to_column(var = "barcode") %>% 
-        tidyr::pivot_longer(-.data$barcode) %>% dplyr::rename(count = .data$value, 
-        sample = .data$name) %>% dplyr::group_by(.data$sample) %>% 
-        dplyr::mutate(freq = .data$count/sum(.data$count)) %>% 
-        dplyr::ungroup()
-    barcode_freqs$sample <- factor(barcode_freqs$sample, levels = unique(barcode_freqs$sample))
-    barcode_order <- barcode_freqs %>% dplyr::filter(.data$sample %in% 
-        orderSamples) %>% dplyr::select(.data$barcode, .data$freq) %>% 
-        dplyr::group_by(.data$barcode) %>% dplyr::slice_max(order_by = .data$freq, 
-        n = 1, with_ties = F) %>% dplyr::arrange(.data$freq)
-    barcode_freqs$barcode <- factor(barcode_freqs$barcode, levels = barcode_order$barcode)
-    qual_col_pals = RColorBrewer::brewer.pal.info[RColorBrewer::brewer.pal.info$category == 
-        "qual", ]
-    col_vector = unlist(mapply(RColorBrewer::brewer.pal, qual_col_pals$maxcolors, 
-        rownames(qual_col_pals)))
-    n <- length(unique(barcode_freqs$barcode))
-    set.seed(seedColors)
-    cols_vector <- sample(col_vector, n, replace = T)
-    bc_labels <- barcode_freqs %>% dplyr::arrange(dplyr::desc(.data$freq)) %>% 
-        dplyr::pull(.data$barcode) %>% unique() %>% utils::head(topN) %>% 
-        as.character()
-    label_values <- stats::setNames(as.list(cols_vector), unique(barcode_freqs$barcode))
-    p <- barcode_freqs %>% ggplot2::ggplot(aes(fill = .data$barcode, 
-        x = .data$sample, y = .data$freq, alpha = ifelse(.data$barcode %in% 
-            bc_labels, 1, 0.5))) + ggplot2::geom_bar(position = "stack", 
-        stat = "identity") + ggplot2::scale_alpha_continuous(guide = FALSE, 
-        range = c(alphaLowFreq, 1)) + ggplot2::scale_fill_manual(values = label_values, 
-        breaks = bc_labels) + ggplot2::theme_bw() + ggplot2::labs(fill = paste0("Top ", 
-        topN, " barcodes")) + ggplot2::ylab("Proportion") + ggplot2::theme(legend.text = element_text(size = 8), 
-        axis.text.x = element_text(angle = 45, hjust = 1))
-    return(p)
-}
-
-```
-
-```{r fig.width=10, fig.height=5}
-cust_histogram(monkey_dge)
-ggsave("../../output/WuC/histo_all.png", 
-       width = 10, height = 5, dpi = 300, cust_histogram(monkey_dge))
-```
-
-
-# Model Design Matrix - filtered
+# Reanalysis - filtered data
 
 - My selecting strategy to select `NK_CD56n_CD16p biased barcodes` by testing
 
@@ -226,34 +152,34 @@ ggsave("../../output/WuC/histo_all.png",
 
  - [2] "(CelltypeB + CelltypeGr + CelltypeT + CelltypeNK_CD56p_CD16n)/4"
 
-- Only keep the samples of "mid" phase, which is of timepoints between "6.5m to 42m".
+- Only keep the samples of timepoints at 6.5, 12.0, 17.0, 27.0, 36.0, 42.0 m. (to be consistent with the paper's analysis)
 
-## model
-
-### monkeyHSPC_top
+## model: monkeyHSPC_top (at time points when all cell types colleted)
 
 ```{r checkcout df after contrast}
+## For time points at 6.5, 12.0, 17.0, 27.0, 36.0, 42.0 m, each collecting all cell types.
+## These samples refer to the first 30 samples in the object, which is also in line with the samples in the table downloaded from the paper's materials.
+whenAllCell <- monkeyHSPC_top[,1:30]
+dim(whenAllCell)
+whenAllCell$sampleMetadata %>% as.data.frame() %>% View()
+
+##need to take Time into account
+designs <- whenAllCell$sampleMetadata %>% as.data.frame() %>%
+  mutate(Months = as.factor(Months)) %>% 
+  with(
+    model.matrix(~0+ Celltype + Months)
+)
+
 asinTrans <- testBarcodeSignif(
-  barbieQ = monkeyHSPC_top[,1:30],
+  barbieQ = whenAllCell, designMatrix = designs,
   contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
   method = "diffProp", transformation = "asin-sqrt"
 )
+# check design
+asinTrans@elementMetadata$testingBarcode@metadata$design
+asinTrans@elementMetadata$testingBarcode@metadata$contrasts
 
-## Alternatively: using logit transformation
-logitTrans <- testBarcodeSignif(
-  barbieQ = monkeyHSPC_top,
-  contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
-  method = "diffProp", transformation = "logit"
-)
 
-## Alternatively: no transformation
-ps.monkeyHSPC_top <- monkeyHSPC_top
-assays(ps.monkeyHSPC_top)$proportion <- log2(assays(ps.monkeyHSPC_top)$proportion+1e-7)
-noTrans <- testBarcodeSignif(
-  barbieQ = monkeyHSPC_top,
-  contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
-  method = "diffProp", transformation = "none"
-)
 
 ## test Barcode differential occurrence between sample groups
 ## set up the targets (sample conditions)
@@ -264,59 +190,71 @@ targets <- monkeyHSPC_top$sampleMetadata %>%
     "NK_CD56n_CD16p",
     "B.Gr.T.NK_CD56p_CD16n"))
 
-monkeyHSPC_top <- testBarcodeSignif(
+occTest <- testBarcodeSignif(
   barbieQ = monkeyHSPC_top, 
   sampleMetadata = targets[,"Group", drop=FALSE], 
   method = "diffOcc"
 )
 ```
 
-### paper data
-
-```{r}
-(rownames(paper_data) %in% rownames(monkeyHSPC)) %>% table()
-
-paper_bb <- monkeyHSPC[rownames(monkeyHSPC) %in% rownames(paper_data), 1:30]
-
-paper_bb <- tagTopBarcodes(paper_bb, nSampleThreshold = 1)
-
-plotBarcodeSankey(paper_bb)
-plotBarcodePareto(paper_bb)
-
-
-paper_bb <- tagTopBarcodes(paper_bb, nSampleThreshold = 6)
-
-plotBarcodeSankey(paper_bb)
-plotBarcodePareto(paper_bb)
+```{r, fig.width=14, fig.height=5}
+plotSignifBarcodeHeatmap(asinTrans)
 ```
 
 ```{r}
-paper_bb$sampleMetadata$Months <- as.factor(paper_bb$sampleMetadata$Months)
+plotBarcodeMA(asinTrans)
+```
 
-asinTrans <- testBarcodeSignif(
-  barbieQ = paper_bb,
+
+## model paper table
+
+```{r}
+paper_bb <- monkeyHSPC[rownames(monkeyHSPC) %in% rownames(ZG66_Fig2), 1:30]
+```
+
+```{r}
+# paper_bb$sampleMetadata$Months <- as.factor(paper_bb$sampleMetadata$Months)
+
+##need to take Time into account
+designs <- paper_bb$sampleMetadata %>% as.data.frame() %>%
+  mutate(Months = as.factor(Months)) %>% 
+  with(
+    model.matrix(~0+ Celltype + Months)
+)
+
+asinTrans_paper <- testBarcodeSignif(
+  barbieQ = paper_bb, designMatrix = designs,
+  contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+
+# check design
+asinTrans@elementMetadata$testingBarcode@metadata$design %>% View()
+asinTrans@elementMetadata$testingBarcode@metadata$contrasts
+```
+
+## model paper table all time
+
+```{r}
+paper_bb_allTime <- monkeyHSPC[rownames(monkeyHSPC) %in% rownames(ZG66_Fig2)]
+
+##need to take Time into account
+designs <- paper_bb_allTime$sampleMetadata %>% as.data.frame() %>%
+  mutate(Months = as.factor(Months)) %>% 
+  with(
+    model.matrix(~0+ Celltype + Months)
+)
+
+
+asinTrans_paper_allTime <- testBarcodeSignif(
+  barbieQ = paper_bb_allTime, designMatrix = designs,
   contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
   method = "diffProp", transformation = "asin-sqrt"
 )
 ```
 
-### paper top
 
-```{r}
-paper_bb <- tagTopBarcodes(paper_bb, nSampleThreshold = 6)
-paper_bb_top <- paper_bb[paper_bb@elementMetadata@listData$isTopBarcode$isTop,]
-
-nrow(paper_bb_top)
-
-asinTrans <- testBarcodeSignif(
-  barbieQ = paper_bb_top,
-  contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
-  method = "diffProp", transformation = "asin-sqrt"
-)
-```
-
-
-## validation
+## validation function
 
 ```{r function validation}
 plot_validation <- function(myObject) {
@@ -386,21 +324,21 @@ plot_validation <- function(myObject) {
 }
 ```
 
-### barbieQ
+### barbieQ test on monkeyHSPC_top and on paper table
 
 ```{r NK my select prop, fig.width=6, fig.height=5}
 plot_validation(asinTrans) 
-ggsave("../../output/WuC/validation_barbieQ.png", 
-       dpi = 300, width = 6, height = 5, plot_validation(asinTrans))
-plot_validation(logitTrans) 
-plot_validation(noTrans) 
+plot_validation(asinTrans_paper)
+plot_validation(asinTrans_paper_allTime)
 
-# plot_validation(myObject = paper_myObject) 
+# ggsave("../../output/WuC/validation_barbieQ.png", 
+#        dpi = 300, width = 6, height = 5, plot_validation(asinTrans))
+
 
 plotSignifBarcodeProportion(asinTrans)
 ```
 
-### Original paper
+### Bias approaches for paper table
 
 (i) >1% contribution to CD56−CD16+ cells and 
 
@@ -415,10 +353,12 @@ assays(ZG66_Fig2_bb)$proportion <- ZG66_Fig2
 rowData(ZG66_Fig2_bb)$testingBarcode$direction = 1
 plot_validation(ZG66_Fig2_bb)
 
-ggsave("../../output/WuC/validation_original.png", 
-       dpi = 300, width = 6, height = 5, plot_validation(ZG66_Fig2_bb))
+# ggsave("../../output/WuC/validation_original.png", 
+#        dpi = 300, width = 6, height = 5, plot_validation(ZG66_Fig2_bb))
 
 ```
+
+#### Calc LFC
 
 ```{r}
 ## extract props. and sample conditions
@@ -449,15 +389,16 @@ LFC_months <- sapply(unique(months), function(m) {
   NK / others 
 })
 
+## decide if each barcode LFC is high at each month
 is_LFC_high <- LFC_months > 10
 colnames(is_LFC_high)
 
-## calc NKnp > 0.01
+## calc if each barcode NKnp  prop > 0.01 at each month
 NK_prop <- prop.[,cond.$isNK == "NKnp", drop=F]
 is_NKnp_high <- NK_prop > 0.01
 colnames(is_NKnp_high)
 
-## meet both metric
+## barcodes meet both metric at each month
 select_months <- (is_LFC_high & is_NKnp_high)
 
 ## select barcodes at each month
@@ -468,6 +409,8 @@ names(select_barcodes_months) <- paste0("heuristic at ", colnames(is_LFC_high), 
 
 ```
 
+#### Venn: LFC at each month vs barbieQ test
+
 ```{r}
 
 ## check overlaps between months
@@ -476,7 +419,8 @@ plot(venn0, fills = c("white", "grey"), alpha = 0.5, labels = T, quantities = T)
 
 ## check overlaps
 compare_list <- select_barcodes_months
-compare_list[["barbieQ_select"]] <- rownames(paper_bb)[rowData(asinTrans)$testingBarcode$direction == 1]
+compare_list[["barbieQ_select"]] <- rownames(asinTrans_paper)[rowData(asinTrans_paper)$testingBarcode$direction == 1]
+compare_list[["barbieQ_select_allTime"]] <- rownames(asinTrans_paper_allTime)[rowData(asinTrans_paper_allTime)$testingBarcode$direction == 1]
 
 venn00 <- eulerr::euler(compare_list)
 
@@ -484,7 +428,7 @@ plot(venn00, fills = c("white", "grey"), alpha = 0.5, labels = T, quantities = T
 ```
 
 
-plot paper-select from each month
+#### Validation: LFC at each month
 
 ```{r}
 ZG66_Fig2_bb <- createBarbieQ(ZG66_Fig2)
@@ -496,31 +440,50 @@ lapply(select_barcodes_months, function(m) plot_validation(ZG66_Fig2_bb[m,]))
 
 ```
 
-take union of all month
+#### Venn and validation: union high LFC barcodes at all months vs. barbieQ test
 
 ```{r}
 union_all_months <- unlist(select_barcodes_months) %>% unique()
 
 venn000 <- eulerr::euler(
   list(
-    barbieQ_select = rownames(paper_bb)[rowData(asinTrans)$testingBarcode$direction == 1], 
+    barbieQ_select = rownames(asinTrans_paper)[rowData(asinTrans_paper)$testingBarcode$direction == 1],
+    barbieQ_select_allTime = rownames(asinTrans_paper_allTime)[rowData(asinTrans_paper_allTime)$testingBarcode$direction == 1],
     union_heuristic = union_all_months)
 )
 
-plot(venn000, fills = c("white", "grey"), alpha = 0.5, labels = T, quantities = T)
+plot(venn000, fills = c("white", "white","grey"), alpha = 0.5, labels = T, quantities = T)
 
 
 plot_validation(ZG66_Fig2_bb[union_all_months,])
 
-plot_validation(asinTrans)
+plot_validation(asinTrans_paper)
+plot_validation(asinTrans_paper_allTime)
 ```
 
+## Validation: change across time
+
+```{r}
+heristic_allTime <- monkeyHSPC[union_all_months,]
+rowData(heristic_allTime)$testingBarcode$direction = 1
+plot_validation(heristic_allTime)
+
+```
+
+```{r}
+test_allTime <- monkeyHSPC[rownames(asinTrans_paper)[rowData(asinTrans_paper)$testingBarcode$direction == 1],]
+rowData(test_allTime)$testingBarcode$direction = 1
+plot_validation(test_allTime)
+```
+
+
+### Bias approaches for monkeyHSPC_top
 
 ```{r}
 venn3 <- eulerr::euler(
   list(
     barbieQ_select = rownames(monkeyHSPC_top)[rowData(asinTrans)$testingBarcode$direction == 1], 
-    Heuristic_LFC = rownames(ZG66_Fig2)))
+    Heuristic_LFC = union_all_months))
 
 plot(venn3, fills = c("white", "grey"), alpha = 0.5, labels = T, quantities = T)
 ```
@@ -575,5 +538,148 @@ plotBarcodeMA(ps.paper) +
 ```
 
 
+# Reanalysis - time dynamics
+
+## HP clustering - paper analysis
+
+subset NKnp samples from 7 timepoints (all) and keep top10each
+
+```{r}
+NKnp <- monkeyHSPC[,monkeyHSPC$sampleMetadata$Celltype == "NK_CD56n_CD16p"]
+
+colTags_NKnp <- lapply(as.data.frame(assays(NKnp)$proportion), 
+                  function(col) tagTop10(col))
+colTagMat_NKnp <- do.call(cbind, colTags_NKnp)
+colTagVec_NKnp <- rowSums(colTagMat_NKnp) >= 1
+sum(colTagVec_NKnp) 
+colSums(colTagMat_NKnp)
+
+NKnp <- NKnp[colTagVec_NKnp,]
+```
+
+hierarchically clustering barcodes and extract the clusters
+
+```{r}
+NKnp_slot <- NKnp@assays@data$proportion
+NKnp_hp <- Heatmap(log10(NKnp_slot+1e-7), show_row_names = F, 
+        column_order = order(NKnp$sampleMetadata$Months),
+        col = colorRamp2(
+    c(0, -2, -4.602),                     # log10 values for 1, 0.01, 0.000025
+    c("red", "white", "blue")             # choose any colors you prefer
+  ))
+
+NKnp_hp
+```
+
+```{r}
+# 3. Extract row dendrogram and cut into 3 clusters
+NKnp_row_dend <- row_dend(NKnp_hp)
+NKnp_clusters <- cutree(as.hclust(NKnp_row_dend), k = 4)
+```
+
+```{r}
+
+# 5. Create row annotation based on clusters
+row_ha <- rowAnnotation(
+  NKnp_clusters = as.factor(NKnp_clusters),
+  col = list(NKnp_clusters = structure(
+    RColorBrewer::brewer.pal(4, "Set1"),
+    names = as.character(1:4)
+  )),
+  show_annotation_name = TRUE
+)
+
+# 6. Plot heatmap with annotation
+ht_with_anno <- Heatmap(
+  log10(NKnp_slot + 1e-7),
+  show_row_names = FALSE, column_labels = NKnp$sampleMetadata$Months,
+  column_order = order(NKnp$sampleMetadata$Months),
+  col = colorRamp2(c(0, -2, -4.602), c("red", "white", "blue")),
+  left_annotation = row_ha
+)
+
+ht_with_anno
+```
 
 
+## model all celltypes
+
+### monkeyHSPC_top
+
+```{r}
+
+##need to take Time into account
+designs <- monkeyHSPC_top$sampleMetadata %>% as.data.frame() %>%
+  with(
+    model.matrix(~0+ Celltype + Celltype:Months)
+)
+colnames(designs)<- gsub(":", replacement = ".", colnames(designs))
+
+
+asinTrans_allCell_testTime <- testBarcodeSignif(
+  barbieQ = monkeyHSPC_top, designMatrix = designs,
+  contrastFormula = "CelltypeNK_CD56n_CD16p.Months",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+```
+
+### NKnp top10each
+
+```{r}
+NKnp_top10each <- monkeyHSPC[rownames(NKnp),]
+##need to take Time into account
+designs <- NKnp_top10each$sampleMetadata %>% as.data.frame() %>%
+  with(
+    model.matrix(~0+ Celltype + Celltype:Months)
+)
+colnames(designs)<- gsub(":", replacement = ".", colnames(designs))
+
+
+asinTrans_allCell_NKnp_top10each_testTime <- testBarcodeSignif(
+  barbieQ = NKnp_top10each, designMatrix = designs,
+  contrastFormula = "CelltypeNK_CD56n_CD16p.Months",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+```
+
+## model NKnp - Need to fix pkg here!!!
+
+```{r}
+NKnp <- monkeyHSPC[,monkeyHSPC_top$sampleMetadata$Celltype == "NK_CD56n_CD16p"]
+
+designs <- NKnp$sampleMetadata %>% as.data.frame() %>%
+  with(
+    model.matrix(~0+ Months)
+)
+
+asinTrans_NKnp_testTime <- testBarcodeSignif(
+  barbieQ = NKnp, ,sampleMetadata = NKnp$sampleMetadata, sampleGroup = "Months",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+```
+
+##Validation: vis
+
+```{r}
+NKnp <- monkeyHSPC[,monkeyHSPC$sampleMetadata$Celltype == "NK_CD56n_CD16p"]
+
+cluster_selected_list <- lapply(1:4, function(i) names(NKnp_clusters)[NKnp_clusters == i])
+names(cluster_selected_list) <- paste("cluster_", 1:4, sep = "_")
+
+seletced_barbieQ_NKnp_up <- rowData(asinTrans_allCell_NKnp_top10each_testTime)$testingBarcode$direction == 1
+seletced_barbieQ_NKnp_down <- rowData(asinTrans_allCell_NKnp_top10each_testTime)$testingBarcode$direction == -1
+
+cluster_selected_list[["barbieQ_NKnp_up"]] <- rownames(asinTrans_allCell_NKnp_top10each_testTime)[seletced_barbieQ_NKnp_up]
+cluster_selected_list[["barbieQ_NKnp_down"]] <- rownames(asinTrans_allCell_NKnp_top10each_testTime)[seletced_barbieQ_NKnp_down]
+
+venn99 <- eulerr::euler(
+  cluster_selected_list
+)
+
+plot(venn99, fills = c("white", "white","white","white","grey","grey"), alpha = 0.5, labels = T, quantities = T)
+
+
+```
+
+
+# Need to get data at early timepoint: 4.5m
