@@ -35,9 +35,9 @@ library(bartools)
 # Install barbieQ - devel
 
 ```{r install barbieQ}
-devtools::install_github("Oshlack/barbieQ", force = TRUE)
-
-library(barbieQ)
+# devtools::install_github("Oshlack/barbieQ", force = TRUE)
+# 
+# library(barbieQ)
 ```
 
 # Load rds
@@ -415,30 +415,31 @@ df_FPR_long <- df_FPR %>%
   mutate(Method = factor(Method, levels = c("Prop_asin", "Prop_logit", "Prop_noTrans"),
                          labels = c("asin-sqrt", "logit", "no trans.")))
 
-ggplot(
-  df_FPR_long, aes(x = factor(N_Samples), y = Pval_Prop, fill = Method)) +
+P_FPR_add1_prop <- ggplot(
+  df_FPR_long, aes(x = factor(N_Samples), y = Pval_Prop, fill = factor(N_Samples))) +
   geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
   # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
   # coord_cartesian(ylim = c(0, 0.2)) + 
-  labs(title = "Type I Error Rates of Differential Proportion Methods",
+  labs(title = "Differential proportion test under transformations",
        y = "Proportion of barcodes with p-value < 0.05",
-       x = "Number of samples per group",
-       fill = "Trans. Method",
-       color = "Trans. Method") +
+       x = "Number of samples per group") +
+  facet_wrap(~Method, scales = "free_y") +
   theme_classic() +
-  theme(legend.position = "top")
+  theme(legend.position = "none")
 
 
 
-# ggsave(
-#   "../../output/DEBRA/tester_add1_prop.png",
-#   wrap_plots(list(gFDR_prop_asin, gFDR_prop_logit,  gFDR_prop_noTrans), ncol = 3),
-#   width = 30, height = 8,
-#   units = "cm"
-#   )
+ggsave(
+  "../../output/DEBRA/tester_add1_prop.png",
+  P_FPR_add1_prop,
+  width = 20, height = 10,
+  units = "cm"
+  )
 
 ```
+
+
 
 
 ### Binned P.Val vs. Prop
@@ -507,10 +508,10 @@ plot_median_P.Val <- function(stats_barcodes) {
   ggplot(stats_binned, aes(x = bin, y = neglog10_p, fill = method)) +
     # geom_boxplot(alpha = 0.6, position = position_dodge(width = 0.8), outliers = F) +
     # geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-    geom_point(data = median_lines, aes(x = bin, y = median_neglog10_p, group = method, color = method),
-               position = position_dodge(width = 0.8), size = 1.8) +
-    geom_line(data = median_lines, aes(x = bin, y = median_neglog10_p, group = method, color = method),
-              position = position_dodge(width = 0.8), linewidth = 0.8) +
+    geom_point(
+      data = median_lines, aes(x = bin, y = median_neglog10_p, group = method, color = method), size = 1.8) +
+    geom_line(
+      data = median_lines, aes(x = bin, y = median_neglog10_p, group = method, color = method), linewidth = 0.8) +
     facet_wrap(~ N_Samples, nrow = 1) +
     labs(
       x = "log10(barcode mean prop.) bins",
@@ -519,11 +520,15 @@ plot_median_P.Val <- function(stats_barcodes) {
       color = "Method"
     ) +
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "top")
 }
 
 plot_median_P.Val(stats_barcodes)
 
+
+```
+
+```{r}
 ggsave("../../output/DEBRA/median_p.val.png", dpi = 300, width = 8, height = 3,
        plot_median_P.Val(stats_barcodes))
 ```

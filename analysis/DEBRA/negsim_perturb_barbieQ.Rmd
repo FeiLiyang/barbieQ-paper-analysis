@@ -536,15 +536,30 @@ ggplot(
   theme(legend.position = "top")
 
 
+```
+
+```{r}
+P_FPR_occ <- ggplot(
+  df_FPR, aes(x = factor(N_Samples), y = Occ_firth, fill = factor(N_Samples))) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(title = "Differential occurrence test",
+       y = "Proportion of barcodes with p-value < 0.05",
+       x = "Number of samples per group") +
+  theme_classic() +
+  theme(legend.position = "none")
+
 
 ggsave(
-  "../../output/DEBRA/tester_add1_occ.png",
-  wrap_plots(list(gFDR_occ_firth), ncol = 1),
-  width = 10, height = 8,
+  "../../output/DEBRA/tester_occ.png",
+  P_FPR_occ,
+  width = 7, height = 10,
   units = "cm"
   )
-
 ```
+
 
 ### MA plot
 

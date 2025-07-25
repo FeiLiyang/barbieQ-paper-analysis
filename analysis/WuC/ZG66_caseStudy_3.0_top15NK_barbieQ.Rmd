@@ -13,24 +13,28 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load Dependencies
 
 ```{r load library}
-library(readxl)
-library(magrittr)
-library(dplyr)
-library(tidyr) # for pivot_longer
-library(tibble) # for rownames_to _column
-library(knitr) # for kable()
-library(ggplot2)
-library(patchwork)
-library(scales)
-library(ggVennDiagram)
-library(ComplexHeatmap)
-library(proxy) ## for dist
-library(circlize)
-library(limma)
-
-library(SummarizedExperiment)
-library(S4Vectors)
-library(barbieQ)
+suppressMessages({
+  library(readxl)
+  library(magrittr)
+  library(dplyr)
+  library(tidyr) # for pivot_longer
+  library(tibble) # for rownames_to _column
+  library(knitr) # for kable()
+  library(ggplot2)
+  library(patchwork)
+  library(scales)
+  library(ggVennDiagram)
+  library(ComplexHeatmap)
+  library(proxy) ## for dist
+  library(circlize)
+  library(limma)
+  
+  library(SummarizedExperiment)
+  library(S4Vectors)
+  library(barbieQ)
+  library(barcodetrackR)
+})
+  
 ```
 
 # Load Processed Data
@@ -41,14 +45,14 @@ load("../../output/WuC/monkeyHSPC_ZG66_allPhases_barbieQ.rda")
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 monkeyHSPC$sampleMetadata[monkeyHSPC$sampleMetadata$Phase == "early",]
 monkeyHSPC$sampleMetadata[monkeyHSPC$sampleMetadata$Phase == "late",]
 ```
 
  - Loading the barcodes selected by the paper for `NK_CD56n_CD16p biased` using the paper's strategy.
 
-```{r load xlsx}
+```{r load xlsx, eval=FALSE, include=FALSE}
 ## load dataset provided by the paper corresponding to specific figures
 paper_data <- read_excel("../../data/WuC/aat9781_table_s2.xlsx", sheet = "Figure 2 ZG66")
 paper_data <- as.data.frame(paper_data)
@@ -57,214 +61,17 @@ ZG66_Fig2 <- paper_data[,-1]
 
 ```
 
-# Function: Top10BC per sample
-
-```{r filtering original}
-tagTop10 <- function(col, n=10) {
-  ranks <- rank(-col)
-  # summary(ranks)
-  isTop <- ranks <= n
-  # summary(isTop)
-  return(isTop)
-}
-
-
-```
-
-# Function: Validation 
-
-```{r function validation}
-plot_validation <- function(myObject) {
-  
-  flag <- rowData(myObject)$testingBarcode$direction == 1
-  myObject <- myObject[flag,]
-  
-  NK_clone_contributionU <- assays(myObject)$proportion %>% colSums()
-  dat <- data.frame(
-    contr = NK_clone_contributionU,
-    Celltype = factor(myObject$sampleMetadata$Celltype,
-                      levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p")),
-    Months = myObject$sampleMetadata$Months)
-  ## sort samples by celltype and months
-  dat <- dat %>%
-    arrange(Celltype, Months) %>% 
-    mutate(id = row_number()) 
-  ## add dummy rows for spacing between celltypes
-  dat <- dat %>%
-    group_by(Celltype) %>%
-    mutate(dummy = n() + 1) %>%    # Add a dummy count for spacing
-    ungroup() %>%
-    bind_rows(dat %>%             # Add dummy rows for spacing
-                group_by(Celltype) %>%
-                slice_tail(n = 1) %>%
-                mutate(id = as.numeric(id) + 0.5, contr = NA, Months = NA)) %>%
-    arrange(as.numeric(id))        # Arrange with dummy rows in place
-  
-  celltype_colors <- c(
-  "T" = "yellowgreen",
-  "B" = "yellowgreen",
-  "Gr" = "yellowgreen",
-  "NK_CD56p_CD16n" = "yellowgreen",
-  "NK_CD56n_CD16p" = "slateblue1" # "orchid"
-)
-  
-  p <- ggplot(dat, aes(x = as.factor(id), y = contr, color = Celltype)) +
-  geom_bar(stat = "identity", fill = NA) + 
-  theme_minimal() +
-  theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 0.5, size = 10),
-        axis.title.x = element_text(size = 14), 
-        axis.title.y = element_text(size = 14), 
-        panel.grid.major.x = element_blank()) +
-  scale_x_discrete(labels = ifelse(is.na(dat$Months), "", dat$Months)) + # Relabel with `Celltype`
-  scale_color_manual(values = celltype_colors) +  # <- set bar outline color
-  scale_fill_manual(values = celltype_colors) +   # <- set tile fill color
-  scale_y_continuous(limits = c(-0.09, 0.8)) +
-  labs(x = "Samples of cell types at different months", y = "Total prop. of selected barcodes") +  # Update axis labels
-  geom_tile(
-    data = dat,
-    aes(x = ifelse(is.na(Months), NA,order(id)), y = -0.03, fill = Celltype),
-    height = 0.03, width = 1
-  ) +
-  geom_text(
-    data = dat %>%
-      mutate(id = order(id)) %>%
-      group_by(Celltype) %>%
-      mutate(Celltype = recode(Celltype, "NK_CD56n_CD16p" = "NK.CD56-CD16+")) %>% 
-      mutate(Celltype = recode(Celltype, "NK_CD56p_CD16n" = "NK.CD56+CD16-")) %>% 
-      summarize(mid_point = mean(as.numeric(id))),
-    aes(x = mid_point-0.5, y = -0.03, label = Celltype),
-    size = 3, vjust = 0.5, color = "black"
-  )
-  
-  return(p)
-}
-```
-
-# Function: line validation
+# Source FUN
 
 ```{r}
-plot_line_validation <- function(barcode_set_list, barbieQ) {
-  ## Example for barcode set list
-  # barcode_set_list <- list(
-  #   test_30sample = rownames(top10each_30_test30)[top10each_30_test30@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-  #   test_early_mid = rownames(top10each_30_test_ealy_mid)[top10each_30_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-  #   heuristic = union_LFC_top10each_30
-  # )
-  
-  ## check barcode set list and barbieQ contents
-  print(names(barcode_set_list))
-  print(dim(barbieQ))
-  
-  # Create named vector with default value "none"
-  selectedBy <- setNames(rep("none", nrow(barbieQ)), rownames(barbieQ))
-  
-  # Assign sources
-  for (source_name in names(barcode_set_list)) {
-    matching_barcodes <- barcode_set_list[[source_name]]
-    selectedBy[matching_barcodes] <- ifelse(
-      selectedBy[matching_barcodes] == "none",
-      source_name,
-      paste(selectedBy[matching_barcodes], source_name, sep = ",")
-    )
-  }
-  
-  ## extract props. and sample conditions
-  prop. <- assays(barbieQ)$proportion
-  cond. <- barbieQ$sampleMetadata %>% as.data.frame()
-  
-  cond.$Celltype <- factor(cond.$Celltype,
-                      levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p", 
-                                 "NK_NKG2Ap_CD16p", "NK_NKG2Ap_CD16p_KIR3DL01n",
-                                 "NK_NKG2Ap_CD16p_KIR3DL01p"))
-
-  ## combine slots
-  prop_df <- data.frame(cond., t(prop.))
-  ## keep only early and mid samples
-  prop_df <- prop_df %>% 
-    # dplyr::filter(Phase %in% c("early", "mid")) %>% 
-    select(-Phase)
-  ## classify BC by selected by test or LFC
-  
-  ## picot to long data
-  prop_long <- prop_df %>%
-    pivot_longer(
-      cols = -c(Celltype, Months),     # keep Celltype and Months fixed
-      names_to = "Barcode",
-      values_to = "Proportion"
-    )
-  ## assign to barcode selectedBy status
-  prop_long$selectedBy <- selectedBy[as.character(prop_long$Barcode)]
-  
-  ## plot
-  p <- ggplot(prop_long) +
-    geom_line(aes(x = Months, y = Proportion, group = Barcode, color = selectedBy)) +
-    facet_grid(selectedBy ~ Celltype, scales = "free_y") +
-    theme_minimal() +
-    theme(legend.position = "top")
-  
-  return(p)
-  
-}
+getwd()
+source("FUN_validation.R")
 ```
 
-
-# Function: Calc LFC
-
-```{r}
-calc_bias_LFC <- function(barbieQ) {
-  ## extract props. and sample conditions
-  prop. <- assays(barbieQ)$proportion
-  cond. <- barbieQ$sampleMetadata %>% as.data.frame()
-  ## group samples by NKnp or others
-  cond. <- cond. %>% 
-    mutate(isNK = ifelse(Celltype == "NK_CD56n_CD16p", "NKnp", "others"))
-  cond.$Celltype %>% table()
-  
-  ## calc mean per group at each month
-  group_labels <- paste(cond.$Months, cond.$isNK, sep = "__")
-  group_means <- sapply(unique(group_labels), function(g) {
-    idx <- which(group_labels == g)
-    rowMeans(prop.[, idx, drop = FALSE])
-  })
-  
-  ## calc group LFC at each month
-  colnames(group_means)
-  months <- gsub("(\\1)__.*", "\\1",colnames(group_means))
-  
-  LFC_months <- sapply(unique(months), function(m) {
-    idx <- which(months == m)
-    sub <- group_means[, idx, drop = FALSE]
-    group <- gsub(".*__()", "\\1",colnames(sub))
-    NK <- sub[, which(group == "NKnp"), drop = F]
-    others <- sub[, which(group=="others"),drop = F]
-    NK / others 
-  })
-  
-  ## decide if each barcode LFC is high at each month
-  is_LFC_high <- LFC_months > 10
-  colnames(is_LFC_high)
-  
-  ## calc if each barcode NKnp  prop > 0.01 at each month
-  NK_prop <- prop.[,cond.$isNK == "NKnp", drop=F]
-  is_NKnp_high <- NK_prop > 0.01
-  colnames(is_NKnp_high)
-  
-  ## barcodes meet both metric at each month
-  select_months <- (is_LFC_high & is_NKnp_high)
-  
-  ## select barcodes at each month
-  select_barcodes_months <- lapply(colnames(select_months), function(j) 
-    rownames(prop.)[select_months[,j]])
-  
-  names(select_barcodes_months) <- paste0("heuristic at ", colnames(is_LFC_high), "m")
-  
-  return(select_barcodes_months)
-}
-
-```
 
 # Data
+
+Same 81 BC in paper Fig2
 
 ```{r}
 # first 30 samples are included in the paper table
@@ -303,19 +110,11 @@ top10each_early_mid <- top10each_early_mid[colTagVec,]
 
 ```
 
-```{r}
-# include all early and mid phase samples (discussed in Fig3, S4 for time course)
-flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
-# tag top
-monkeyHSPC_top99_early_mid_0 <- tagTopBarcodes(barbieQ = monkeyHSPC[,flag_early_mid], nSampleThreshold = 6)
-flag_top <- monkeyHSPC_top99_early_mid_0@elementMetadata$isTopBarcode$isTop
-table(flag_top)
-monkeyHSPC_top99_early_mid <- monkeyHSPC_top99_early_mid_0[flag_top,]
-```
-
 subset NKnp samples of all 8 timepoints
 
 Choose BC by top10each (suggested by paper): 39 BCs
+
+Same 39 BC in paper Fig3
 
 ```{r}
 NKnp <- monkeyHSPC[,monkeyHSPC$sampleMetadata$Celltype == "NK_CD56n_CD16p"]
@@ -331,6 +130,29 @@ top10each_NKnp <- monkeyHSPC[colTagVec_NKnp,]
 
 ## same data used by paper
 NKnp <- NKnp[colTagVec_NKnp,]
+```
+
+monkeyHSPC_top99_early_mid saved in the rda object - no need to run again.
+
+```{r eval=FALSE, include=FALSE}
+# include all early and mid phase samples (discussed in Fig3, S4 for time course)
+flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
+# tag top
+monkeyHSPC <- tagTopBarcodes(barbieQ = monkeyHSPC, activeSamples = flag_early_mid, nSampleThreshold = 6)
+flag_top <- monkeyHSPC@elementMetadata$isTopBarcode$isTop
+table(flag_top)
+monkeyHSPC_top99_early_mid <- monkeyHSPC[flag_top,]
+
+```
+
+## Save to rda
+
+```{r}
+
+save(
+  monkeyHSPC, monkeyHSPC_top99_early_mid, file = "../../output/WuC/cluster_pca_facet.pngmonkeyHSPC_ZG66_allPhases_barbieQ.rda"
+)
+
 ```
 
 
@@ -420,7 +242,7 @@ Heatmap(
 )
 ```
 
-## Test NKnp, early_mid, top10each_NKnp
+## Test NKnp:Time, early_mid, top10each_NKnp
 
 ```{r}
 flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
@@ -441,21 +263,81 @@ top10each_NKnp_test_time_early_mid <- testBarcodeSignif(
 )
 ```
 
-## Test NKnp, NKnp only, top10each_NKnp - Need to fix pkg here!!!
+## Test NKnp:Time, NKnp only, top10each_NKnp - Need to fix pkg here!!!
 
 ```{r eval=FALSE, include=FALSE}
-# NKnp <- monkeyHSPC[,monkeyHSPC_top$sampleMetadata$Celltype == "NK_CD56n_CD16p"]
-# 
-# designs <- NKnp$sampleMetadata %>% as.data.frame() %>%
-#   with(
-#     model.matrix(~0+ Months)
-# )
-# 
-# asinTrans_NKnp_testTime <- testBarcodeSignif(
-#   barbieQ = NKnp, ,sampleMetadata = NKnp$sampleMetadata, sampleGroup = "Months",
-#   method = "diffProp", transformation = "asin-sqrt"
-# )
+
+designs <- NKnp$sampleMetadata %>% as.data.frame() %>%
+  with(
+    model.matrix(~0+ Months)
+)
+
+top10each_NKnp_test_time_NKnp <- testBarcodeSignif(
+  barbieQ = NKnp, ,sampleMetadata = NKnp$sampleMetadata, sampleGroup = "Months",
+  method = "diffProp", transformation = "asin-sqrt"
+)
 ```
+
+## HP Vis testing
+
+```{r}
+BC_kinetic <- top10each_NKnp_test_time_NKnp@elementMetadata$testingBarcode$tendencyTo
+
+pch_fun <- ifelse(top10each_NKnp_test_time_NKnp@elementMetadata$testingBarcode$direction != 0, "*", NA)
+
+row_ha <- rowAnnotation(
+  NKnp_clusters = as.factor(NKnp_clusters),
+  col = list(NKnp_clusters = structure(
+    RColorBrewer::brewer.pal(5, "Set1"),
+    names = as.character(1:5)
+  )),
+  show_annotation_name = TRUE
+)
+
+
+kinetic_ha <- rowAnnotation(
+  Kinetic = anno_simple(
+    BC_kinetic,
+    col = top10each_NKnp_test_time_NKnp@metadata$factorColors$testingBarcode,
+    pch = pch_fun),
+  show_annotation_name = TRUE,
+  annotation_name_side = "top",
+  annotation_name_rot = 45 
+)
+
+HP_anno_kinetic <- Heatmap(
+  log10(NKnp_slot + 1e-6), 
+  show_row_names = FALSE, column_labels = NKnp$sampleMetadata$Months,
+  column_title = "Months", column_names_side = "top", column_names_rot = 45,
+  row_title = "Barcodes",
+  column_order = order(NKnp$sampleMetadata$Months),
+  # col = colorRamp2(c(0, -2, -4.602), c("red", "white", "blue")),
+  # left_annotation = row_ha,
+  right_annotation = kinetic_ha,
+  row_split = as.factor(NKnp_clusters),
+  heatmap_legend_param = list(
+        title = "Prop.", at = c(-6, -4, -2, 0), 
+        labels = c(0.000001, 0.0001, 0.01, 0)
+    )
+)
+
+lgd_sig = Legend(pch = "*", type = "points", labels = "signif.")
+
+lgd_kinetic = Legend(labels = c("up", "down", "n.s."), title = "Kinetic", 
+             legend_gp = gpar(fill = c("#FF5959", "#33AAFF", "#FFC000"))
+             )
+
+```
+
+```{r fig.width=4, fig.height=6}
+draw(HP_anno_kinetic, annotation_legend_list = list(lgd_kinetic, lgd_sig))
+
+png("../../output/WuC/kinetic_HP.png", width = 1200, height = 1200, res = 300)
+draw(HP_anno_kinetic, annotation_legend_list = list(lgd_kinetic, lgd_sig))
+dev.off()
+```
+
+
 
 ## Compare
 
@@ -468,11 +350,16 @@ names(cluster_selected_list) <- paste("cluster_", 1:5, sep = "_")
 seletced_barbieQ_NKnp_up <- rowData(top10each_NKnp_test_time_early_mid)$testingBarcode$direction == 1
 seletced_barbieQ_NKnp_down <- rowData(top10each_NKnp_test_time_early_mid)$testingBarcode$direction == -1
 
-cluster_selected_list[["barbieQ_NKnp_up"]] <- rownames(top10each_NKnp_test_time_early_mid)[seletced_barbieQ_NKnp_up]
-cluster_selected_list[["barbieQ_NKnp_down"]] <- rownames(top10each_NKnp_test_time_early_mid)[seletced_barbieQ_NKnp_down]
+
+cluster_selected_list[["test_NKnp_up"]] <- rownames(top10each_NKnp_test_time_NKnp)[seletced_barbieQ_NKnp_up]
+cluster_selected_list[["test_NKnp_down"]] <- rownames(top10each_NKnp_test_time_NKnp)[seletced_barbieQ_NKnp_down]
+
+
+cluster_selected_list[["test_all_up"]] <- rownames(top10each_NKnp_test_time_early_mid)[seletced_barbieQ_NKnp_up]
+cluster_selected_list[["test_all_down"]] <- rownames(top10each_NKnp_test_time_early_mid)[seletced_barbieQ_NKnp_down]
 
 venn99 <- eulerr::euler(
-  cluster_selected_list
+  cluster_selected_list[1:7]
 )
 
 plot(venn99, fills = c("white", "white","white","white","white","grey","grey"), alpha = 0.5, labels = T, quantities = T)
@@ -480,15 +367,111 @@ plot(venn99, fills = c("white", "white","white","white","white","grey","grey"), 
 
 ```
 
+```{r}
+venn99 <- eulerr::euler(
+  cluster_selected_list
+)
+
+plot(venn99, fills = c("white", "white","white","white","white", "hotpink","royalblue","white","white","white"), alpha =0.8, labels = T, quantities = T)
+```
+
+
 ### Line plot
 
+```{r}
+
+NK_long_time <- plot_line_validation(
+  cluster_selected_list[c(1,2,3,5,7)], barbieQ = top10each_NKnp[,top10each_NKnp$sampleMetadata$Celltype == "NK_CD56n_CD16p"], get_long_data = T)
+
+# Step 1: Summarise mean and SEM
+NK_summary <- NK_long_time %>%
+  filter(!str_detect(selectedBy, "none")) %>%
+  group_by(selectedBy, Months) %>%
+  summarise(
+    mean_prop = mean(Proportion, na.rm = TRUE),
+    sem = sd(Proportion, na.rm = TRUE) / sqrt(n()),
+    .groups = "drop"
+  ) 
+
+# Step 2: Plot mean with SEM ribbon
+ggplot(NK_summary, aes(x = Months, y = mean_prop, color = selectedBy, fill = selectedBy)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = mean_prop - sem, ymax = mean_prop + sem), alpha = 0.2, color = NA) +
+  theme_minimal() +
+  scale_color_manual(values = c("cluster__1,test_NKnp_down" = "limegreen", 
+                                "cluster__2,test_NKnp_down" = "limegreen", 
+                                "cluster__3,test_NKnp_down" = "limegreen", 
+                                "cluster__5,test_NKnp_down" = "limegreen", 
+                                "cluster__2" = "black")) +
+  scale_fill_manual(values = c("cluster__1,test_NKnp_down" = "yellowgreen", 
+                                "cluster__2,test_NKnp_down" = "yellowgreen", 
+                                "cluster__3,test_NKnp_down" = "yellowgreen", 
+                                "cluster__5,test_NKnp_down" = "yellowgreen", 
+                                "cluster__2" = "grey")) 
+
+
+```
+
+```{r}
+NK_long_time <- plot_line_validation(
+  cluster_selected_list[c(4,6)], barbieQ = top10each_NKnp[,top10each_NKnp$sampleMetadata$Celltype == "NK_CD56n_CD16p"], get_long_data = T)
+
+# Step 1: Summarise mean and SEM
+NK_summary <- NK_long_time %>%
+  filter(!str_detect(selectedBy, "none")) %>%
+  group_by(selectedBy, Months) %>%
+  summarise(
+    mean_prop = mean(Proportion, na.rm = TRUE),
+    sem = sd(Proportion, na.rm = TRUE) / sqrt(n()),
+    .groups = "drop"
+  )
+
+# Step 2: Plot mean with SEM ribbon
+ggplot(NK_summary, aes(x = Months, y = mean_prop, color = selectedBy, fill = selectedBy)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = mean_prop - sem, ymax = mean_prop + sem), alpha = 0.2, color = NA) +
+  theme_minimal() +
+  scale_color_manual(values = c("cluster__4,test_NKnp_up" = "red", 
+                                "cluster__4" = "black")) +
+  scale_fill_manual(values = c("cluster__4,test_NKnp_up" = "pink", 
+                                "cluster__4" = "grey")) 
+
+```
+
+```{r}
+NK_long_time_c1235 <- plot_line_validation(
+  cluster_selected_list[c(1,2,3,4,5)], barbieQ = top10each_NKnp[,top10each_NKnp$sampleMetadata$Celltype == "NK_CD56n_CD16p"], get_long_data = T)
+
+NK_long_time_down <- plot_line_validation(
+  cluster_selected_list[c(6,7)], barbieQ = top10each_NKnp[,top10each_NKnp$sampleMetadata$Celltype == "NK_CD56n_CD16p"], get_long_data = T)
+
+ggplot(NK_long_time_c1235 %>% mutate(testing_time = NK_long_time_down$selectedBy)) +
+    geom_line(aes(x = Months, y = Proportion, group = Barcode, color = testing_time)) +
+    facet_wrap(~selectedBy, scales = "free_y") +
+    theme_minimal() +
+    theme(legend.position = "top") +
+  scale_color_manual(values = c("none" = "gold",
+                                "test_NKnp_down" = "royalblue",
+                                "test_NKnp_up" = "hotpink"))
+```
+
+
 ```{r, fig.width=10, fig.height=12}
-plot_line_validation(cluster_selected_list[c(1,2,3,5,7)], top10each_NKnp_test_time_early_mid)
+plot_line_validation(cluster_selected_list[c(1,2,3,5,7)], top10each_NKnp[,flag_early_mid])
+```
+
+```{r, fig.width=10, fig.height=12}
+plot_line_validation(cluster_selected_list[c(1,2,3,5,7)], top10each_NKnp)
 ```
 
 ```{r, fig.width=10, fig.height=6}
-plot_line_validation(cluster_selected_list[c(4,6)], top10each_NKnp_test_time_early_mid)
+plot_line_validation(cluster_selected_list[c(4,6)], top10each_NKnp[,flag_early_mid])
 ```
+
+```{r, fig.width=10, fig.height=6}
+plot_line_validation(cluster_selected_list[c(4,6)], top10each_NKnp)
+```
+
 # More BC
 
 ## Test NKnp, early_mid, 132 BC from 53 samples of all TP all celltype
@@ -516,7 +499,7 @@ top10each_early_mid_test_time_early_mid <- testBarcodeSignif(
 ```{r}
 dim(monkeyHSPC_top99_early_mid)
 ##need to take Time into account
-designs <- monkeyHSPC_top99_early_mid$sampleMetadata %>% as.data.frame() %>%
+designs <- monkeyHSPC_top99_early_mid[,flag_early_mid]$sampleMetadata %>% as.data.frame() %>%
   with(
     model.matrix(~0+ Celltype + Celltype:Months)
 )
@@ -524,10 +507,11 @@ colnames(designs)<- gsub(":", replacement = ".", colnames(designs))
 
 
 top99n6_early_mid_test_time_early_mid <- testBarcodeSignif(
-  barbieQ = monkeyHSPC_top99_early_mid, designMatrix = designs,
+  barbieQ = monkeyHSPC_top99_early_mid[,flag_early_mid], designMatrix = designs,
   contrastFormula = "CelltypeNK_CD56n_CD16p.Months",
   method = "diffProp", transformation = "asin-sqrt"
 )
+dim(top99n6_early_mid_test_time_early_mid)
 ```
 
 
@@ -577,15 +561,182 @@ venn_test_NK_early_mid <- eulerr::euler(
 plot(venn_test_NK_early_mid, fills = c("white", "white","grey","grey", "grey2", "grey2"), alpha = 0.5, labels = T, quantities = T)
 ```
 
-## Line plot
+### Line plot
 
 ```{r}
 plot_line_validation(list_test_NK_early_mid[c(1,3)], top10each_early_mid[,flag_early_mid])
 plot_line_validation(list_test_NK_early_mid[c(2,4)], top10each_early_mid[,flag_early_mid])
 ```
 
+```{r}
+plot_line_validation(list_test_NK_early_mid[c(1,3)], top10each_early_mid)
+plot_line_validation(list_test_NK_early_mid[c(2,4)], top10each_early_mid)
+```
+
 ```{r, fig.width=10, fig.height=6}
-plot_line_validation(list_test_NK_early_mid[c(1,3,5)], monkeyHSPC[flag_top,])
-plot_line_validation(list_test_NK_early_mid[c(2,4,6)], monkeyHSPC[flag_top,])
+plot_line_validation(list_test_NK_early_mid[c(1,3,5)], monkeyHSPC_top99_early_mid[,flag_early_mid])
+plot_line_validation(list_test_NK_early_mid[c(2,4,6)], monkeyHSPC_top99_early_mid[,flag_early_mid])
+```
+
+```{r, fig.width=10, fig.height=6}
+plot_line_validation(list_test_NK_early_mid[c(1,3,5)], monkeyHSPC_top99_early_mid)
+plot_line_validation(list_test_NK_early_mid[c(2,4,6)], monkeyHSPC_top99_early_mid)
+```
+
+# Two figure, 132 BC from all celltype all times
+
+## Test Celltype, early_mid, 132 BC from 53 samples of all TP all celltype
+
+```{r}
+flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
+
+##need to take Time into account
+designs <- top10each_early_mid[,flag_early_mid]$sampleMetadata %>% as.data.frame() %>%
+  mutate(Months = as.factor(Months)) %>% 
+  with(
+    model.matrix(~0+ Celltype + Months)
+)
+
+top10each_early_mid_test_celltype_ealy_mid <- testBarcodeSignif(
+  barbieQ = top10each_early_mid[,flag_early_mid], designMatrix = designs,
+  contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+
+top10each_early_mid_test_celltype_ealy_mid@elementMetadata$testingBarcode@metadata$contrasts
+```
+
+## Compare
+
+### Venn
+
+```{r}
+NKnp_up_132BC <- top10each_early_mid_test_time_early_mid@elementMetadata$testingBarcode$direction == 1
+NKnp_down_132BC <- top10each_early_mid_test_time_early_mid@elementMetadata$testingBarcode$direction == -1
+
+NKnp_more <- top10each_early_mid_test_celltype_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"
+
+NKnp_less <- top10each_early_mid_test_celltype_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeB + CelltypeGr + CelltypeNK_CD56p_CD16n + CelltypeT"
+
+list_test_two_figure_early_mid <- list(
+    NKnp_up = rownames(top10each_early_mid_test_time_early_mid)[NKnp_up_132BC],
+    NKnp_down = rownames(top10each_early_mid_test_time_early_mid)[NKnp_down_132BC],
+    NKnp_more = rownames(top10each_early_mid_test_celltype_ealy_mid)[NKnp_more],
+    NKnp_less = rownames(top10each_early_mid_test_celltype_ealy_mid)[NKnp_less]
+    
+)
+
+venn_test_two_figure_early_mid <- eulerr::euler(
+  list_test_two_figure_early_mid
+)
+
+plot(venn_test_two_figure_early_mid, fills = c("white", "white","grey","grey"), alpha = 0.5, labels = T, quantities = T)
+```
+
+### Line plot
+
+```{r}
+plot_line_validation(list_test_two_figure_early_mid[1:3], top10each_early_mid[,flag_early_mid])
+```
+
+```{r}
+plot_line_validation(list_test_two_figure_early_mid[1:3], top10each_early_mid)
+```
+
+# Two figure, 1.6k BC from all celltype all times
+
+## Test Celltype, early_mid, 1.6k BC from 53 samples of all TP all celltype
+
+```{r}
+flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
+
+##need to take Time into account
+designs <- monkeyHSPC_top99_early_mid[,flag_early_mid]$sampleMetadata %>% as.data.frame() %>%
+  mutate(Months = as.factor(Months)) %>% 
+  with(
+    model.matrix(~0+ Celltype + Months)
+)
+
+top99n6_early_mid_test_celltype_ealy_mid <- testBarcodeSignif(
+  barbieQ = monkeyHSPC_top99_early_mid[,flag_early_mid], designMatrix = designs,
+  contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+```
+
+## Compare
+
+### Venn
+
+```{r}
+NKnp_up_132BC <- top99n6_early_mid_test_time_early_mid@elementMetadata$testingBarcode$direction == 1
+NKnp_down_132BC <- top99n6_early_mid_test_time_early_mid@elementMetadata$testingBarcode$direction == -1
+
+NKnp_more <- top99n6_early_mid_test_celltype_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"
+
+NKnp_less <- top99n6_early_mid_test_celltype_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeB + CelltypeGr + CelltypeNK_CD56p_CD16n + CelltypeT"
+
+list_test_two_figure_early_mid_top99n6 <- list(
+    NKnp_up = rownames(top99n6_early_mid_test_time_early_mid)[NKnp_up_132BC],
+    NKnp_down = rownames(top99n6_early_mid_test_time_early_mid)[NKnp_down_132BC],
+    NKnp_more = rownames(top99n6_early_mid_test_celltype_ealy_mid)[NKnp_more],
+    NKnp_less = rownames(top99n6_early_mid_test_celltype_ealy_mid)[NKnp_less]
+    
+)
+
+venn_test_two_figure_early_mid_top99n6 <- eulerr::euler(
+  list_test_two_figure_early_mid_top99n6 
+)
+
+plot(venn_test_two_figure_early_mid_top99n6, fills = c("white", "white","grey","grey"), alpha = 0.5, labels = T, quantities = T)
+```
+
+### Line plot
+
+```{r, fig.width=8, fig.height=8}
+plot_line_validation(list_test_two_figure_early_mid_top99n6, monkeyHSPC_top99_early_mid[,flag_early_mid])
+```
+
+```{r, fig.width=12, fig.height=8}
+plot_line_validation(list_test_two_figure_early_mid_top99n6, monkeyHSPC_top99_early_mid)
+```
+
+
+# Compare filtering
+
+## Venn 
+
+```{r}
+list_compare_filtering <- vector("list", length = 8)
+names(list_compare_filtering) <- c(
+  paste("pp", gsub("NKnp_(.*)", "\\1",names(list_test_two_figure_early_mid))),
+  paste("bb", gsub("NKnp_(.*)", "\\1",names(list_test_two_figure_early_mid_top99n6))))
+
+list_compare_filtering[1:4] <- list_test_two_figure_early_mid
+list_compare_filtering[5:8] <- list_test_two_figure_early_mid_top99n6
+
+
+venn_omg <- eulerr::euler(
+  list_compare_filtering[c(3, 5:7)]
+)
+
+plot(venn_omg, fills = c("grey","white","white","white"), alpha = 0.5, labels = T, quantities = T)
+
+venn_omg <- eulerr::euler(
+  list_compare_filtering[c(1:3, 5:7)]
+)
+
+plot(venn_omg, fills = c("grey","grey","grey","white", "white","white"), alpha = 0.5, labels = T, quantities = T)
+```
+
+```{r}
+cluster_selected_list[["LFC"]] <- union_LFC_top10each_30
+
+venn_paper <- eulerr::euler(
+  cluster_selected_list[c(6, 1:5)]
+)
+
+plot(venn_paper, fills = c("white", "white","white", "white","white", "grey"), alpha = 0.5, labels = T, quantities = T)
+
 ```
 

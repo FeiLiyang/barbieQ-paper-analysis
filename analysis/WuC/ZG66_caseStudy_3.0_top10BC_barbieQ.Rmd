@@ -56,72 +56,16 @@ ZG66_Fig2 <- paper_data[,-1]
 
 ```
 
-# Top10BC per sample
+# Source FUN
 
-```{r filtering original}
-tagTop10 <- function(col, n=10) {
-  ranks <- rank(-col)
-  # summary(ranks)
-  isTop <- ranks <= n
-  # summary(isTop)
-  return(isTop)
-}
-
-colTags <- lapply(as.data.frame(assays(monkeyHSPC)$proportion), 
-                  function(col) tagTop10(col))
-colTagMat <- do.call(cbind, colTags)
-colTagVec <- rowSums(colTagMat) >= 1
-sum(colTagVec) 
-sum(colTagVec) / nrow(monkeyHSPC)
-dim(colTagMat)
-all(colSums(colTagMat) == 10)
-
-top10each <- monkeyHSPC
-rowData(top10each)$isTopBarcode$isTop <- colTagVec
-# assays(top10each)$isTopAssay <- colTagMat
-barbieQ::plotBarcodeSankey(top10each)
-# ggsave("../../output/WuC/sankey_top10each.png", dpi = 300, width = 4, height = 4, 
-#        barbieQ::plotBarcodeSankey(top10each))
-top10each <- top10each[colTagVec,]
-
-tagTop20 <- function(col) {
-  ranks <- rank(-col)
-  # summary(ranks)
-  isTop <- ranks <= 20
-  # summary(isTop)
-  return(isTop)
-}
-colTags2 <- lapply(as.data.frame(assays(monkeyHSPC)$proportion), 
-                  function(col) tagTop20(col))
-colTagMat2 <- do.call(cbind, colTags2)
-colTagVec2 <- rowSums(colTagMat2) >= 1
-
-top20each <- monkeyHSPC
-rowData(top20each)$isTopBarcode$isTop <- colTagVec2
-# assays(top10each)$isTopAssay <- colTagMat2
-barbieQ::plotBarcodeSankey(top20each)
-# ggsave("../../output/WuC/sankey_top20each.png", dpi = 300, width = 4, height = 4, 
-#        barbieQ::plotBarcodeSankey(top20each))
-top20each <- top20each[colTagVec2,]
-
-venn1 <- eulerr::euler(
-  list(
-    barbieQ = rownames(monkeyHSPC)[monkeyHSPC@elementMetadata$isTopBarcode$isTop], 
-    top10_per_sample = rownames(top10each),
-    top20_per_sample = rownames(top20each)
-  )
-)
-
-plot(venn1, fills = c("white", "grey", "black"), alpha = 0.5, labels = TRUE, quantities = TRUE)
-# ggsave("../../output/WuC/venn_filtering.png", dpi = 300, width = 6, height = 4, 
-       # plot(venn1, fills = c("white", "grey", "black"), alpha = 0.5, labels = TRUE, quantities = TRUE))
+```{r}
+getwd()
+source("FUN_validation.R")
 ```
 
-## Paper table
+# Data
 
-Downloaded table from the original paper contains 81 barcodes and 30 samples. Barcodes selected using the "top10each" approach based on the 30 samples from the original ZG66 dataset, monkeyHSPC, perfectly overlap with the 81 barcodes in the downloaded table.
-
-However, when samples of earlier or later months are included, more barcodes will be selected.
+Same 81 BC in paper Fig2
 
 ```{r}
 # first 30 samples are included in the paper table
@@ -160,6 +104,57 @@ top10each_early_mid <- top10each_early_mid[colTagVec,]
 
 ```
 
+subset NKnp samples of all 8 timepoints
+
+Choose BC by top10each (suggested by paper): 39 BCs
+
+Same 39 BC in paper Fig3
+
+```{r}
+NKnp <- monkeyHSPC[,monkeyHSPC$sampleMetadata$Celltype == "NK_CD56n_CD16p"]
+
+colTags_NKnp <- lapply(as.data.frame(assays(NKnp)$proportion), 
+                  function(col) tagTop10(col, n = 10))
+colTagMat_NKnp <- do.call(cbind, colTags_NKnp)
+colTagVec_NKnp <- rowSums(colTagMat_NKnp) >= 1
+sum(colTagVec_NKnp) 
+all(colSums(colTagMat_NKnp) == 15)
+
+top10each_NKnp <- monkeyHSPC[colTagVec_NKnp,]
+
+## same data used by paper
+NKnp <- NKnp[colTagVec_NKnp,]
+```
+
+monkeyHSPC_top99_early_mid saved in the rda object - no need to run again.
+
+```{r eval=FALSE, include=FALSE}
+# include all early and mid phase samples (discussed in Fig3, S4 for time course)
+flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
+# tag top
+monkeyHSPC <- tagTopBarcodes(barbieQ = monkeyHSPC, activeSamples = flag_early_mid, nSampleThreshold = 6)
+flag_top <- monkeyHSPC@elementMetadata$isTopBarcode$isTop
+table(flag_top)
+monkeyHSPC_top99_early_mid <- monkeyHSPC[flag_top,]
+
+```
+
+## Save to rda
+
+```{r}
+
+save(
+  monkeyHSPC, monkeyHSPC_top99_early_mid, file = "../../output/WuC/cluster_pca_facet.pngmonkeyHSPC_ZG66_allPhases_barbieQ.rda"
+)
+
+```
+
+
+## Paper table
+
+Downloaded table from the original paper contains 81 barcodes and 30 samples. Barcodes selected using the "top10each" approach based on the 30 samples from the original ZG66 dataset, monkeyHSPC, perfectly overlap with the 81 barcodes in the downloaded table.
+
+However, when samples of earlier or later months are included, more barcodes will be selected.
 
 ```{r overlap}
 venn2 <- eulerr::euler(
@@ -172,227 +167,12 @@ venn2 <- eulerr::euler(
 plot(venn2, fills = c("white", "grey"), alpha = 0.5, labels = TRUE, quantities = TRUE)
 ```
 
-```{r paper barcode prop provided }
-## calculate the total proportion of the paper selected barcodes based on the proportion data provided by the paper
-NK_clone_contribution <- ZG66_Fig2 %>% colSums()
-dat <- data.frame(
-  contr = NK_clone_contribution,
-  sample = c(rep("T", 6),
-             rep("B", 6),
-             rep("Gr", 6),
-             rep("NK_CD56p_CD16n", 6),
-             rep("NK_CD56n_CD16p", 6)))
-dat$sample <- factor(dat$sample, levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p"))
-
-dat <- dat %>%
-  mutate(id = row_number()) 
-p11 <- ggplot(dat, aes(x = as.factor(id), y = contr, color = sample)) +
-  geom_bar(stat = "identity", fill = NA) + 
-  theme_minimal() +
-  ggtitle("Paper - identified clones") +
-  labs(y = "Prop.", x = "Sample (cell type)")
-p11
-```
-
 ## Heatmap by Phase
 
 Quite a few shared barcodes between early+mid phases and late phase where samples are mature NK subtypes.
 
 ```{r}
 plotBarcodeHeatmap(top10each, splitSamples = T, sampleGroup = "Phase")
-```
-
-# Function: Validation 
-
-```{r function validation}
-plot_validation <- function(myObject) {
-  
-  flag <- rowData(myObject)$testingBarcode$direction == 1
-  myObject <- myObject[flag,]
-  
-  NK_clone_contributionU <- assays(myObject)$proportion %>% colSums()
-  dat <- data.frame(
-    contr = NK_clone_contributionU,
-    Celltype = factor(myObject$sampleMetadata$Celltype,
-                      levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p")),
-    Months = myObject$sampleMetadata$Months)
-  ## sort samples by celltype and months
-  dat <- dat %>%
-    arrange(Celltype, Months) %>% 
-    mutate(id = row_number()) 
-  ## add dummy rows for spacing between celltypes
-  dat <- dat %>%
-    group_by(Celltype) %>%
-    mutate(dummy = n() + 1) %>%    # Add a dummy count for spacing
-    ungroup() %>%
-    bind_rows(dat %>%             # Add dummy rows for spacing
-                group_by(Celltype) %>%
-                slice_tail(n = 1) %>%
-                mutate(id = as.numeric(id) + 0.5, contr = NA, Months = NA)) %>%
-    arrange(as.numeric(id))        # Arrange with dummy rows in place
-  
-  celltype_colors <- c(
-  "T" = "yellowgreen",
-  "B" = "yellowgreen",
-  "Gr" = "yellowgreen",
-  "NK_CD56p_CD16n" = "yellowgreen",
-  "NK_CD56n_CD16p" = "slateblue1" # "orchid"
-)
-  
-  p <- ggplot(dat, aes(x = as.factor(id), y = contr, color = Celltype)) +
-  geom_bar(stat = "identity", fill = NA) + 
-  theme_minimal() +
-  theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 0.5, size = 10),
-        axis.title.x = element_text(size = 14), 
-        axis.title.y = element_text(size = 14), 
-        panel.grid.major.x = element_blank()) +
-  scale_x_discrete(labels = ifelse(is.na(dat$Months), "", dat$Months)) + # Relabel with `Celltype`
-  scale_color_manual(values = celltype_colors) +  # <- set bar outline color
-  scale_fill_manual(values = celltype_colors) +   # <- set tile fill color
-  scale_y_continuous(limits = c(-0.09, 0.8)) +
-  labs(x = "Samples of cell types at different months", y = "Total prop. of selected barcodes") +  # Update axis labels
-  geom_tile(
-    data = dat,
-    aes(x = ifelse(is.na(Months), NA,order(id)), y = -0.03, fill = Celltype),
-    height = 0.03, width = 1
-  ) +
-  geom_text(
-    data = dat %>%
-      mutate(id = order(id)) %>%
-      group_by(Celltype) %>%
-      mutate(Celltype = recode(Celltype, "NK_CD56n_CD16p" = "NK.CD56-CD16+")) %>% 
-      mutate(Celltype = recode(Celltype, "NK_CD56p_CD16n" = "NK.CD56+CD16-")) %>% 
-      summarize(mid_point = mean(as.numeric(id))),
-    aes(x = mid_point-0.5, y = -0.03, label = Celltype),
-    size = 3, vjust = 0.5, color = "black"
-  )
-  
-  return(p)
-}
-```
-
-# Function: line validation
-
-```{r}
-plot_line_validation <- function(barcode_set_list, barbieQ) {
-  ## Example for barcode set list
-  # barcode_set_list <- list(
-  #   test_30sample = rownames(top10each_30_test30)[top10each_30_test30@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-  #   test_early_mid = rownames(top10each_30_test_ealy_mid)[top10each_30_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-  #   heuristic = union_LFC_top10each_30
-  # )
-  
-  ## check barcode set list and barbieQ contents
-  print(names(barcode_set_list))
-  print(dim(barbieQ))
-  
-  # Create named vector with default value "none"
-  selectedBy <- setNames(rep("none", nrow(barbieQ)), rownames(barbieQ))
-  
-  # Assign sources
-  for (source_name in names(barcode_set_list)) {
-    matching_barcodes <- barcode_set_list[[source_name]]
-    selectedBy[matching_barcodes] <- ifelse(
-      selectedBy[matching_barcodes] == "none",
-      source_name,
-      paste(selectedBy[matching_barcodes], source_name, sep = ",")
-    )
-  }
-  
-  ## extract props. and sample conditions
-  prop. <- assays(barbieQ)$proportion
-  cond. <- barbieQ$sampleMetadata %>% as.data.frame()
-  
-  cond.$Celltype <- factor(cond.$Celltype,
-                      levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p", 
-                                 "NK_NKG2Ap_CD16p", "NK_NKG2Ap_CD16p_KIR3DL01n",
-                                 "NK_NKG2Ap_CD16p_KIR3DL01p"))
-
-  ## combine slots
-  prop_df <- data.frame(cond., t(prop.))
-  ## keep only early and mid samples
-  prop_df <- prop_df %>% 
-    # dplyr::filter(Phase %in% c("early", "mid")) %>% 
-    select(-Phase)
-  ## classify BC by selected by test or LFC
-  
-  ## picot to long data
-  prop_long <- prop_df %>%
-    pivot_longer(
-      cols = -c(Celltype, Months),     # keep Celltype and Months fixed
-      names_to = "Barcode",
-      values_to = "Proportion"
-    )
-  ## assign to barcode selectedBy status
-  prop_long$selectedBy <- selectedBy[as.character(prop_long$Barcode)]
-  
-  ## plot
-  p <- ggplot(prop_long) +
-    geom_line(aes(x = Months, y = Proportion, group = Barcode, color = selectedBy)) +
-    facet_grid(selectedBy ~ Celltype, scales = "free_y") +
-    theme_minimal() +
-    theme(legend.position = "top")
-  
-  return(p)
-  
-}
-```
-
-
-# Function: Calc LFC
-
-```{r}
-calc_bias_LFC <- function(barbieQ) {
-  ## extract props. and sample conditions
-  prop. <- assays(barbieQ)$proportion
-  cond. <- barbieQ$sampleMetadata %>% as.data.frame()
-  ## group samples by NKnp or others
-  cond. <- cond. %>% 
-    mutate(isNK = ifelse(Celltype == "NK_CD56n_CD16p", "NKnp", "others"))
-  cond.$Celltype %>% table()
-  
-  ## calc mean per group at each month
-  group_labels <- paste(cond.$Months, cond.$isNK, sep = "__")
-  group_means <- sapply(unique(group_labels), function(g) {
-    idx <- which(group_labels == g)
-    rowMeans(prop.[, idx, drop = FALSE])
-  })
-  
-  ## calc group LFC at each month
-  colnames(group_means)
-  months <- gsub("(\\1)__.*", "\\1",colnames(group_means))
-  
-  LFC_months <- sapply(unique(months), function(m) {
-    idx <- which(months == m)
-    sub <- group_means[, idx, drop = FALSE]
-    group <- gsub(".*__()", "\\1",colnames(sub))
-    NK <- sub[, which(group == "NKnp"), drop = F]
-    others <- sub[, which(group=="others"),drop = F]
-    NK / others 
-  })
-  
-  ## decide if each barcode LFC is high at each month
-  is_LFC_high <- LFC_months > 10
-  colnames(is_LFC_high)
-  
-  ## calc if each barcode NKnp  prop > 0.01 at each month
-  NK_prop <- prop.[,cond.$isNK == "NKnp", drop=F]
-  is_NKnp_high <- NK_prop > 0.01
-  colnames(is_NKnp_high)
-  
-  ## barcodes meet both metric at each month
-  select_months <- (is_LFC_high & is_NKnp_high)
-  
-  ## select barcodes at each month
-  select_barcodes_months <- lapply(colnames(select_months), function(j) 
-    rownames(prop.)[select_months[,j]])
-  
-  names(select_barcodes_months) <- paste0("heuristic at ", colnames(is_LFC_high), "m")
-  
-  return(select_barcodes_months)
-}
-
 ```
 
 # Paper 81 barcodes (top10each from 30 samples)
@@ -404,6 +184,25 @@ calc_bias_LFC <- function(barbieQ) {
  - [2] "(CelltypeB + CelltypeGr + CelltypeT + CelltypeNK_CD56p_CD16n)/4"
 
 - Only keep the samples of timepoints at 6.5, 12.0, 17.0, 27.0, 36.0, 42.0 m. (to be consistent with the paper's analysis)
+
+## LFC approach
+
+(i) >1% contribution to CD56−CD16+ cells and 
+
+(ii) >10-fold abundance in contribution to CD56−CD16+ cells compared with T, B, Gr, and CD56+CD16− cells.
+
+```{r}
+list_BC_top10each_30_LFC <- calc_bias_LFC(top10each_30_test30)
+```
+
+### Venn: LFC at each month
+
+```{r}
+## check overlaps between months
+venn0 <- eulerr::euler(list_BC_top10each_30_LFC)
+plot(venn0, fills = c("white"), alpha = 0.5, labels = T, quantities = T)
+```
+
 
 ## Test 30 samples
 
@@ -455,6 +254,8 @@ dim(top10each_30_test30)
 flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
 dim(top10each_30)
 
+top10each_30$sampleMetadata %>% as.data.frame() %>% View()
+
 ##need to take Time into account
 designs <- top10each_30[,flag_early_mid]$sampleMetadata %>% as.data.frame() %>%
   mutate(Months = as.factor(Months)) %>% 
@@ -462,56 +263,33 @@ designs <- top10each_30[,flag_early_mid]$sampleMetadata %>% as.data.frame() %>%
     model.matrix(~0+ Celltype + Months)
 )
 
+## find time points with only 1 sample
+iso_times <- colSums(designs) == 1
+## locate samples causing these time points
+iso_samples <- rowSums(designs[, iso_times]) == 1
+
+dim(designs)
+dim(designs[!iso_samples,!iso_times])
+
+dim(top10each_30[,flag_early_mid])
+dim(top10each_30[,flag_early_mid][,!iso_samples])
+
 top10each_30_test_ealy_mid <- testBarcodeSignif(
-  barbieQ = top10each_30[,flag_early_mid], designMatrix = designs,
+  barbieQ = top10each_30[,flag_early_mid][,!iso_samples], designMatrix = designs[!iso_samples,!iso_times],
   contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
   method = "diffProp", transformation = "asin-sqrt"
 )
 
 dim(top10each_30_test_ealy_mid)
 # check design
-# top10each_30_test_ealy_mid@elementMetadata$testingBarcode@metadata$design
+# top10each_30_test_ealy_mid@elementMetadata$testingBarcode@metadata$design %>% View()
+top10each_30_test_ealy_mid@elementMetadata$testingBarcode@metadata$design %>% colSums()
 top10each_30_test_ealy_mid@elementMetadata$testingBarcode@metadata$contrasts
 ```
 
-## Compare
+## Compare test vs. LFC
 
-```{r}
-plot_validation(top10each_30_test30)
-plot_validation(top10each_30_test_ealy_mid)
-```
-
-```{r}
-
-venn_top10each_30 <- eulerr::euler(
-  list(
-    test_30sample = rownames(top10each_30_test30)[top10each_30_test30@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-    test_early_mid = rownames(top10each_30_test_ealy_mid)[top10each_30_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"])
-)
-
-plot(venn_top10each_30 , fills = c("white", "white","grey"), alpha = 0.5, labels = T, quantities = T)
-```
-
-
-## LFC approach
-
-(i) >1% contribution to CD56−CD16+ cells and 
-
-(ii) >10-fold abundance in contribution to CD56−CD16+ cells compared with T, B, Gr, and CD56+CD16− cells.
-
-```{r}
-list_BC_top10each_30_LFC <- calc_bias_LFC(top10each_30_test30)
-```
-
-### Venn: LFC at each month
-
-```{r}
-## check overlaps between months
-venn0 <- eulerr::euler(list_BC_top10each_30_LFC)
-plot(venn0, fills = c("white"), alpha = 0.5, labels = T, quantities = T)
-```
-
-## Compare
+### Venn
 
 ```{r}
 ## check overlaps
@@ -519,13 +297,35 @@ compare_list <- list_BC_top10each_30_LFC
 compare_list[["test_30sample"]] <- rownames(top10each_30_test30)[top10each_30_test30@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"]
 compare_list[["test_early_mid"]] <- rownames(top10each_30_test_ealy_mid)[top10each_30_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"]
 
-venn00 <- eulerr::euler(compare_list)
+venn00 <- eulerr::euler(compare_list[1:7])
 
-plot(venn00, fills = c("white"), alpha = 0.5, labels = T, quantities = T)
+plot(venn00, fills = c("grey", "grey", "grey", "grey", "grey", "grey", "white"), alpha = 0.5, labels = T, quantities = T)
 ```
 
 
-## Validation: LFC at each month
+```{r}
+union_LFC_top10each_30 <- unlist(list_BC_top10each_30_LFC) %>% unique()
+
+list_top10each_30 <- list(
+    test_30sample = rownames(top10each_30_test30)[top10each_30_test30@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
+    test_early_mid = rownames(top10each_30_test_ealy_mid)[top10each_30_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
+    union_heuristic = union_LFC_top10each_30)
+
+venn_top10each_30 <- eulerr::euler(
+  list_top10each_30[c(1,3)]
+)
+
+plot(venn_top10each_30 , fills = c("white", "white","grey"), alpha = 0.5, labels = T, quantities = T)
+
+
+venn_top10each_30 <- eulerr::euler(
+  list_top10each_30[c(1,2)]
+)
+
+plot(venn_top10each_30 , fills = c("white", "white","grey"), alpha = 0.5, labels = T, quantities = T)
+```
+
+### Validation: LFC at each month
 
 ```{r}
 plot_list_LFC_top10each_30 <- lapply(list_BC_top10each_30_LFC, function(m) plot_validation(top10each_30_test30[m,]))
@@ -536,7 +336,6 @@ plot_list_LFC_top10each_early_mid <- lapply(list_BC_top10each_30_LFC, function(m
 
 ```{r, fig.width=12, fig.height=8}
 suppressWarnings(wrap_plots(plot_list_LFC_top10each_30, ncol = 3))
-
 ```
 
 ```{r, fig.width=18, fig.height=8}
@@ -544,20 +343,6 @@ suppressWarnings(wrap_plots(plot_list_LFC_top10each_early_mid, ncol = 3))
 
 ```
 
-#### LFC vs two tests
-
-```{r}
-union_LFC_top10each_30 <- unlist(list_BC_top10each_30_LFC) %>% unique()
-
-venn_top10each_30 <- eulerr::euler(
-  list(
-    test_30sample = rownames(top10each_30_test30)[top10each_30_test30@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-    test_early_mid = rownames(top10each_30_test_ealy_mid)[top10each_30_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-    union_heuristic = union_LFC_top10each_30)
-)
-
-plot(venn_top10each_30 , fills = c("white", "white","grey"), alpha = 0.5, labels = T, quantities = T)
-```
 
 ```{r}
 top10each_30_LFC <- top10each_30[union_LFC_top10each_30, 1:30]
@@ -567,16 +352,225 @@ rowData(top10each_30_LFC)$testingBarcode$direction = 1
 top10each_early_mid_LFC <- top10each_early_mid[union_LFC_top10each_30, flag_early_mid]
 rowData(top10each_early_mid_LFC)$testingBarcode$direction = 1
 
-(plot_validation(top10each_30_test30) + plot_validation(top10each_30_test_ealy_mid)) /
-  (plot_validation(top10each_30_LFC) + plot_validation(top10each_early_mid_LFC))
+top10each_30_allBC <- top10each_30[, 1:30]
+dim(top10each_30_allBC)
+rowData(top10each_30_allBC)$testingBarcode$direction = 1
+
+plot_validation(top10each_30_LFC) 
+plot_validation(top10each_early_mid_LFC)
+plot_validation(top10each_30_allBC)
 
 ```
 
-## Line plot: test early+mid vs LFC
+```{r, fig.width=12, fig.height=5}
+plot_validation(top10each_30_LFC) + plot_validation(top10each_30_test30)
+
+```
+
+### Line plot
+
+```{r, fig.width=8, fig.height=7}
+plot_line_validation(
+  barcode_set_list = list_top10each_30[c(1,3)], 
+  barbieQ = top10each_30[,flag_early_mid])
+
+```
+
+#### by time
+
+
+```{r, fig.width=15, fig.height=5}
+p_by_Time <- plot_line_validation(
+  barcode_set_list = list_top10each_30[c(1,3)], barbieQ = top10each_30[,flag_early_mid], get_long_data = T)
+
+suppressMessages({
+  ggplot(p_by_Time) +
+  # geom_point(aes(x = Celltype, y = Proportion, group = Barcode, color = selectedBy)) +
+  geom_line(aes(x = Celltype, y = Proportion, group = Barcode, color = selectedBy)) +
+    facet_grid(selectedBy~Months, scales = "free_y") +
+    theme_minimal() +
+    theme(legend.position = "top", axis.text.x = element_text(angle = 45, hjust = 1))
+})
+
+
+```
+
+```{r, fig.width=15, fig.height=15}
+p_by_Time <- plot_line_validation(
+  barcode_set_list = list_top10each_30[c(1,3)], barbieQ = top10each_30[,flag_early_mid], get_long_data = T)
+
+suppressMessages({
+  ggplot(p_by_Time %>% filter(selectedBy == "test_30sample")) +
+    # geom_point(aes(x = Celltype, y = Proportion, group = Barcode, color = selectedBy)) +
+  geom_line(aes(x = Celltype, y = Proportion, group = Barcode, color = selectedBy)) +
+    facet_grid(Barcode~Months, scales = "free_y") +
+    theme_minimal() +
+    theme(legend.position = "top", axis.text.x = element_text(angle = 45, hjust = 1))
+})
+
+suppressMessages({
+  ggplot(p_by_Time %>% filter(selectedBy == "test_30sample,union_heuristic")) +
+    geom_point(aes(x = Celltype, y = Proportion, group = Barcode, color = selectedBy), size = 1) +
+  geom_line(aes(x = Celltype, y = Proportion, group = Barcode, color = selectedBy)) +
+    facet_grid(Barcode~Months, scales = "free_y") +
+    theme_minimal() +
+    theme(legend.position = "top", axis.text.x = element_text(angle = 45, hjust = 1))
+})
+
+```
+
+### Boxplot FC
+
+```{r}
+FC_top10each_30 <- calc_bias_LFC(barbieQ = top10each_30[,1:30], get_FC = T) %>% as.data.frame()
+rownames(FC_top10each_30) <- rownames(top10each_30)
+## annotating BC by barbieQ seletion
+FC_top10each_30$bbq <- top10each_30_test30@elementMetadata$testingBarcode$direction
+FC_top10each_30$bbq2 <- top10each_30_test_ealy_mid@elementMetadata$testingBarcode$direction
+## annotating BC by heuristic selection
+FC_top10each_30$heu = 0
+FC_top10each_30[union_LFC_top10each_30, "heu"] = 1
+  ## adding BC name
+FC_top10each_30 <- FC_top10each_30 %>% 
+  mutate(Barcode = rownames(top10each_30)) %>% 
+  ## summarizing two selecting methods overlaps
+  # mutate(selectedBy = ifelse(bbq2 == 1, "bbQ_smp+", "")) %>% 
+  # mutate(selectedBy = ifelse(bbq == 1, "bbq", ifelse(bbq2 == 1, "bbQ_smp+", ""))) %>% 
+  mutate(selectedBy = ifelse(bbq == 1, "bbq", "")) %>% 
+  mutate(selectedBy = paste(selectedBy, ifelse(heu == 1, "heu", ""), sep = "_")) %>% 
+  select(-c(heu, bbq, -bbq2))
+
+## extract FC from testing
+coff_FC <- top10each_30_test30@elementMetadata$testingBarcode$meanDiff
+FC_top10each_30$testing_coeff <- coff_FC
+
+long_FC_top10each_30 <- FC_top10each_30 %>% 
+  mutate(Barcode = rownames(top10each_30)) %>% 
+  pivot_longer(
+      cols = -c(Barcode, selectedBy, testing_coeff),     # keep Celltype and Months fixed
+      names_to = "Month",
+      values_to = "FC"
+    )
+
+# Calculate number of unique barcodes per selectedBy
+barcode_counts <- long_FC_top10each_30 %>%
+  group_by(selectedBy) %>%
+  summarise(n_barcodes = n_distinct(Barcode))
+
+ggplot(long_FC_top10each_30, aes(x = as.numeric(Month), y = log2(FC), group = paste(Month, selectedBy), color = selectedBy)) +
+  geom_boxplot()
+
+```
+
+```{r fig.width=10, fig.height=5}
+
+barcode_order <- long_FC_top10each_30 %>%
+  group_by(Barcode) %>%
+  summarise(mean_LFC = mean(log2(FC), na.rm = TRUE)) %>%
+  arrange(mean_LFC) %>%
+  pull(Barcode)
+
+p_box_0 <- ggplot(long_FC_top10each_30, aes(x = factor(Barcode, levels = barcode_order), y = log2(FC), group = (Barcode), color = selectedBy)) +
+  geom_boxplot(varwidth = T) +
+  theme_classic() +
+  theme(axis.text.x = element_blank()) +
+  geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "grey") +
+  labs(x = "Barocdes ordered by mean LFC across time",
+       y = "Barcode proportion log2(FC) at each time")
+
+barcode_order <- long_FC_top10each_30 %>%
+  group_by(Barcode) %>%
+  summarise(mean_LFC = mean((testing_coeff), na.rm = TRUE)) %>%
+  arrange(mean_LFC) %>%
+  pull(Barcode)
+
+p_box_coef <- ggplot(long_FC_top10each_30, aes(x = factor(Barcode, levels = barcode_order), y = log2(FC), group = (Barcode), color = selectedBy)) +
+  geom_boxplot(varwidth = T) +
+  theme_classic() +
+  theme(axis.text.x = element_blank(), legend.position = "top") +
+  geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "grey") +
+  labs(x = "Barocdes ordered by barbieQ-estimated coefficient for the contrast",
+       y = "Barcode proportion log2(FC) at each time")
+
+p_box_coef_2 <- ggplot(long_FC_top10each_30, aes(x = factor(Barcode, levels = barcode_order), y = testing_coeff, group = (Barcode), color = selectedBy)) +
+  geom_boxplot(varwidth = T) +
+  theme_classic() +
+  theme(axis.text.x = element_blank()) +
+  geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "grey") +
+  labs(x = "Barocdes ordered by barbieQ-estimated coefficient for the contrast",
+       y = "barbieQ modelled difference in contrast")
+
+ggsave("../../output/WuC/LFC_box.png", plot = p_box_coef, 
+       dpi = 300, width = 6, height = 4)
+
+```
+
+```{r}
+ggplot(long_FC_top10each_30, aes(x = selectedBy, y = log2(FC), group = (Barcode), color = selectedBy)) +
+  geom_boxplot(varwidth = F) +
+  # scale_y_continuous(
+  #   trans = "log2",
+  #   breaks = trans_breaks("log2", function(x) 2^x),
+  #   labels = trans_format("log2", math_format(2^.x))
+  # ) +
+  geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "grey") +
+  theme_minimal()
+```
+
+
+```{r}
+mean_top10each_30 <- calc_bias_LFC(barbieQ = top10each_30[,1:30], get_Mean = T) %>% as.data.frame()
+
+meanNKnp_top10each_30 <- mean_top10each_30[,7:12]
+meanNKnp_top10each_30$selectedBy <- FC_top10each_30$selectedBy
+
+long_meanNKnp_top10each_30 <- meanNKnp_top10each_30 %>% 
+  mutate(Barcode = rownames(top10each_30)) %>% 
+  pivot_longer(
+      cols = -c(Barcode, selectedBy),     # keep Celltype and Months fixed
+      names_to = "Month",
+      values_to = "NKnp_prop"
+    )
+
+barcode_order <- long_meanNKnp_top10each_30 %>%
+  group_by(Barcode) %>%
+  summarise(mean_NKnp_prop = mean(NKnp_prop, na.rm = TRUE)) %>%
+  arrange(mean_NKnp_prop) %>%
+  pull(Barcode)
+
+ggplot(long_meanNKnp_top10each_30, aes(x = factor(Barcode, levels = barcode_order), y = NKnp_prop, group = (Barcode), color = selectedBy)) +
+  geom_boxplot(varwidth = T) +
+  theme(axis.text.x = element_blank())
+
+ggplot(long_meanNKnp_top10each_30, aes(x = selectedBy, y = NKnp_prop, group = (Barcode), color = selectedBy)) +
+  geom_boxplot(varwidth = F) +
+  geom_abline(slope = 0, intercept = 0.01)
+```
+
+
+## Compare two tests
+
+### Venn
+
+```{r}
+venn_top10each_30 <- eulerr::euler(
+  list_top10each_30[c(1,2)]
+)
+
+plot(venn_top10each_30 , fills = c("white", "white","grey"), alpha = 0.5, labels = T, quantities = T)
+```
+
+### Validation
+
+```{r, fig.width=15, fig.height=5}
+
+plot_validation(top10each_30_test30) + 
+plot_validation(top10each_30_test_ealy_mid)
+```
+
+### Line plot: test early+mid vs LFC
 
 indicate each barcode is selected by test_30sample, test_early-mid, or LFC
-
-
 
 ```{r}
 # Define barcode sets
@@ -590,13 +584,9 @@ dim(top10each_early_mid)
 ```
 
 
-```{r, fig.width=8, fig.height=7}
+```{r}
 plot_line_validation(
-  barcode_set_list = barcode_list, 
-  barbieQ = top10each_30[,top10each_30$sampleMetadata$Phase != "late"])
-
-plot_line_validation(
-  barcode_set_list = barcode_list, 
+  barcode_set_list = list_top10each_30[1:2], 
   barbieQ = top10each_early_mid[,top10each_early_mid$sampleMetadata$Phase != "late"])
 ```
 
@@ -634,12 +624,6 @@ top10each_early_mid_test_ealy_mid@elementMetadata$testingBarcode@metadata$contra
 # include all early and mid phase samples (discussed in Fig3, S4 for time course)
 flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
 
-# tag top
-monkeyHSPC_top99_early_mid_0 <- tagTopBarcodes(barbieQ = monkeyHSPC[,flag_early_mid], nSampleThreshold = 6)
-flag_top <- monkeyHSPC_top99_early_mid_0@elementMetadata$isTopBarcode$isTop
-table(flag_top)
-monkeyHSPC_top99_early_mid <- monkeyHSPC_top99_early_mid_0[flag_top,]
-
 ##need to take Time into account
 designs <- monkeyHSPC_top99_early_mid$sampleMetadata %>% as.data.frame() %>%
   mutate(Months = as.factor(Months)) %>%
@@ -669,40 +653,48 @@ top99n6_early_mid_test_ealy_mid@elementMetadata$testingBarcode@metadata$contrast
 ```{r}
 plot_validation(top10each_30_test_ealy_mid)
 plot_validation(top10each_early_mid_test_ealy_mid)
-plot_validation(top99n6_early_mid_test_ealy_mid)
+plot_validation(top99n6_early_mid_test_ealy_mid[,flag_early_mid])
 ```
 
 ### Venn
 
 ```{r}
-
-venn_test_early_mid <- eulerr::euler(
-  list(
+list_test_early_mid <- list(
     top10each_30 = rownames(top10each_30_test_ealy_mid)[top10each_30_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
     top10each_early_mid = rownames(top10each_early_mid_test_ealy_mid)[top10each_early_mid_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
     top99n6 = rownames(top99n6_early_mid_test_ealy_mid)[top99n6_early_mid_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"]
     ## to chech if the missing one is filtered out: no, it's included
     # all_top99n6 = rownames(top99n6_early_mid_test_ealy_mid)
     )
+```
+
+
+```{r}
+
+venn_test_early_mid <- eulerr::euler(
+  list_test_early_mid[c(1,2)]
 )
 
-plot(venn_test_early_mid, fills = c("white", "white","grey"), alpha = 0.5, labels = T, quantities = T)
+plot(venn_test_early_mid, fills = c("grey", "white"), alpha = 0.5, labels = T, quantities = T)
+```
+
+```{r}
+
+venn_test_early_mid <- eulerr::euler(
+  list_test_early_mid
+)
+
+plot(venn_test_early_mid, fills = c("grey", "white","white"), alpha = 0.5, labels = T, quantities = T)
 ```
 
 ### Line plot
 
-```{r, fig.width=8, fig.height=8}
-BC_list <- list(
-    BC81 = rownames(top10each_30_test_ealy_mid)[top10each_30_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-    BC132 = rownames(top10each_early_mid_test_ealy_mid)[top10each_early_mid_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
-    BC1.6K = rownames(top99n6_early_mid_test_ealy_mid)[top99n6_early_mid_test_ealy_mid@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"])
-
-
-
-plot_line_validation(BC_list, monkeyHSPC_top99_early_mid)
-plot_line_validation(BC_list, monkeyHSPC)
+```{r}
+plot_line_validation(list_test_early_mid[1:2], top10each_early_mid[,flag_early_mid])
 ```
 
+```{r, fig.width=10, fig.height=5}
+plot_line_validation(list_test_early_mid, monkeyHSPC_top99_early_mid[,flag_early_mid])
+```
 
--------------
 

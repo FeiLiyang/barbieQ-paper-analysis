@@ -183,14 +183,43 @@ n2 / N2
 ```{r reference pools}
 pool1_vec <- as.vector(pool1)
 pool2_vec <- as.vector(pool2)
+total_prop = pool1_vec + pool2_vec
+change_prop = pool1_vec - pool2_vec
+summary(total_prop)
+summary(change_prop)
+summary(abs(change_prop))
 
-ggplot(
-  data.frame(total_prop = pool1_vec + pool2_vec,
-             change_prop = abs(pool1_vec - pool2_vec))) +
-  geom_point(aes(x = total_prop, y = change_prop)) +
-  scale_x_log10() + 
-  scale_y_log10() +
-  theme(aspect.ratio = 1)
+k <- 0.00001
+m <- 0.00001
+
+Origin <- (total_prop > k) & (abs(change_prop) > m)
+table(Origin)
+
+ggplot(data.frame(pool1 = pool1, pool2 = pool2)) +
+  geom_point(aes(x = log10(pool1 + 1e-7), y = log10(pool2 + 1e-7), color = Origin)) +
+  # scale_x_log10() +
+  # scale_y_log10() +
+  theme(aspect.ratio = 1) 
+
+df <- data.frame(
+  LFC = log2(pool1+1e-7) -log2(pool2+1e-7),
+  meanLog10_proportion = (log10(pool1+1e-7) + log10(pool2+1e-7))/2,
+  Log10_mean_proportion = log10((pool1+pool2)/2+1e-7),
+  Origin = ifelse(Origin, ifelse(change_prop > 0, "Pool1", "Pool2"), "Negative")
+  )
+p_truth <- ggplot(df) +
+  geom_point(
+    aes(x = Log10_mean_proportion, y = LFC, color = Origin),
+    alpha = 0.8, shape = 1, size = 3, stroke = 1) +
+  theme_classic() +
+  labs(x = "Log10(mean proportion in Pool1 and Pool2)", y = "LFC of proportion between Pool1 and Pool2") +
+  theme(aspect.ratio = 1) +
+  scale_color_manual(values = c("Pool1" = "firebrick1", "Pool2" = "deepskyblue", "Negative" = "gold4"))
+
+
+p_truth
+ggsave("../../output/DEBRA/truth_km_-5_-5.png", dpi = 300, width = 5, height = 4, p_truth)
+
 ```
 
 
@@ -203,7 +232,7 @@ ggplot(
 - TN: total prop. > 0.0001, changes < 0.0005
 
 ```{r roc 1}
-k <- 0.00005
+k <- 0.00001
 
 # N1 <- sum(((as.vector(pool1)  - as.vector(pool2) ) > 0.0001) & 
 #             ((as.vector(pool1)  + as.vector(pool2) ) > k))
@@ -262,18 +291,8 @@ roc + annotate(
 - TN: everything else
 
 ```{r roc 2}
-k <- 0.001
-
-# N1 <- sum(((as.vector(pool1)  - as.vector(pool2) ) > 0.0001) & 
-#             ((as.vector(pool1)  + as.vector(pool2) ) > k))
-# N2 <- sum((as.vector(pool2)  - as.vector(pool1) ) > 0.0001 & 
-#             ((as.vector(pool1)  + as.vector(pool2) ) > k))
-# 
-# n1_asin <- sum(rowData(mixed)$testingBarcode$direction == 1)
-# n2_asin <- sum(rowData(mixed)$testingBarcode$direction == -1)
-# 
-# n1_no <- sum(rowData(mixed_noTrans)$testingBarcode$direction == 1)
-# n2_no <- sum(rowData(mixed_noTrans)$testingBarcode$direction == -1)
+k <- 0.00001
+m <- 0.00001
 
 # Example input
 pool1_vec <- as.vector(pool1)
@@ -284,7 +303,7 @@ asin_adj_p <- rowData(mixed)$testingBarcode$adj.P.Val
 noTrans_adj_p <- rowData(mixed_noTrans)$testingBarcode$adj.P.Val
 logit_adj_p <- rowData(mixed_logit)$testingBarcode$adj.P.Val
 
-ground_truth <- as.integer((abs(pool1_vec - pool2_vec) > 0.0005) & (pool1_vec + pool2_vec) > k)
+ground_truth <- as.integer((abs(pool1_vec - pool2_vec) > m) & (pool1_vec + pool2_vec)/2 > k)
 
 sum(ground_truth)
 length(ground_truth)
@@ -298,12 +317,13 @@ df <- rbind(
 roc <- ggplot(df, aes(d = D, m = M, color = model)) +
   geom_roc(n.cuts = 0, labels = FALSE) +
   style_roc() +
-  ggtitle("ROC Curve Comparison") +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") 
+  labs(color = "Method") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  theme(aspect.ratio = 1)
 
 auc_table <- auc_table <- calc_auc(roc)
 
-roc + annotate(
+p_roc <- roc + annotate(
   "text", x = 0.75, y = 0.25, size = 3,
   label = paste0("AUC (asin-sqrt) = ", 
                  round(auc_table$AUC[auc_table$model == "asin-sqrt"], 4),
@@ -312,6 +332,10 @@ roc + annotate(
                  "\nAUC (logit) = ", 
                  round(auc_table$AUC[auc_table$model == "logit"], 4)
                  ))
+
+p_roc
+
+ggsave("../../output/DEBRA/roc_km_-5_-5.png", dpi = 300, width = 5, height = 4, p_roc)
 ```
 
 ## roaming on K
