@@ -1,0 +1,137 @@
+---
+title: "illustration"
+author: "LF"
+date: "2025-08-05"
+output: workflowr::wflow_html
+output_dir: ../../DEBRA
+---
+
+# Load Dependencies
+
+```{r load library, message=FALSE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(ggnewscale) ## solve fill scale conflict between main plot and tile annotations
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(plotROC)
+
+library(car)
+
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+
+# devtools::install_github("DaneVass/bartools", dependencies = TRUE, force = TRUE)
+# library(bartools) ## I've customised the function to order samples
+```
+
+# Install barbieQ - devel
+
+```{r install barbieQ}
+# devtools::install_github("Oshlack/barbieQ", force = TRUE)
+
+library(barbieQ)
+```
+
+# Load rds
+
+```{r save rds}
+## rda saved in "../../analysis/DEBRA/negsim_perturb_barbieQ.Rmd"
+load("../../output/DEBRA/perturb_barbieQ.rda")
+```
+
+# bartools
+
+```{r}
+source("./plotBarcodeHistogram.R")
+mixed <- perturb_top[, perturb_top$sampleMetadata$Subset %in% c("perturb", "null")]
+
+## pull out sample designs
+design_mixed <- mixed$sampleMetadata %>% as.data.frame()
+design_mixed$sample <- colnames(mixed)
+
+design_mixed$BarcodeSize <- as.factor(design_mixed$BarcodeSize)
+design_mixed$Perturbation <- as.factor(design_mixed$Perturbation)
+design_mixed$Subset <- factor(design_mixed$Subset, levels = c("null", "perturb"))
+design_mixed$y = 1.05
+
+## order samples
+## order samples
+order_sample <- design_mixed %>% with(order(Subset, Perturbation, BarcodeSize))
+
+# colnames(mixed) <- factor(colnames(mixed), levels = colnames(mixed)[order_sample])
+
+mixed_dge <- DGEList(
+  counts = assay(mixed), 
+  group = mixed$sampleMetadata$Subset)
+
+## pull out ggplot data
+p_mixed <- plotBarcodeHistogram(mixed_dge, orderSamples = colnames(mixed)[order_sample])
+p_mixed
+
+# mixed_illus_df <- p_mixed_illus$data
+# bc_labels <- mixed_illus_df %>%
+#       dplyr::arrange(dplyr::desc(.data$freq)) %>%
+#       dplyr::pull(.data$barcode) %>%
+#       unique() %>%
+#       utils::head(10) %>%
+#       as.character()
+# 
+# mixed_illus_df %>%
+#       ggplot2::ggplot(aes(
+#         fill = .data$barcode,
+#         x = .data$sample,
+#         y = .data$freq,
+#         alpha = ifelse(.data$barcode %in% bc_labels, 1, 0.5)
+#       )) +
+#       ggplot2::geom_bar(position = "stack", stat = "identity") +
+#       ggplot2::scale_alpha_continuous(guide = FALSE, range = c(1, 1)) +
+#       # ggplot2::scale_fill_manual(values = label_values, breaks = bc_labels) +
+#       ggplot2::theme_bw() +
+#       ggplot2::labs(fill = paste0("Top ", 10, " barcodes")) +
+#       ggplot2::ylab("Proportion") +
+#       ggplot2::theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") +
+#   ggnewscale::new_scale_fill() +
+#   geom_tile(aes(x = sample,y = y, fill = Subset), height = 0.05, inherit.aes = FALSE, colour = "grey50")
+
+
+# ## combine sample design to ggplot data
+# mixed_illus_df <- mixed_illus_df %>% 
+#   left_join(design_mixed, by = "sample")
+# 
+# mixed_illus_df$y <- -0.1  # just for plotting the tile
+# mixed_illus_df$height <- 1
+
+p_mixed_illus <- p_mixed +
+  ## label perturbations
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_mixed, aes(x = sample,y = y, fill = Perturbation), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = list(`0` = "#C3FF85", `0.18` = "#DBB8FF", `0.27` = "#A951FF", `0.35` = "#7500EA")) +
+  labs(fill = "Perturbation level") + 
+  ## label libsize
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_mixed, aes(x = sample,y = y+0.05, fill = BarcodeSize), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = list(`20000` = "#CFCFFF", `40000` = "#B2B2FF", `80000` = "#8282FF", 
+                                  `160000` = "#4D4FFF", `330000` = "#1D1DFF", `660000` = "#0000B2"))+
+  labs(fill = "Num. of cells") +
+  labs(x = "Sample", y = "Barcode proportion") +
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
+  theme(axis.text.x = element_blank(), panel.grid.major.x = element_blank())
+
+p_mixed_illus
+```
+
+```{r}
+ggsave("../../output/DEBRA/design_laebl.png", dpi = 300, width = 6, height = 5, p_mixed_illus)
+```
+

@@ -8,7 +8,7 @@ output_dir: ../../DEBRA
 
 # Load Dependencies
 
-```{r load library}
+```{r load library, message=FALSE}
 library(readxl)
 library(magrittr)
 library(dplyr)
@@ -49,6 +49,16 @@ library(barbieQ)
 load("../../output/DEBRA/perturb_barbieQ.rda")
 ```
 
+# Check Top
+
+```{r}
+perturb@elementMetadata$isTopBarcode$isTop %>% sum()
+
+perturb$sampleMetadata$Subset ## pool1 and pool2 in first 2 samples
+(perturb@assays@data$isTopAssay[,1:2] %>% rowSums() >=1) %>% sum()
+```
+
+
 # Test barcode for Perturbation
 
 ## asin-sqrt
@@ -61,7 +71,9 @@ mixed <- perturb_top[, perturb_top$sampleMetadata$Subset %in% c("perturb", "null
 mixed$sampleMetadata
 
 mixed_target <- mixed$sampleMetadata %>% as.data.frame()
-# mixed_target$Perturbation <- as.factor(mixed_target$Perturbation)
+## calculate the theory difference
+# a = as.numeric(mixed_target$Perturbation)
+# mixed_target$Theo_perturb <- (1/2 + a) / (1+a) - 1/2
 mixed_target$BarcodeSize <- as.factor(mixed_target$BarcodeSize)
 mixed_design <- mixed_target %>%
     with(model.matrix(~0 + Perturbation + BarcodeSize))
@@ -69,6 +81,8 @@ mixed_design <- mixed_target %>%
 mixed <- testBarcodeSignif(
   barbieQ = mixed, sampleMetadata = mixed_target, sampleGroup = "Perturbation",
   designMatrix = mixed_design)
+
+mixed@elementMetadata$testingBarcode$meanDiff %>% summary()
 
 bar_test <- rowData(mixed)$testingBarcode
 # bar_test %>% as.data.frame() %>% View()
@@ -99,6 +113,183 @@ mixed_logit <- testBarcodeSignif(
 plotBarcodeMA(mixed_logit)
 ```
 
+# Bin adj p.values
+
+```{r}
+stats_barcodes <- data.frame(
+  Prop_asin = mixed@elementMetadata$testingBarcode$adj.P.Val,
+  Prop_logit = mixed_logit@elementMetadata$testingBarcode$adj.P.Val,
+  Prop_noTrans = mixed_noTrans@elementMetadata$testingBarcode$adj.P.Val,
+  Amean_prop = mixed_noTrans@elementMetadata$testingBarcode$Amean
+)
+
+ stats_binned <- stats_barcodes %>%
+    mutate(
+      logAmean = log10(Amean_prop + 1e-7),
+      bin = cut(logAmean, breaks = seq(-7, -1, by = 1), include.lowest = TRUE)
+    ) %>% 
+    pivot_longer(
+      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
+      names_to = "method",
+      values_to = "pvalue"
+    )
+
+  # Compute medians per bin/method/N_Samples
+  FPR_lines <- stats_binned %>%
+    group_by(bin, method) %>%
+    summarize(Frac_signif = sum(pvalue < 0.05) / n(), .groups = "drop")
+    
+
+  # Plot
+p_bin_p <- ggplot(FPR_lines, aes(x = bin, y = Frac_signif, group = method, color = method)) +
+    # geom_boxplot(alpha = 0.6, position = position_dodge(width = 0.8), outliers = F) +
+    # geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+    geom_point(size = 1.8) +
+    geom_line(linewidth = 0.8) +
+    labs(
+      x = "Log10(barcode mean prop.) bins",
+      y = "Fraction of adj.P-Value < 0.05",
+      fill = "Method",
+      color = "Method"
+    ) +
+  geom_hline(yintercept = 0.05, linetype = "dashed") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "top")
+
+p_bin_p
+```
+
+```{r}
+ggsave("../../output/DEBRA/TPR_binned_adjP.png", dpi = 300, width = 3, height = 3, p_bin_p)
+```
+
+# Bin p.values - unadjusted
+
+
+```{r}
+stats_barcodes <- data.frame(
+  Prop_asin = mixed@elementMetadata$testingBarcode$P.Value,
+  Prop_logit = mixed_logit@elementMetadata$testingBarcode$P.Value,
+  Prop_noTrans = mixed_noTrans@elementMetadata$testingBarcode$P.Value,
+  Amean_prop = mixed_noTrans@elementMetadata$testingBarcode$Amean
+)
+
+ stats_binned <- stats_barcodes %>%
+    mutate(
+      logAmean = log10(Amean_prop + 1e-7),
+      bin = cut(logAmean, breaks = seq(-7, -1, by = 1), include.lowest = TRUE)
+    ) %>% 
+    pivot_longer(
+      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
+      names_to = "method",
+      values_to = "pvalue"
+    )
+
+  # Compute medians per bin/method/N_Samples
+  FPR_lines <- stats_binned %>%
+    group_by(bin, method) %>%
+    summarize(Frac_signif = sum(pvalue < 0.05) / n(), .groups = "drop")
+
+  # Plot
+p_bin_p <- ggplot(FPR_lines, aes(x = bin, y = Frac_signif, group = method, color = method)) +
+    # geom_boxplot(alpha = 0.6, position = position_dodge(width = 0.8), outliers = F) +
+    # geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+    geom_point(size = 1.8) +
+    geom_line(linewidth = 0.8) +
+    labs(
+      x = "Log10(barcode mean prop.) bins",
+      y = "Fraction of P-Value < 0.05",
+      fill = "Method",
+      color = "Method"
+    ) +
+  geom_hline(yintercept = 0.05, linetype = "dashed") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "top")
+
+p_bin_p
+```
+
+```{r}
+ggsave("../../output/DEBRA/TPR_binned_unP.png", dpi = 300, width = 3, height = 3, p_bin_p)
+```
+
+
+# Bin mean prop.
+
+```{r}
+stats_binned <- stats_barcodes %>%
+    select(Prop_noTrans, Amean_prop) %>% 
+    mutate(
+      logAmean = log10(Amean_prop + 1e-7),
+      bin = cut(logAmean, breaks = seq(-7, -1, by = 1), include.lowest = TRUE)
+    ) %>% 
+    pivot_longer(
+      cols = c(Prop_noTrans),
+      names_to = "method",
+      values_to = "pvalue"
+    )
+  
+
+n_barcode_lines <- stats_binned %>%
+    group_by(bin) %>%
+    summarize(n_barcode =  n(), .groups = "drop")
+  
+p_bin_n <- ggplot(n_barcode_lines, aes(x = bin, y = n_barcode)) +
+    geom_col(color = "black", fill = "white") +
+    labs(
+      x = "Log10(barcode mean prop.) bins",
+      y = "Num. barcodes per bin"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "top")
+  
+p_bin_n
+```
+
+```{r}
+ggsave("../../output/DEBRA/n_bar_binned_TP.png", dpi = 300, width = 3, height = 3, p_bin_n)
+```
+
+# Bin verified
+
+```{r}
+## 1. Create stats_binned with Origin and Verification info
+stats_binned <- stats_barcodes %>%
+  mutate(
+    logAmean = log10(Amean_prop + 1e-7),
+    bin = cut(logAmean, breaks = seq(-7, -1, by = 1), include.lowest = TRUE),
+    Origin = (total_prop > k) & (abs(change_prop) > m),
+    Verified = rowData(mixed)$testingBarcode$P.Value < 0.05
+  )
+
+## 2. Calculate number of barcodes and verified ratios in each bin
+bin_summary <- stats_binned %>%
+  group_by(bin) %>%
+  summarize(
+    n_barcode = n(),
+    n_origin = sum(Origin),
+    n_verified = sum(Origin & Verified),
+    verified_ratio = ifelse(n_origin > 0, n_verified / n_origin, NA),
+    .groups = "drop"
+  )
+
+## 3. Plot
+p_bin_verified  <- ggplot(bin_summary, aes(x = bin, y = n_barcode)) +
+  geom_col(color = "black", fill = "white") +
+  geom_text(aes(label = scales::percent(verified_ratio, accuracy = 1)),
+            vjust = -0.5, size = 3, na.rm = TRUE) +
+  labs(
+    x = "Log10(barcode mean prop.) bins",
+    y = "Num. barcodes per bin",
+    title = "Verified Ratio per Bin"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p_bin_verified 
+```
+
+
 # Barcode origin in Pool1, Pool2
 
 ```{r pool1, pool2}
@@ -110,77 +301,9 @@ pool1 <- assays(perturb_top[,"P1"])$proportion[,1]
 pool2 <- assays(perturb_top[,"P2"])$proportion[,1]
 ```
 
-## vs. asin-sqrt results
+## Ground truth threshold
 
-```{r vs asin}
-## color by asin-sqrt testing results
-perturb.Trend <- rowData(mixed)$testingBarcode$tendencyTo
-df <- data.frame(
-  LFC = log2(pool1+1e-7) - log2(pool2+1e-7),
-  meanLog10_proportion = (log10(pool1+1e-7) + log10(pool2+1e-7))/2
-  )
-p_validate <- ggplot(df) +
-  geom_point(
-    aes(x = meanLog10_proportion, 
-        y = LFC, 
-        color  = perturb.Trend),
-    alpha = 0.6, shape = 1, size = 4, stroke = 2) +
-  scale_color_manual(values = metadata(mixed)$factorColors$testingBarcode) +
-  theme_classic() +
-  labs(x = "Mean log10 barcode prop.", y = "LFC in barcode prop. between pool_1 and pool_2") +
-  theme(aspect.ratio = 1, legend.position = "top")
-
-p_validate
-
-N1 <- sum(((as.vector(pool1)  - as.vector(pool2) ) > 0.0001) & 
-            ((as.vector(pool1)  + as.vector(pool2) ) > 0.0002))
-N2 <- sum((as.vector(pool2)  - as.vector(pool1) ) > 0.0001 & 
-            ((as.vector(pool1)  + as.vector(pool2) ) > 0.0002))
-
-n1 <- sum(rowData(mixed)$testingBarcode$direction == 1)
-n2 <- sum(rowData(mixed)$testingBarcode$direction == -1)
-
-n1 / N1
-n2 / N2
-```
-
-## vs. no Trans
-
-```{r vs no trans}
-## color by asin-sqrt testing results
-perturb.Trend <- rowData(mixed_noTrans)$testingBarcode$tendencyTo
-df <- data.frame(
-  LFC = log2(pool1+1e-7) - log2(pool2+1e-7),
-  meanLog10_proportion = (log10(pool1+1e-7) + log10(pool2+1e-7))/2
-  )
-p_validate <- ggplot(df) +
-  geom_point(
-    aes(x = meanLog10_proportion, 
-        y = LFC, 
-        color  = perturb.Trend),
-    alpha = 0.6, shape = 1, size = 4, stroke = 2) +
-  scale_color_manual(values = metadata(mixed_noTrans)$factorColors$testingBarcode) +
-  theme_classic() +
-  labs(x = "Mean log10 barcode prop.", y = "LFC in barcode prop. between pool_1 and pool_2") +
-  theme(aspect.ratio = 1, legend.position = "top")
-
-p_validate
-
-N1 <- sum(((as.vector(pool1)  - as.vector(pool2) ) > 0.0001) & 
-            ((as.vector(pool1)  + as.vector(pool2) ) > 0.0002))
-N2 <- sum((as.vector(pool2)  - as.vector(pool1) ) > 0.0001 & 
-            ((as.vector(pool1)  + as.vector(pool2) ) > 0.0002))
-
-n1 <- sum(rowData(mixed_noTrans)$testingBarcode$direction == 1)
-n2 <- sum(rowData(mixed_noTrans)$testingBarcode$direction == -1)
-
-n1 / N1
-n2 / N2
-```
-
-# ROC
-
-```{r reference pools}
+```{r}
 pool1_vec <- as.vector(pool1)
 pool2_vec <- as.vector(pool2)
 total_prop = pool1_vec + pool2_vec
@@ -189,12 +312,17 @@ summary(total_prop)
 summary(change_prop)
 summary(abs(change_prop))
 
-k <- 0.00001
-m <- 0.00001
 
+## k for total prop; m for diff prop
+k <- 0.0001
+m <- k/2
+
+## both pass considered true positive; everything else considered true negative
 Origin <- (total_prop > k) & (abs(change_prop) > m)
 table(Origin)
+```
 
+```{r reference pools}
 ggplot(data.frame(pool1 = pool1, pool2 = pool2)) +
   geom_point(aes(x = log10(pool1 + 1e-7), y = log10(pool2 + 1e-7), color = Origin)) +
   # scale_x_log10() +
@@ -216,12 +344,113 @@ p_truth <- ggplot(df) +
   theme(aspect.ratio = 1) +
   scale_color_manual(values = c("Pool1" = "firebrick1", "Pool2" = "deepskyblue", "Negative" = "gold4"))
 
-
 p_truth
-ggsave("../../output/DEBRA/truth_km_-5_-5.png", dpi = 300, width = 5, height = 4, p_truth)
-
 ```
 
+```{r}
+ggsave("../../output/DEBRA/truth_km_-5_-5.png", dpi = 300, width = 5, height = 4, p_truth)
+```
+
+## TPR 
+
+### asin-sqrt
+
+```{r}
+N1 <- sum(Origin & change_prop > 0)
+N2 <- sum(Origin & change_prop < 0)
+
+n1 <- sum(rowData(mixed)$testingBarcode$direction == 1)
+n2 <- sum(rowData(mixed)$testingBarcode$direction == -1)
+
+n1 / N1
+n2 / N2
+
+sum(rowData(mixed)$testingBarcode$P.Value < 0.05) / sum(Origin)
+sum(rowData(mixed)$testingBarcode$adj.P.Val < 0.05) / sum(Origin)
+```
+
+### noTrans
+
+```{r}
+N1 <- sum(Origin & change_prop > 0)
+N2 <- sum(Origin & change_prop < 0)
+
+n1 <- sum(rowData(mixed_noTrans)$testingBarcode$direction == 1)
+n2 <- sum(rowData(mixed_noTrans)$testingBarcode$direction == -1)
+
+n1 / N1
+n2 / N2
+
+sum(rowData(mixed_noTrans)$testingBarcode$P.Value < 0.05) / sum(Origin)
+sum(rowData(mixed_noTrans)$testingBarcode$adj.P.Val < 0.05) / sum(Origin)
+```
+
+
+### logit
+
+```{r}
+N1 <- sum(Origin & change_prop > 0)
+N2 <- sum(Origin & change_prop < 0)
+
+n1 <- sum(rowData(mixed_logit)$testingBarcode$direction == 1)
+n2 <- sum(rowData(mixed_logit)$testingBarcode$direction == -1)
+
+n1 / N1
+n2 / N2
+
+sum(rowData(mixed_logit)$testingBarcode$P.Value < 0.05) / sum(Origin)
+sum(rowData(mixed_logit)$testingBarcode$adj.P.Val < 0.05) / sum(Origin)
+```
+
+## Origin MA vs. test results
+
+### vs. asin-sqrt results
+
+```{r vs asin}
+## color by asin-sqrt testing results
+perturb.Trend <- rowData(mixed)$testingBarcode$tendencyTo
+df <- data.frame(
+  LFC = log2(pool1+1e-7) - log2(pool2+1e-7),
+  meanLog10_proportion = (log10(pool1+1e-7) + log10(pool2+1e-7))/2
+  )
+p_validate <- ggplot(df) +
+  geom_point(
+    aes(x = meanLog10_proportion, 
+        y = LFC, 
+        color  = perturb.Trend),
+    alpha = 0.6, shape = 1, size = 4, stroke = 2) +
+  scale_color_manual(values = metadata(mixed)$factorColors$testingBarcode) +
+  theme_classic() +
+  labs(x = "Mean log10 barcode prop.", y = "LFC in barcode prop. between pool_1 and pool_2") +
+  theme(aspect.ratio = 1, legend.position = "top")
+
+p_validate
+```
+
+### vs. no Trans
+
+```{r vs no trans}
+## color by asin-sqrt testing results
+perturb.Trend <- rowData(mixed_noTrans)$testingBarcode$tendencyTo
+df <- data.frame(
+  LFC = log2(pool1+1e-7) - log2(pool2+1e-7),
+  meanLog10_proportion = (log10(pool1+1e-7) + log10(pool2+1e-7))/2
+  )
+p_validate <- ggplot(df) +
+  geom_point(
+    aes(x = meanLog10_proportion, 
+        y = LFC, 
+        color  = perturb.Trend),
+    alpha = 0.6, shape = 1, size = 4, stroke = 2) +
+  scale_color_manual(values = metadata(mixed_noTrans)$factorColors$testingBarcode) +
+  theme_classic() +
+  labs(x = "Mean log10 barcode prop.", y = "LFC in barcode prop. between pool_1 and pool_2") +
+  theme(aspect.ratio = 1, legend.position = "top")
+
+p_validate
+```
+
+# ROC
 
 ## roaming on alpha
 
@@ -232,19 +461,6 @@ ggsave("../../output/DEBRA/truth_km_-5_-5.png", dpi = 300, width = 5, height = 4
 - TN: total prop. > 0.0001, changes < 0.0005
 
 ```{r roc 1}
-k <- 0.00001
-
-# N1 <- sum(((as.vector(pool1)  - as.vector(pool2) ) > 0.0001) & 
-#             ((as.vector(pool1)  + as.vector(pool2) ) > k))
-# N2 <- sum((as.vector(pool2)  - as.vector(pool1) ) > 0.0001 & 
-#             ((as.vector(pool1)  + as.vector(pool2) ) > k))
-# 
-# n1_asin <- sum(rowData(mixed)$testingBarcode$direction == 1)
-# n2_asin <- sum(rowData(mixed)$testingBarcode$direction == -1)
-# 
-# n1_no <- sum(rowData(mixed_noTrans)$testingBarcode$direction == 1)
-# n2_no <- sum(rowData(mixed_noTrans)$testingBarcode$direction == -1)
-
 # Example input
 pool1_vec <- as.vector(pool1)
 pool2_vec <- as.vector(pool2)
@@ -254,7 +470,7 @@ asin_adj_p <- rowData(mixed)$testingBarcode$adj.P.Val[barcode_mask]
 noTrans_adj_p <- rowData(mixed_noTrans)$testingBarcode$adj.P.Val[barcode_mask]
 logit_adj_p <- rowData(mixed_logit)$testingBarcode$adj.P.Val[barcode_mask]
 
-ground_truth <- as.integer((abs(pool1_vec - pool2_vec) > 0.0001))[barcode_mask]
+ground_truth <- as.integer((abs(pool1_vec - pool2_vec) > m))[barcode_mask]
 
 sum(ground_truth)
 length(ground_truth)
@@ -291,9 +507,6 @@ roc + annotate(
 - TN: everything else
 
 ```{r roc 2}
-k <- 0.00001
-m <- 0.00001
-
 # Example input
 pool1_vec <- as.vector(pool1)
 pool2_vec <- as.vector(pool2)
@@ -411,8 +624,8 @@ for (i in seq_along(k_seq)) {
   k <- k_seq[i]
   
   # Define N1 and N2 as "truth" based on threshold
-  N1 <- sum((pool1_vec - pool2_vec > 0.0005) & ((pool1_vec + pool2_vec) > k))
-  N2 <- sum((pool2_vec - pool1_vec > 0.0005) & ((pool1_vec + pool2_vec) > k))
+  N1 <- sum((pool1_vec - pool2_vec > k/2) & ((pool1_vec + pool2_vec) > k))
+  N2 <- sum((pool2_vec - pool1_vec > k/2) & ((pool1_vec + pool2_vec) > k))
   
   # Subset direction vector by same conditions
   barcode_mask <- (pool1_vec + pool2_vec) > k
@@ -456,6 +669,211 @@ p_frac
 
 ```
 
+# TPR 
+
+```{r}
+plot_TPR_over_k <- function(adj.P = FALSE) {
+  # Define the k sequence on a log scale
+k_seq <- 10^seq(-6, 0, length.out = 100)
+
+# Create vectors to store results
+frac_asin <- numeric(length(k_seq))
+frac_logit <- numeric(length(k_seq))
+frac_no <- numeric(length(k_seq))
+
+# Extract data
+if(adj.P){
+  direction_asin <- rowData(mixed)$testingBarcode$adj.P.Val < 0.05
+  direction_logit <- rowData(mixed_logit)$testingBarcode$adj.P.Val < 0.05
+  direction_no <- rowData(mixed_noTrans)$testingBarcode$adj.P.Val < 0.05
+} else {
+  ## raw P-Value
+  direction_asin <- rowData(mixed)$testingBarcode$P.Value < 0.05
+  direction_logit <- rowData(mixed_logit)$testingBarcode$P.Value < 0.05
+  direction_no <- rowData(mixed_noTrans)$testingBarcode$P.Value < 0.05
+}
+
+
+# Loop over each k
+for (i in seq_along(k_seq)) {
+  k <- k_seq[i]
+  
+  # Define N1 and N2 as "truth" based on threshold
+  N <- ((total_prop > k) & (abs(change_prop) > m)) %>% sum()
+  
+  # Subset direction vector by same conditions
+  barcode_mask <- (total_prop > k) & (abs(change_prop) > k/2)
+  
+  # asin-sqrt
+  n_asin <- sum(direction_asin[barcode_mask])
+  
+  # logit
+  n_logit <- sum(direction_logit[barcode_mask])
+  
+  # no transform
+  n_no <- sum(direction_no[barcode_mask])
+  
+  # Avoid division by 0
+  frac_asin[i] <- ifelse(N > 0, n_asin / N, NA)
+  frac_logit[i] <- ifelse(N > 0, n_logit / N, NA)
+  frac_no[i]   <- ifelse(N > 0, n_no / N, NA)
+}
+
+# Combine into data.frame for ggplot
+plot_df <- tibble(
+  k = k_seq,
+  asin = frac_asin,
+  logit = frac_logit,
+  noTrans = frac_no
+) %>%
+  pivot_longer(-k, names_to = "method", values_to = "fraction")
+
+# Plot
+p_frac <- ggplot(plot_df, aes(x = k, y = fraction, color = method)) +
+  geom_line(size = 1) +
+  scale_x_log10() +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(x = "Threshold for total prop. (log scale)", y = "TPR", color = "Method") +
+  theme_minimal() +
+  theme(legend.position = "top")
+p_frac
+}
+
+```
+
+```{r}
+plot_TPR_over_k(adj.P = FALSE)
+plot_TPR_over_k(adj.P = TRUE)
+```
+
+```{r}
+ggsave("../../output/DEBRA/TPR_over_k_rawP.png", dpi = 300, width = 5, height = 4, plot_TPR_over_k(adj.P = FALSE))
+ggsave("../../output/DEBRA/TPR_over_k_adjP.png", dpi = 300, width = 5, height = 4, plot_TPR_over_k(adj.P = TRUE))
+```
+
+# Fold change
+
+```{r}
+asin_estimate <- mixed_noTrans@elementMetadata$testingBarcode$meanDiff
+```
+
+
+```{r}
+## theory
+a = 0.35
+(1/2 + a) / (1+a) - 1/2
+a = 0.27
+(1/2 + a) / (1+a) - 1/2
+a = 0.18
+(1/2 + a) / (1+a) - 1/2
+
+calc_theory <- function(a, trans = function(x) {x}){
+  theory_pool1 = (1/2 + a) / (1+a)
+  theory_pool2 = (1/2) / (1+a)
+  
+  # the ratio of a barcode in pool1 or pool2; ~= pool1+ pool2
+  prop = pool1_vec + pool2_vec
+  
+  theory_FC1 = (trans(theory_pool1 * pool1_vec )) - (trans(1/2 * pool1_vec ))
+  theory_FC2 = (trans(theory_pool2 * pool2_vec )) - (trans(1/2 * pool2_vec ))
+  
+  ## FC
+  # theory_FC1 = (trans(theory_pool1) + 1e-10) / (trans(1/2) + 1e-10)
+  # theory_FC2 = (trans(theory_pool2) + 1e-10) / (trans(1/2) + 1e-10)
+  
+  
+  df <- data.frame(diff_1 = theory_FC1, diff_2 = theory_FC2)
+  
+  return(df)
+}
+
+
+calc_theory(a = 0.18)
+calc_theory(a = 0.18, trans = function(x) {asin(sqrt(x))})
+calc_theory(a = 0.18, trans = function(x) {log((x+1e-10)/(1-x+1e-10))})
+
+calc_theory(a = 0.27)
+calc_theory(a = 0.27, trans = function(x) {asin(sqrt(x))})
+calc_theory(a = 0.27, trans = function(x) {log((x+1e-10)/(1-x+1e-10))})
+
+calc_theory(a = 0.35)
+calc_theory(a = 0.35, trans = function(x) {asin(sqrt(x))})
+calc_theory(a = 0.35, trans = function(x) {log((x+1e-10)/(1-x+1e-10))})
+
+
+
+```
+
+
+```{r}
+colnames(perturb_top)
+perturb_top$sampleMetadata %>% as.data.frame() %>% summary()
+
+mixed <- perturb_top[, perturb_top$sampleMetadata$Subset %in% c("perturb", "null")]
+mixed$sampleMetadata
+
+mixed_target <- mixed$sampleMetadata %>% as.data.frame()
+mixed_target$Perturbation <- as.factor(mixed_target$Perturbation)
+levels(mixed_target$Perturbation)
+# mixed_target$Perturbation <- as.factor(mixed_target$Perturbation)
+mixed_target$BarcodeSize <- as.factor(mixed_target$BarcodeSize)
+mixed_design <- mixed_target %>%
+    with(model.matrix(~0 + Perturbation + BarcodeSize))
+
+mixed <- testBarcodeSignif(
+  barbieQ = mixed, sampleMetadata = mixed_target, sampleGroup = "Perturbation", 
+  contrastFormula = ("Perturbation0.27 - Perturbation0"),
+  designMatrix = mixed_design)
+
+mixed@elementMetadata$testingBarcode@metadata$contrasts
+mixed@elementMetadata$testingBarcode$meanDiff
+
+bar_test <- rowData(mixed)$testingBarcode
+# bar_test %>% as.data.frame() %>% View()
+metadata(bar_test)$design
+bar_test$direction %>% table()
+bar_test$meanDiff %>% summary()
+```
+
+```{r}
+tester <- testBarcodeSignif(
+  barbieQ = mixed, sampleMetadata = mixed_target, sampleGroup = "Perturbation", 
+  contrastFormula = ("Perturbation0.27 - Perturbation0"), transformation = "asin-sqrt",
+  designMatrix = mixed_design)
+
+veri_diff <- cbind(
+  tester@elementMetadata$testingBarcode,
+  calc_theory(a = 0.27, trans = function(x) {asin(sqrt(x))})) %>% as.data.frame()
+
+ggplot(veri_diff ) +
+  geom_point(aes(x = diff_1 + diff_2, y = meanDiff, color = tendencyTo)) +
+  coord_fixed()
+
+cor(veri_diff$diff_1 + veri_diff$diff_2, veri_diff$meanDiff)
+
+veri_sig <- veri_diff %>% 
+  filter(tendencyTo != "n.s.") 
+
+cor(veri_sig$diff_1 + veri_sig$diff_2, veri_sig$meanDiff)
+
+y = veri_sig$diff_1 + veri_sig$diff_2
+x = veri_sig$meanDiff
+
+coef(lm(y ~x))
+
+veri_diff %>% 
+  filter(tendencyTo == "n.s.") %>% 
+  with(cor(diff_1 + diff_2, meanDiff))
+
+```
+
+```{r}
+sum(rowData(tester)$testingBarcode$P.Value < 0.05) / sum(Origin)
+sum(rowData(tester)$testingBarcode$adj.P.Val < 0.05) / sum(Origin)
+```
+
+
+# Example
 
 ```{r fig.width=10, fig.height=5}
 mixed <- perturb_top[, perturb_top$sampleMetadata$Subset %in% c("perturb", "null")]

@@ -522,7 +522,7 @@ df_FPR_long <- df_FPR %>%
                          labels = c("asin-sqrt", "logit", "no trans.")))
 
 ggplot(
-  df_FPR_long, aes(x = factor(N_Samples), y = Pval_Prop, fill = Method)) +
+  df_FPR_long, aes(x = factor(N_Samples), y = Pval_Prop)) +
   geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
   # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
@@ -539,23 +539,27 @@ ggplot(
 ```
 
 ```{r}
+df_FPR$Method = "Differential occurrrence test"
+
 P_FPR_occ <- ggplot(
-  df_FPR, aes(x = factor(N_Samples), y = Occ_firth, fill = factor(N_Samples))) +
+  df_FPR, aes(x = factor(N_Samples), y = Occ_firth, color = Method)) +
   geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
   # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
-  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("Differential occurrrence test" = "black")) +
   # coord_cartesian(ylim = c(0, 0.2)) + 
-  labs(title = "Differential occurrence test",
-       y = "Proportion of barcodes with p-value < 0.05",
+  labs(
+       y = "Fraction of P-Value < 0.05",
        x = "Number of samples per group") +
   theme_classic() +
-  theme(legend.position = "none")
+  theme(legend.position = "top")
 
+P_FPR_occ
 
 ggsave(
   "../../output/DEBRA/tester_occ.png",
   P_FPR_occ,
-  width = 7, height = 10,
+  width = 9, height = 8,
   units = "cm"
   )
 ```

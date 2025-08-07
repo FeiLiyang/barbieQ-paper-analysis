@@ -1,0 +1,672 @@
+---
+title: "estimate_coeff"
+author: "LF"
+date: "2025-07-30"
+output: workflowr::wflow_html
+output_dir: ../../DEBRA
+---
+
+# Load Dependencies
+
+```{r load library, message=FALSE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(plotROC)
+
+library(limma)
+library(edgeR)
+library(car)
+
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+
+# devtools::install_github("DaneVass/bartools", dependencies = TRUE, force = TRUE)
+library(bartools)
+```
+
+# Install barbieQ - devel
+
+```{r install barbieQ}
+# devtools::install_github("Oshlack/barbieQ", force = TRUE)
+
+library(barbieQ)
+```
+
+# Load rds
+
+```{r save rds}
+## rda saved in "../../analysis/DEBRA/negsim_perturb_barbieQ.Rmd"
+load("../../output/DEBRA/perturb_barbieQ.rda")
+```
+
+# Add 1 to data
+
+```{r}
+# perturb_top <- createBarbieQ(assay(perturb_top) +1, sampleMetadata = perturb_top$sampleMetadata)
+```
+
+
+# Designed v.s. estimated
+
+## check equal mixture of pool1 and pool2 in baseline samples
+
+- looking good.
+
+```{r}
+colnames(perturb)
+props <- perturb_top@assays@data$proportion
+
+pool1_vec <- props[,1]
+
+pool2_vec <- props[,2]
+
+## if equal mixture of pool1 and pool2; designed prop should be 1/2 of total props in original pool1 and pool2 
+check_mix_df <- data.frame(ps = rowMeans(props[,1:2]), 
+                           mixture_660 = props[,3])
+
+ggplot(check_mix_df, aes(x = ps, y = mixture_660)) + 
+  geom_point() + 
+  coord_fixed() +
+  geom_smooth()
+```
+
+## check zero in pool1 and pool2
+
+```{r}
+flag_no_zero <- props[,1] != 0 & props[,2] != 0
+sum(flag_no_zero)
+```
+
+## check diff in pool1 and pool2
+
+```{r}
+flag_small_gap <- abs(props[,1] - props[,2]) < (props[,1] + props[,2])/10
+sum(flag_small_gap)
+
+flag_small_gap <- abs(props[,1] - props[,2]) < (props[,1] + props[,2])/5
+sum(flag_small_gap)
+
+flag_small_gap <- abs(props[,1] - props[,2]) < (props[,1] + props[,2])/2
+sum(flag_small_gap)
+```
+
+## check any zeros in mixed samples
+```{r}
+any(props[,-c(1:2)] == 0)
+```
+
+## Designed differences
+
+```{r}
+## theory
+a = 0.35
+((1/2 + a) / (1+a)) - (1/2)
+a = 0.27
+(1/2 + a) / (1+a) - 1/2
+a = 0.18
+(1/2 + a) / (1+a) - 1/2
+
+calc_theory <- function(a, trans = "none"){
+  theory_pool1 = (1/2 + a) / (1+a)
+  theory_pool2 = (1/2) / (1+a)
+  
+  trans_fun = ifelse(trans == "none", function(x) {x},
+                     ifelse(trans == "asin-sqrt", function(x) {asin(sqrt(x))}, 
+                            ifelse(trans == "logit", function(x) {log((x+1e-10)/(1-x+3e-7))}, NA))) ## {log((x+1e-10)/(1-x+1e-10))},or {logit(x)}
+  
+  
+  
+  # the ratio of a barcode in pool1 or pool2; ~= pool1+ pool2
+  prop = pool1_vec + pool2_vec
+  
+  theory_FC1 = (trans_fun(theory_pool1 * pool1_vec )) - (trans_fun(1/2 * pool1_vec ))
+  theory_FC2 = (trans_fun(theory_pool2 * pool2_vec )) - (trans_fun(1/2 * pool2_vec ))
+  
+  ## FC
+  # theory_FC1 = (trans(theory_pool1) + 1e-10) / (trans(1/2) + 1e-10)
+  # theory_FC2 = (trans(theory_pool2) + 1e-10) / (trans(1/2) + 1e-10)
+  
+  
+  df <- data.frame(diff_1 = theory_FC1, diff_2 = theory_FC2)
+  
+  return(df)
+}
+
+
+calc_theory(a = 0.18)
+calc_theory(a = 0.18, trans = "asin-sqrt")
+calc_theory(a = 0.18, trans = "logit")
+
+calc_theory(a = 0.27)
+calc_theory(a = 0.27, trans = "asin-sqrt")
+calc_theory(a = 0.27, trans = "logit")
+
+calc_theory(a = 0.35)
+calc_theory(a = 0.35, trans = "asin-sqrt")
+calc_theory(a = 0.35, trans = "logit")
+
+```
+
+check out logit trans function
+
+```{r}
+# Set a value for u
+u <- ((1/2 + a) / (1+a)) / (1/2)
+log(((1/2 + a) / (1+a)) / (1/2))
+log(((1/2 ) / (1+a)) / (1/2))
+
+
+# Create a sequence of x values within a valid range
+x_vals <- seq(0.00001, 0.1, length.out = 10000)  # avoid x = 1
+
+# Compute y values
+df <- data.frame(
+  x = x_vals,
+  y = log((u - x_vals) / (1 - x_vals))
+)
+
+# Plot
+ggplot(df, aes(x = x, y = y)) +
+  geom_line(color = "steelblue") +
+  theme_minimal() +
+  labs(title = paste0("y = log((u - x)/(1 - x)), u = ", u),
+       x = "x", y = "y")
+```
+
+
+## Model perturbations
+
+```{r}
+colnames(perturb_top)
+perturb_top$sampleMetadata %>% as.data.frame() %>% summary()
+
+mixed <- perturb_top[, perturb_top$sampleMetadata$Subset %in% c("perturb", "null")]
+mixed$sampleMetadata
+
+mixed_target <- mixed$sampleMetadata %>% as.data.frame()
+## factorize perturbation levels
+mixed_target$Perturbation <- as.factor(mixed_target$Perturbation)
+levels(mixed_target$Perturbation)
+# mixed_target$Perturbation <- as.factor(mixed_target$Perturbation)
+mixed_target$BarcodeSize <- as.factor(mixed_target$BarcodeSize)
+mixed_design <- mixed_target %>%
+    with(model.matrix(~0 + Perturbation + BarcodeSize))
+
+```
+
+## Apply tests: extract estimates
+
+```{r}
+apply_model <- function(a = 0.18, trans = "none", scale = 1) {
+  
+  mixed@assays@data$proportion <- mixed@assays@data$proportion * scale
+  
+  tester <- testBarcodeSignif(
+    barbieQ = mixed, sampleMetadata = mixed_target, sampleGroup = "Perturbation", 
+    contrastFormula = paste0("Perturbation", a, " - Perturbation0"), transformation = trans,
+    designMatrix = mixed_design)
+  
+  veri_diff <- cbind(
+    tester@elementMetadata$testingBarcode,
+    calc_theory(a = a, trans = trans)) %>% as.data.frame()
+  
+  veri_diff <- rownames_to_column(veri_diff, var = "BC") 
+  
+  veri_diff$Contrast = paste0(a, " - 0")
+  veri_diff$Method = trans
+  
+  veri_diff$uncertain_origin <- flag_small_gap
+  veri_diff$noise_in_origin <- flag_no_zero
+  
+  return(veri_diff)
+  
+}
+```
+
+
+```{r}
+es_de_none <- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(a = i))
+es_de_none_df <- do.call(rbind, es_de_none)
+
+# es_de_none_scale <- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(a = i, scale = 1e6))
+# es_de_none_scale_df <- do.call(rbind, es_de_none_scale)
+
+es_de_asin <- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(a = i, trans = "asin-sqrt"))
+es_de_asin_df <- do.call(rbind, es_de_asin)
+
+es_de_logit <- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(a = i, trans = "logit"))
+es_de_logit_df <- do.call(rbind, es_de_logit)
+
+es_de_df <- rbind(es_de_none_df, es_de_asin_df, es_de_logit_df)
+
+
+```
+
+check if BC of uncertain origins are picked out - no.
+
+- good.
+
+```{r}
+es_de_df %>% 
+  filter(uncertain_origin)
+```
+
+
+### Correlation: estimated and designed
+
+#### winsorize: rm outlier
+
+```{r}
+## use robustHD::winsorise() to remove the outliers for cor(). especially those big correlated points.
+
+regression_stats_none <- es_de_none_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(winsorize(diff_1 + diff_2), winsorize(meanDiff)),
+    slope = coef(lm(winsorize(meanDiff) ~ I(winsorize(diff_1 + diff_2))))[2],
+    interc = coef(lm(winsorize(meanDiff) ~ I(winsorize(diff_1 + diff_2))))[1],
+    # res = resid(mod <- lm(meanDiff ~ I(diff_1 + diff_2))),
+    # meanDiff = meanDiff,
+    .groups = "drop"
+  )
+regression_stats_none$Method = "none"
+
+regression_stats_asin <- es_de_asin_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(winsorize(diff_1 + diff_2), winsorize(meanDiff)),
+    slope = coef(lm(winsorize(meanDiff) ~ I(winsorize(diff_1 + diff_2))))[2],
+    interc = coef(lm(winsorize(meanDiff) ~ I(winsorize(diff_1 + diff_2))))[1],
+    .groups = "drop"
+  )
+regression_stats_asin$Method = "asin-sqrt"
+
+regression_stats_logit <- es_de_logit_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(winsorize(diff_1 + diff_2), winsorize(meanDiff)),
+    slope = coef(lm(winsorize(meanDiff) ~ I(winsorize(diff_1 + diff_2))))[2],
+    interc = coef(lm(winsorize(meanDiff) ~ I(winsorize(diff_1 + diff_2))))[1],
+    .groups = "drop"
+  )
+regression_stats_logit$Method = "logit"
+
+regression_stats <- rbind(regression_stats_asin, regression_stats_none, regression_stats_logit)
+
+print(regression_stats_none)
+print(regression_stats_asin)
+print(regression_stats_logit)
+```
+
+#### no scaling
+
+```{r}
+## use robustHD::winsorise() to remove the outliers for cor(). especially those big correlated points.
+
+## asin(sqrt(abs(x))) to rescale the none trans data
+# re_scale <- function(x) {
+#   asin(sqrt(abs(x)))
+# }
+
+# re_scale <- function(x) {
+#   log10((abs(x) + 1e-7))
+# }
+
+re_scale <- function(x) {
+  x
+}
+
+regression_stats_none <- es_de_none_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(
+      re_scale((diff_1 + diff_2)), 
+      re_scale((meanDiff))
+      ),
+    slope = coef(lm(
+      re_scale((meanDiff)) ~ I(re_scale((diff_1 + diff_2)))
+      ))[2],
+    interc = coef(lm(
+      re_scale((meanDiff)) ~ I(re_scale((diff_1 + diff_2)))
+      ))[1],
+    # res = resid(mod <- lm(meanDiff ~ I(diff_1 + diff_2))),
+    # meanDiff = meanDiff,
+    .groups = "drop"
+  )
+regression_stats_none$Method = "none"
+regression_stats_none$x = -0.01
+regression_stats_none$y = 0.01
+
+# regression_stats_none_scale <- es_de_none_scale_df %>%
+#   group_by(Contrast) %>%
+#   summarise(
+#     cor = cor(
+#       re_scale((diff_1 + diff_2)), 
+#       re_scale((meanDiff))
+#       ),
+#     slope = coef(lm(
+#       re_scale((meanDiff)) ~ I(re_scale((diff_1 + diff_2)))
+#       ))[2],
+#     interc = coef(lm(
+#       re_scale((meanDiff)) ~ I(re_scale((diff_1 + diff_2)))
+#       ))[1],
+#     # res = resid(mod <- lm(meanDiff ~ I(diff_1 + diff_2))),
+#     # meanDiff = meanDiff,
+#     .groups = "drop"
+#   )
+# regression_stats_none_scale$Method = "none+scale"
+
+regression_stats_asin <- es_de_asin_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(re_scale(diff_1 + diff_2), re_scale(meanDiff)),
+    slope = coef(lm(re_scale(meanDiff) ~ I(re_scale(diff_1 + diff_2))))[2],
+    interc = coef(lm(re_scale(meanDiff) ~ I(re_scale(diff_1 + diff_2))))[1],
+    .groups = "drop"
+  )
+regression_stats_asin$Method = "asin-sqrt"
+regression_stats_asin$x = -0.001
+regression_stats_asin$y = 0.001
+
+
+regression_stats_logit <- es_de_logit_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(re_scale(diff_1 + diff_2), re_scale(meanDiff)),
+    slope = coef(lm(re_scale(meanDiff) ~ I(re_scale(diff_1 + diff_2))))[2],
+    interc = coef(lm(re_scale(meanDiff) ~ I(re_scale(diff_1 + diff_2))))[1],
+    .groups = "drop"
+  )
+regression_stats_logit$Method = "logit"
+regression_stats_logit$x = -0.05
+regression_stats_logit$y = 1
+
+regression_stats <- rbind(regression_stats_asin, regression_stats_none, regression_stats_logit)
+
+# print(regression_stats_none)
+# print(regression_stats_none_scale)
+# print(regression_stats_asin)
+# print(regression_stats_logit)
+```
+
+
+```{r}
+es_de_none_df %>%
+  filter(Contrast == "0.18 - 0") %>%
+  summarise(
+    De = winsorize(diff_1 + diff_2),
+    Es = winsorize(meanDiff)) %>% 
+  arrange(-De)
+
+es_de_none_df %>%
+  filter(Contrast == "0.18 - 0") %>%
+  summarise(
+    De = (diff_1 + diff_2),
+    Es = (meanDiff)) %>% 
+  arrange(-De)
+```
+
+### Plot coefficient
+
+```{r, fig.width=8, fig.height=4}
+p_es_de_asin <- ggplot(es_de_asin_df, aes(x = re_scale(diff_1 + diff_2), y = re_scale(meanDiff))) +
+  geom_point(aes(color = P.Value < 0.05), alpha = 0.5) +
+  # stat_smooth(method = "lm", linetype = "dashed", colour = "black") +
+    geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = "dashed") +
+  theme_linedraw() +
+  # coord_fixed() +
+  facet_wrap(~paste0("asin-sqrt, Contrast: ", Contrast)) +
+  geom_text(data = regression_stats_asin, x = -0.01, y = 0.01, 
+            aes(label = paste0("r = ", round(cor, digits = 2), "\n", "slope = ", round(slope, digits = 2)))) + 
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = "top") +
+  labs(color = "P-Value")
+
+
+p_es_de_none <- ggplot(es_de_none_df, aes(x = re_scale(diff_1 + diff_2), y = re_scale(meanDiff))) +
+  geom_point(aes(color = P.Value < 0.05), alpha = 0.5) +
+  # stat_smooth(method = "lm", linetype = "dashed", colour = "black") +
+  geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = "dashed") +
+  theme_linedraw()+
+  # coord_fixed() +
+  facet_wrap(~paste0("none, Contrast: ", Contrast)) +
+    geom_text(data = regression_stats_none, x = -0.0015, y = 0.001, 
+            aes(label = paste0("r = ", round(cor, digits = 2), "\n", "slope = ", round(slope, digits = 2)))) + 
+  labs( y = "Estimated differences")+
+  scale_x_continuous(limits = c(-0.0025, 0.0025)) +
+  scale_y_continuous(limits = c(-0.0025, 0.0025)) +
+  theme(axis.title.x = element_blank(), legend.position = "none")
+
+# p_es_de_none_scale <- ggplot(es_de_none_scale_df, aes(x = re_scale(diff_1 + diff_2)*1e6, y = re_scale(meanDiff))) +
+#   geom_point(aes(color = P.Value < 0.05), alpha = 0.5) +
+#   # stat_smooth(method = "lm", linetype = "dashed", colour = "black") +
+#   geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = "dashed") +
+#   theme_linedraw() +
+#   # coord_fixed() +
+#   facet_wrap(~Contrast) +
+#     geom_text(data = regression_stats_none, x = -0.001, y = 0.001, 
+#             aes(label = paste0("r = ", round(cor, digits = 2), "\n", "slope = ", round(slope, digits = 2)))) + 
+#   labs(x = "Designed differences", y = "Estimated differences", title = "none") +
+#   scale_x_continuous(limits = c(-2500, 2500)) +
+#   scale_y_continuous(limits = c(-2500, 2500))
+
+# identical(es_de_none_scale_df$tendencyTo, es_de_none_df$tendencyTo)
+
+p_es_de_logit <- ggplot(es_de_logit_df, aes(x = re_scale(diff_1 + diff_2), y = re_scale(meanDiff))) +
+  geom_point(aes(color = P.Value < 0.05), alpha = 0.5) +
+  # stat_smooth(method = "lm", linetype = "dashed", colour = "black") +
+  geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = "dashed") +
+  theme_linedraw()+
+  facet_wrap(~paste0("logit, Contrast: ", Contrast)) +
+    geom_text(data = regression_stats_logit, x = -0.15, y = 1, 
+            aes(label = paste0("r = ", round(cor, digits = 2), "\n", "slope = ", round(slope, digits = 2)))) + 
+  labs(x = "Designed differences") +
+  theme(axis.title.y = element_blank(), , legend.position = "none")
+```
+
+
+```{r, fig.width=8, fig.height=9}
+p_es_de_asin / p_es_de_none / p_es_de_logit
+
+ggsave("../../output/DEBRA/Es_de.png", dpi = 300, width = 8, height = 9, 
+       p_es_de_asin / p_es_de_none / p_es_de_logit)
+```
+
+## TPR ~ AMean Quantiles
+
+```{r}
+num_quantiles <- 10
+
+quantile_breaks <- quantile(es_de_none_df$Amean, probs = seq(0, 1, length.out = num_quantiles+1)) 
+quantile_breaks 
+
+es_de_bin <- es_de_df %>% 
+  mutate(
+    raw_Amean = rep(es_de_none_df$Amean, 3),
+    bin = cut(raw_Amean, breaks = quantile_breaks, include.lowest = TRUE, right = TRUE))
+
+es_de_bin_TPR <- es_de_bin %>% 
+  group_by(bin, Method, Contrast) %>% 
+  summarize(Frac_signif = sum(P.Value < 0.05) / n(), .groups = "drop")
+
+TPR_quantile_es_de <- ggplot(es_de_bin_TPR, aes(x = bin, y = Frac_signif, group = paste0(Contrast, Method))) +
+  geom_point(aes(shape = Contrast, color = Method)) +
+  geom_line(aes(linetype = Contrast, color = Method)) +
+  theme_linedraw() +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.5, size = 10), legend.position = "top",
+        aspect.ratio = 0.5) +
+  labs(y = "Fraction of P-Value < 0.05", x = "Quantiles of barcode mean proportion (raw)")
+
+TPR_quantile_es_de
+```
+
+
+```{r}
+ggsave("../../output/DEBRA/TPR_quantile_es_de.png", dpi = 300, width = 6, height = 5, TPR_quantile_es_de)
+```
+
+
+## Residules
+
+```{r}
+# Create a sequence of x values within a valid range
+x_vals <- seq(0.000001, 0.0001, length.out = 10000)  # avoid x = 1
+
+# Compute y values
+df <- data.frame(
+  x = x_vals,
+  y = asin(sqrt(x_vals))
+)
+
+# Plot
+ggplot(df, aes(x = x, y = y)) +
+  geom_line(color = "steelblue") +
+  theme_minimal() +
+  labs(title = paste0("asin(sqrt(x_vals)"),
+       x = "x", y = "y")
+```
+
+### FUNC
+
+```{r}
+get_residules <- function(a = 0.18, trans = "none") {
+  
+  ## get props
+  props <- mixed@assays@data$proportion
+  
+  ## set trans fun
+  trans_fun = ifelse(trans == "none", function(x) {x},
+                     ifelse(trans == "asin-sqrt", function(x) {asin(sqrt(x))}, 
+                            ifelse(trans == "logit", function(x) {log((x+1e-10)/(1-x+3e-7))}, NA))) ## {log((x+1e-10)/(1-x+1e-10))},or {logit(x)}
+  
+  mydata <- trans_fun(props)
+  
+  myfit1 <- limma::lmFit(object = mydata, design = mixed_design)
+
+  mycontrast <- limma::makeContrasts(contrasts = paste0("Perturbation", a, " - Perturbation0"), 
+                                     levels = colnames(mixed_design))
+  
+  ## fit contrast
+  myfit2 <- limma::contrasts.fit(fit = myfit1, contrasts = mycontrast)
+  
+  ## fit eBayes, moderated p.values obtained after applying empirical Bayes
+  myfit3 <- limma::eBayes(myfit2)
+  
+  ## extract residuals
+  resi <- limma::residuals.MArrayLM(object = myfit1, y = mydata)
+  
+  resi_df <- as.data.frame(as.table(resi))
+  
+  colnames(resi_df) <- c("BC", "Sample", "Residual")
+  
+  resi_df$Contrast <- paste0(a, " - 0")
+  
+  resi_df$Method <- trans
+
+  return(resi_df)
+  
+}
+
+resi_none <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(a = i, trans = "none"))
+resi_asin <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(a = i, trans = "asin-sqrt"))
+resi_logit <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(a = i, trans = "logit"))
+
+resi_df <- rbind(do.call(rbind, resi_none), do.call(rbind, resi_asin), do.call(rbind, resi_logit))
+
+```
+
+### Distr, QQ
+
+```{r}
+p_resid_distr <- ggplot(resi_df %>% filter(Contrast == "0.35 - 0"),
+                        aes(x = Residual, color = Method)) +
+  geom_density() +
+  labs(x = "Residual", y = "Density") +
+  facet_wrap(~Method, scales = "free") +
+  theme_linedraw() +
+  theme(legend.position = "none")
+
+
+p_resid_qq <- ggplot(resi_df %>% filter(Contrast == "0.35 - 0"), 
+                     aes(sample = Residual, color = Method)) +
+  stat_qq() +
+  stat_qq_line(color = "black", linetype = "dashed") +
+  labs(x = "Normal Quantiles", y = "Residule Quantiles") +
+  facet_wrap(~Method, scales = "free") +
+  theme_linedraw() +
+  theme(legend.position = "none")
+```
+
+```{r, fig.width=9, fig.height=3}
+p_resid_distr
+
+p_resid_qq
+```
+
+```{r}
+ggsave("../../output/DEBRA/resid_distribution.png", dpi = 300, width = 9, height = 3, p_resid_distr)
+ggsave("../../output/DEBRA/resid_qq.png", dpi = 300, width = 9, height = 3, p_resid_qq)
+```
+
+## consistency in signif.
+
+```{r}
+asin_adjP_3con <- es_de_asin_df %>%
+  dplyr::select(BC, Contrast, P.Value) %>%
+  tidyr::pivot_wider(
+    id_cols = BC,
+    names_from = Contrast,
+    values_from = P.Value
+  )
+
+euasin <- eulerr::euler(list(
+  C0.18 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.18 - 0` < 0.05],
+  C0.27 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.27 - 0` < 0.05],
+  C0.35 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.35 - 0` < 0.05]
+))
+
+plot(euasin, quantities = TRUE)
+```
+
+```{r}
+none_adjP_3con <- es_de_none_df %>%
+  dplyr::select(BC, Contrast, P.Value) %>%
+  tidyr::pivot_wider(
+    id_cols = BC,
+    names_from = Contrast,
+    values_from = P.Value
+  )
+
+eunone <- eulerr::euler(list(
+  C0.18 = rownames(none_adjP_3con)[none_adjP_3con$`0.18 - 0` < 0.05],
+  C0.27 = rownames(none_adjP_3con)[none_adjP_3con$`0.27 - 0` < 0.05],
+  C0.35 = rownames(none_adjP_3con)[none_adjP_3con$`0.35 - 0` < 0.05]
+))
+
+plot(eunone, quantities = TRUE)
+plot(euasin, quantities = TRUE)
+```
+
+```{r}
+eu <- eulerr::euler(list(
+  asin_C0.18 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.18 - 0` < 0.05],
+  asin_C0.27 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.27 - 0` < 0.05],
+  asin_C0.35 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.35 - 0` < 0.05],
+  none_C0.18 = rownames(none_adjP_3con)[none_adjP_3con$`0.18 - 0` < 0.05],
+  none_C0.27 = rownames(none_adjP_3con)[none_adjP_3con$`0.27 - 0` < 0.05],
+  none_C0.35 = rownames(none_adjP_3con)[none_adjP_3con$`0.35 - 0` < 0.05]
+))
+
+plot(eu, quantities = TRUE)
+```
+
