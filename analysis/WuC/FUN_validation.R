@@ -130,8 +130,8 @@ plot_validation <- function(myObject) {
       data = dat %>%
         mutate(id = order(id)) %>%
         group_by(Celltype) %>%
-        mutate(Celltype = recode(Celltype, "NK_CD56n_CD16p" = "NK.CD56-CD16+")) %>%
-        mutate(Celltype = recode(Celltype, "NK_CD56p_CD16n" = "NK.CD56+CD16-")) %>%
+        mutate(Celltype = dplyr::recode(Celltype,"NK_CD56n_CD16p" = "NK.CD56-CD16+","NK_CD56p_CD16n" = "NK.CD56+CD16-")) %>%
+        group_by(Celltype) %>%
         summarize(mid_point = mean(as.numeric(id))),
       aes(x = mid_point-0.5, y = -0.03, label = Celltype),
       size = 3, vjust = 0.5, color = "black"

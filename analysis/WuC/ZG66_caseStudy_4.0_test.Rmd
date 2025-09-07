@@ -134,13 +134,14 @@ monkeyHSPC_top99_early_mid saved in the rda object - no need to run again.
 # include all early and mid phase samples (discussed in Fig3, S4 for time course)
 flag_early_mid <- monkeyHSPC$sampleMetadata$Phase %in% c("early", "mid")
 # tag top
-monkeyHSPC <- tagTopBarcodes(barbieQ = monkeyHSPC, activeSamples = flag_early_mid, nSampleThreshold = 6)
+## no need to run again
+# monkeyHSPC <- tagTopBarcodes(barbieQ = monkeyHSPC, activeSamples = flag_early_mid, nSampleThreshold = 6)
 ## top BC from 59 samples
 flag_top <- monkeyHSPC@elementMetadata$isTopBarcode$isTop
 table(flag_top)
 monkeyHSPC_top99_early_mid <- monkeyHSPC[flag_top,]
 ## top BC from first 30 sampels
-flag_top_2 <- monkeyHSPC@assays@data$isTopAssay[,1:30] %>% rowSums() >6
+flag_top_2 <- monkeyHSPC@assays@data$isTopAssay[,1:30] %>% rowSums() >=6
 table(flag_top_2)
 monkeyHSPC_top99_30 <- monkeyHSPC[flag_top_2, 1:30]
 dim(monkeyHSPC_top99_30)
@@ -239,7 +240,7 @@ FC_top10each_30 <- FC_top10each_30 %>%
   mutate(identifiedBy = ifelse(bbq == 1, 
                              ifelse(heu == 1, "both", "barbieQ"), 
                              ifelse(heu == 1, "heuristics", "neither"))) %>% 
-  select(-c(heu, bbq))
+  dplyr::select(-c(heu, bbq))
 
 ## extract FC from testing
 coff_FC <- top10each_30_test30@elementMetadata$testingBarcode$meanDiff
@@ -269,7 +270,7 @@ p_box_0 <- ggplot(long_FC_top10each_30, aes(x = factor(Barcode, levels = barcode
   geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "grey") +
   labs(x = "Barocdes ordered by mean LFC across time",
        y = "Barcode proportion log2(FC) at each time") +
-  scale_color_manual(values = c("both" = "tan3", "barbieQ" = "hotpink", "heuristics" = "skyblue", "neither" = "slategray"))
+  scale_color_manual(values = c("both" = "tan3", "barbieQ" = "hotpink", "heuristics" = "royalblue", "neither" = "slategray"))
 
 p_box_0
 
@@ -433,7 +434,7 @@ FC_filter_sig <- FC_filter_sig %>%
   mutate(FilteringMethod = ifelse(top10each == 1, 
                                   ifelse(bbq == 1, "both", "top10each"),
                                   ifelse(bbq == 1, "barbieQ", "neither"))) %>% 
-  select(-c(top10each, bbq))
+  dplyr::select(-c(top10each, bbq))
 
 ## extract FC from testing
 # coff_FC <- top10each_30_test30@elementMetadata$testingBarcode$meanDiff

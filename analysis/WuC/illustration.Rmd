@@ -1,0 +1,145 @@
+---
+title: "illustration"
+author: "LF"
+date: "2025-08-08"
+output: workflowr::wflow_html
+output_dir: ../../DEBRA
+---
+
+# Load Dependencies
+
+```{r load library, message=FALSE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(ggnewscale) ## solve fill scale conflict between main plot and tile annotations
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(plotROC)
+
+library(car)
+
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+
+# devtools::install_github("DaneVass/bartools", dependencies = TRUE, force = TRUE)
+# library(bartools) ## I've customised the function to order samples
+```
+
+# Install barbieQ - devel
+
+```{r install barbieQ}
+# devtools::install_github("Oshlack/barbieQ", force = TRUE)
+
+library(barbieQ)
+```
+
+# Load rds
+
+```{r save rds}
+## rda saved in "../../analysis/DEBRA/negsim_perturb_barbieQ.Rmd"
+load("../../output/WuC/monkeyHSPC_ZG66_allPhases_barbieQ.rda")
+```
+
+# bartools
+
+```{r}
+source("../DEBRA/plotBarcodeHistogram.R")
+monkey_30 <- monkeyHSPC[,1:30]
+
+## pull out sample designs
+design_monkey_30 <- monkey_30$sampleMetadata %>% as.data.frame()
+design_monkey_30$sample <- colnames(monkey_30)
+
+design_monkey_30$Months <- as.factor(design_monkey_30$Months)
+design_monkey_30$Celltype <- factor(design_monkey_30$Celltype, levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p"))
+design_monkey_30$y = 1.05
+
+## order samples
+## order samples
+order_sample <- design_monkey_30 %>% with(order(Celltype, Months))
+
+# colnames(monkey_30) <- factor(colnames(monkey_30), levels = colnames(monkey_30)[order_sample])
+
+monkey_30_dge <- DGEList(
+  counts = assay(monkey_30), 
+  group = monkey_30$sampleMetadata$Subset)
+
+## pull out ggplot data
+p_monkey_30 <- plotBarcodeHistogram(monkey_30_dge, orderSamples = colnames(monkey_30)[order_sample])
+p_monkey_30
+
+# monkey_30_illus_df <- p_monkey_30_illus$data
+# bc_labels <- monkey_30_illus_df %>%
+#       dplyr::arrange(dplyr::desc(.data$freq)) %>%
+#       dplyr::pull(.data$barcode) %>%
+#       unique() %>%
+#       utils::head(10) %>%
+#       as.character()
+# 
+# monkey_30_illus_df %>%
+#       ggplot2::ggplot(aes(
+#         fill = .data$barcode,
+#         x = .data$sample,
+#         y = .data$freq,
+#         alpha = ifelse(.data$barcode %in% bc_labels, 1, 0.5)
+#       )) +
+#       ggplot2::geom_bar(position = "stack", stat = "identity") +
+#       ggplot2::scale_alpha_continuous(guide = FALSE, range = c(1, 1)) +
+#       # ggplot2::scale_fill_manual(values = label_values, breaks = bc_labels) +
+#       ggplot2::theme_bw() +
+#       ggplot2::labs(fill = paste0("Top ", 10, " barcodes")) +
+#       ggplot2::ylab("Proportion") +
+#       ggplot2::theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") +
+#   ggnewscale::new_scale_fill() +
+#   geom_tile(aes(x = sample,y = y, fill = Subset), height = 0.05, inherit.aes = FALSE, colour = "grey50")
+
+
+# ## combine sample design to ggplot data
+# monkey_30_illus_df <- monkey_30_illus_df %>% 
+#   left_join(design_monkey_30, by = "sample")
+# 
+# monkey_30_illus_df$y <- -0.1  # just for plotting the tile
+# monkey_30_illus_df$height <- 1
+
+
+design_monkey_30$Months %>% table()
+
+p_monkey_30_illus <- p_monkey_30 +
+  ## label perturbations
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_monkey_30, aes(x = sample,y = y, fill = Celltype), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = list(
+    "T" = "yellowgreen",
+    "B" = "darkolivegreen",
+    "Gr" = "goldenrod",
+    "NK_CD56p_CD16n" = "steelblue1",
+    "NK_CD56n_CD16p" = "slateblue1" 
+  )) +
+  labs(fill = "Cell type") + 
+  ## label libsize
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_monkey_30, aes(x = sample,y = y+0.05, fill = Months), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = list(`6.5` = "#CFCFFF", `12` = "#B2B2FF", `17` = "#8282FF", 
+                                  `27` = "#4D4FFF", `36` = "#1D1DFF", `42` = "#0000B2"))+
+  labs(fill = "Month") +
+  labs(x = "Sample", y = "Barcode proportion") +
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
+  theme(axis.text.x = element_blank(), panel.grid.major.x = element_blank())
+
+p_monkey_30_illus
+```
+
+```{r}
+ggsave("../../output/WuC/design_laebl.png", dpi = 300, width = 6, height = 5, p_monkey_30_illus)
+```
+
