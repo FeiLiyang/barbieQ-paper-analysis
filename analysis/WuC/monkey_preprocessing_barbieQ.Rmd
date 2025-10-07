@@ -117,6 +117,7 @@ monkeyHSPC_top_cluster <- clusterCorrelatingBarcodes(monkeyHSPC[rowData(monkeyHS
 
 
 ```
+
 ```{r}
 ## check out clusters
 identifiedCluster <- rowData(monkeyHSPC_top_cluster)$barcodeCorrelatedCluster %>% as.data.frame()

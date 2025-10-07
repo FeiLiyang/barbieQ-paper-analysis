@@ -1,0 +1,133 @@
+---
+title: "barbieQ_paper_Figure2 & Supplementary1: Preprocessing."
+author: "Liyang Fei"
+date: |
+  Initiated: 2025-09-07  
+  Rendered: `r format(Sys.Date(), '%Y-%m-%d')`
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Dependencies
+
+```{r load library}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(SummarizedExperiment)
+library(S4Vectors)
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+```
+
+# Install barbieQ
+
+```{r load barbieQ}
+## install the latest devel version of barbieQ
+if (!requireNamespace("barbieQ", quietly = TRUE)) {
+  install_github("Oshlack/barbieQ")
+}
+
+library(barbieQ)
+```
+
+# Clean up datasets {.tabset .tabset-fade .tabset-pills}
+
+## Monkey HSPC
+
+```{r}
+## data is separated by "\t", so use read.table()
+count <- read.table("data/WuC/monkey_ZG66.txt", header = TRUE, sep = "\t", row.names = 1)
+
+## rownames are barcode sequence, basically consist of ATGCs: "^[ATGC]+$"
+# lapply(rownames(count), function(x) grepl("^[ATGC]+$", x)) %>% unlist() %>% table()
+
+## read metadata of samples.
+metadata <- read.table("data/WuC/monkey_ZG66_metadata.txt", header = 1, row.names = 1)
+
+## update the variable names following camelCase style.
+colnames(metadata)[grepl("Cell_type", colnames(metadata))] <- "Celltype"
+# print(colnames(metadata))
+
+## Timepoint and Months variables in the `metadata` are simply repetition, delete one
+metadata$Timepoint <- NULL
+
+## create an object to store the barcode count matrix and sample metadata.
+monkeyHSPC <- barbieQ::createBarbieQ(object = count, sampleMetadata = metadata)
+```
+
+```{r}
+## clean up sample metadata
+updateSampleMetadata <- monkeyHSPC$sampleMetadata %>% 
+  as.data.frame() %>% 
+  select(Celltype, Months) %>% 
+  mutate(Phase = ifelse(Months < 6, "early", ifelse(Months >=55, "late", "mid"))) %>% 
+  mutate(Celltype = gsub("(Gr).*", "\\1", Celltype))
+## update sample metadata
+monkeyHSPC$sampleMetadata <- S4Vectors::DataFrame(updateSampleMetadata)
+## add more info
+metadata(monkeyHSPC) <- list("Monkey" = "ZG66")
+
+## subset samples by excluding the late time points where samples were sorted into NK subtypes - we don;t need them here
+monkeyHSPC <- monkeyHSPC[, monkeyHSPC$sampleMetadata$Phase != "late"]
+```
+
+## AML data
+
+## Mouse HSPC
+
+## Mixture data
+
+# Identify correlating barcodes {.tabset .tabset-fade .tabset-pills}
+
+## Monkey HSPC
+
+Tag top barcodes in advance to save the time for running 
+
+```{r}
+## check min group size
+table(monkeyHSPC$sampleMetadata$Celltype)
+
+monkeyHSPC <- barbieQ::tagTopBarcodes(monkeyHSPC, nSampleThreshold = 6)
+monkeyHSPC@elementMetadata$isTopBarcode %>% table()
+```
+
+```{r}
+p_monkey_pair_cor <- plotBarcodePairCorrelation(barbieQ = monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])
+p_monkey_pair_cor
+```
+
+
+## AML data
+
+## Mouse HSPC
+
+## Mixture data
+
+# Filter low-count barcodes {.tabset .tabset-fade .tabset-pills}
+
+## Monkey HSPC
+
+```{r}
+
+```
+
+## AML data
+
+## Mouse HSPC
+
+## Mixture data
+
+# Figure 2
