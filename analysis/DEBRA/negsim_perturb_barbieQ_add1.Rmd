@@ -416,28 +416,31 @@ df_FPR_long <- df_FPR %>%
                          labels = c("asin-sqrt", "logit", "no trans.")))
 
 P_FPR_add1_prop <- ggplot(
-  df_FPR_long, aes(x = factor(N_Samples), y = Pval_Prop, color = Method)) +
+  df_FPR_long, aes(x = factor(N_Samples), y = Pval_Prop, fill = factor(N_Samples))) +
   geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
   # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
-  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
   # coord_cartesian(ylim = c(0, 0.2)) + 
-  labs(
-       y = "Fraction of P-Value < 0.05",
+  labs(title = "Differential proportion test under transformations",
+       y = "Proportion of barcodes with p-value < 0.05",
        x = "Number of samples per group") +
-  # facet_wrap(~Method, scales = "free_y") +
+  facet_wrap(~Method, scales = "free_y") +
   theme_classic() +
-  theme(legend.position = "top")
+  theme(legend.position = "none")
 
-P_FPR_add1_prop
+
 
 ggsave(
   "../../output/DEBRA/tester_add1_prop.png",
   P_FPR_add1_prop,
-  width = 9, height = 8,
+  width = 20, height = 10,
   units = "cm"
   )
 
 ```
+
+
+
 
 ### Binned P.Val vs. Prop
 
@@ -528,143 +531,6 @@ plot_median_P.Val(stats_barcodes)
 ```{r}
 ggsave("../../output/DEBRA/median_p.val.png", dpi = 300, width = 8, height = 3,
        plot_median_P.Val(stats_barcodes))
-```
-
-### FPR binned
-
-```{r}
-plot_binned_FPR <- function(stats_barcodes) {
-
-  stats_binned <- stats_barcodes %>%
-    mutate(
-      logAmean = log10(Amean_prop + 1e-7),
-      bin = cut(logAmean, breaks = seq(-7, -1, by = 1), include.lowest = TRUE)
-    ) %>% 
-    pivot_longer(
-      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
-      names_to = "method",
-      values_to = "pvalue"
-    )
-
-  # Compute medians per bin/method/N_Samples
-  FPR_lines <- stats_binned %>%
-    group_by(bin, method, N_Samples) %>%
-    summarize(Frac_signif = sum(pvalue < 0.05) / n(), .groups = "drop")
-    
-
-  # Plot
-  p1 <- ggplot(FPR_lines, aes(x = bin, y = Frac_signif, group = method, color = method)) +
-    # geom_boxplot(alpha = 0.6, position = position_dodge(width = 0.8), outliers = F) +
-    # geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-    geom_point(size = 1.8) +
-    geom_line(linewidth = 0.8) +
-    facet_wrap(~ N_Samples, nrow = 1, , labeller = as_labeller(function(x) paste0("N = ", x))) +
-    labs(
-      x = "Log10(barcode mean prop.) bins",
-      y = "Fraction pf P-Value < 0.05",
-      fill = "Method",
-      color = "Method"
-    ) +
-    geom_hline(yintercept = 0.05, linetype = "dashed") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "top")
-  
-
-  
-  return(p1)
-
-}
-
-plot_binned_FPR(stats_barcodes)
-```
-
-```{r}
-ggsave("../../output/DEBRA/Frac_signif_p.val.png", dpi = 300, width = 8, height = 3,
-       plot_binned_FPR(stats_barcodes))
-```
-
-### n_barcode per bin
-
-```{r}
-plot_binned_n_barcode <- function(stats_barcodes) {
-    stats_binned <- stats_barcodes %>%
-    select(Prop_noTrans, Amean_prop, N_Samples, Loop_N) %>% 
-    mutate(
-      logAmean = log10(Amean_prop + 1e-7),
-      bin = cut(logAmean, breaks = seq(-7, -1, by = 1), include.lowest = TRUE)
-    ) %>% 
-    pivot_longer(
-      cols = c(Prop_noTrans),
-      names_to = "method",
-      values_to = "pvalue"
-    )
-  
-  n_barcode_lines <- stats_binned %>%
-    group_by(bin, N_Samples, Loop_N) %>%
-    summarize(n_barcode =  n(), .groups = "drop")
-  
-  p2 <- ggplot(n_barcode_lines, aes(x = bin, y = n_barcode, 
-                                    group = paste0(bin, N_Samples),, color = as.factor(N_Samples))) +
-    geom_boxplot() +
-    labs(
-      x = "Log10(barcode mean prop.) bins",
-      y = "Num. barcodes per bin",
-      color = "N_Samples"
-    ) +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "top")
-  
-  return(p2)
-  
-}
-
-plot_binned_n_barcode(stats_barcodes)
-```
-
-```{r}
-ggsave("../../output/DEBRA/n_bar_binned.png", dpi = 300, width = 3, height = 3,
-       plot_binned_n_barcode(stats_barcodes))
-```
-
-### FPR ~ Quantiles Amean
-
-```{r}
-  
-  num_quantiles <- 10
-
-  quantile_breaks <- quantile(stats_barcodes$Amean_prop, probs = seq(0, 1, length.out = num_quantiles+1)) 
-
-  stats_binned <- stats_barcodes %>%
-    mutate(bin = cut(Amean_prop, breaks = quantile_breaks, include.lowest = TRUE, right = TRUE)) %>% 
-    pivot_longer(
-      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
-      names_to = "method",
-      values_to = "pvalue"
-    )
-
-  # Compute medians per bin/method/N_Samples
-  FPR_lines <- stats_binned %>%
-    group_by(bin, method, N_Samples) %>%
-    summarize(Frac_signif = sum(pvalue < 0.05) / n(), .groups = "drop")
-    
-
-  # Plot
-p_FPR_quantiles <- ggplot(FPR_lines, aes(x = bin, y = Frac_signif, color = method, group = paste0(method, N_Samples))) +
-    # geom_boxplot(alpha = 0.6, position = position_dodge(width = 0.8), outliers = F) +
-    geom_point(aes(shape = as.factor(N_Samples))) +
-    geom_line(aes(linetype = as.factor(N_Samples))) +
-    labs(x = "Quantiles of barcode mean proportion (raw)", y = "Fraction of P-Value < 0.05", color = "Method", shape = "N_sample", linetype = "N_sample") +
-    geom_hline(yintercept = 0.05, linetype = "dashed") +
-    theme_linedraw() +
-    theme(axis.text.x = element_text(angle = 75, vjust = 0.5, size = 10), legend.position = "top",
-          aspect.ratio = 0.5)
-  
-p_FPR_quantiles
-```
-
-```{r}
-ggsave("../../output/DEBRA/FPR_quantiles.png", dpi = 300, width = 7, height = 5,
-       p_FPR_quantiles)
 ```
 
 
