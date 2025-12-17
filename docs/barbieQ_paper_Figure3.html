@@ -370,7 +370,7 @@ Rendered: 2025-12-17</p></h4>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+workflowr <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span>
 </button>
 </p>
@@ -381,8 +381,8 @@ aria-hidden="true"></span>
 </li>
 <li>
 <a data-toggle="tab" href="#checks"> Checks <span
-class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> </a>
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
 </li>
 <li>
 <a data-toggle="tab" href="#versions">Past versions</a>
@@ -395,9 +395,9 @@ aria-hidden="true"></span> </a>
 </p>
 <p>
 <strong>Checks:</strong> <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 5
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
 <span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> 2
+aria-hidden="true"></span> 0
 </p>
 <p>
 <strong>Knit directory:</strong> <code>public_barcode_count/</code>
@@ -420,76 +420,35 @@ versions</em> tab lists the development history.
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
-<span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
-changes </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
 </p>
 </div>
-<div id="strongRMarkdownfilestronguncommittedchanges"
+<div id="strongRMarkdownfilestronguptodate"
 class="panel-collapse collapse">
 <div class="panel-body">
-<p>The R Markdown file has unstaged changes. To know which version of
-the R Markdown file created these results, you’ll want to first commit
-it to the Git repo. If you’re still working on the analysis, you can
-ignore this warning. When you’re finished, you can run
-<code>wflow_publish</code> to commit the R Markdown file and build the
-HTML.</p>
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
 </div>
 </div>
 </div>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongobjectspresent">
-<span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> <strong>Environment:</strong> objects present
-</a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
 </p>
 </div>
-<div id="strongEnvironmentstrongobjectspresent"
-class="panel-collapse collapse">
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
 <div class="panel-body">
-<p>
-The global environment had objects present when the code in the R
-Markdown file was run. These objects can affect the analysis in your R
-Markdown file in unknown ways. For reproduciblity it’s best to always
-run the code in an empty environment. Use <code>wflow_publish</code> or
-<code>wflow_build</code> to ensure that the code is always run in an
-empty environment.
-</p>
-<p>
-The following objects were defined in the global environment when these
-results were created:
-</p>
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th style="text-align:left;">
-Name
-</th>
-<th style="text-align:left;">
-Class
-</th>
-<th style="text-align:left;">
-Size
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-module
-</td>
-<td style="text-align:left;">
-function
-</td>
-<td style="text-align:left;">
-5.6 Kb
-</td>
-</tr>
-</tbody>
-</table>
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
 </div>
 </div>
 </div>
@@ -563,15 +522,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttreec2766f9b7a09fffefaf196fa15aebcd868f12214targetblankc2766f9a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttree17435b682721a94978be6785caf65f0e6b255fd0targetblank17435b6a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/c2766f9b7a09fffefaf196fa15aebcd868f12214" target="_blank">c2766f9</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/17435b682721a94978be6785caf65f0e6b255fd0" target="_blank">17435b6</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttreec2766f9b7a09fffefaf196fa15aebcd868f12214targetblankc2766f9a"
+id="strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttree17435b682721a94978be6785caf65f0e6b255fd0targetblank17435b6a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -581,7 +540,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/c2766f9b7a09fffefaf196fa15aebcd868f12214" target="_blank">c2766f9</a>.
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/17435b682721a94978be6785caf65f0e6b255fd0" target="_blank">17435b6</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -599,32 +558,7 @@ Ignored files:
     Ignored:    .RData
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
-    Ignored:    output/f2.png
-    Ignored:    output/f3.png
-    Ignored:    output/f3a_schematic.png
-    Ignored:    output/f4.png
-    Ignored:    output/fs4.png
     Ignored:    public_barcode_count.Rproj
-
-Untracked files:
-    Untracked:  analysis/F3_simulation.R
-    Untracked:  analysis/F4_validation.R
-    Untracked:  analysis/FPR_to_NBC.Rmd
-    Untracked:  analysis/barbieQ_paper_S1.Rmd
-    Untracked:  analysis/plotBarcodeHistogram.R
-    Untracked:  analysis/styles.css
-    Untracked:  output/f4a_schematic.jpeg
-    Untracked:  output/fdr_by_Nbc.rda
-    Untracked:  output/mixture_barbieQ.rda
-    Untracked:  output/mixture_negative_simulation.rda
-    Untracked:  output/monkeyHSPC_barbieQ.rda
-    Untracked:  output/monkeyHSPC_raw_barbieQ.rda
-
-Unstaged changes:
-    Modified:   analysis/_site.yml
-    Modified:   analysis/barbieQ_paper_Figure2.Rmd
-    Modified:   analysis/barbieQ_paper_Figure3.Rmd
-    Modified:   analysis/barbieQ_paper_Figure4.Rmd
 
 </code></pre>
 <p>
@@ -669,6 +603,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/7b7813d5cf49fcc463b342c09fc8731229ffc3f0/analysis/barbieQ_paper_Figure3.Rmd" target="_blank">7b7813d</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+<td>
+update f3 fs4
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/7b7813d5cf49fcc463b342c09fc8731229ffc3f0/docs/barbieQ_paper_Figure3.html" target="_blank">7b7813d</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+<td>
+update f3 fs4
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -794,6 +762,43 @@ schematic</h1>
 f3a &lt;- rasterGrob(schematic, interpolate = FALSE) 
 wrap_elements(full = f3a)</code></pre>
 <p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-5-1">
+Past versions of unnamed-chunk-5-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-5-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-5-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="f3b-plot-barcode-proportion-and-sample-annotation"
 class="section level1" number="7">
@@ -882,6 +887,43 @@ This warning is displayed once every 8 hours.
 Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
 generated.</code></pre>
 <p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-6-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
+Past versions of unnamed-chunk-6-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-6-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="fpr" class="section level1" number="8">
 <h1><span class="header-section-number">8</span> FPR</h1>
@@ -1012,6 +1054,43 @@ f3c</code></pre>
 <pre><code>Warning: No shared levels found between `names(values)` of the manual scale and the
 data&#39;s colour values.</code></pre>
 <p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-12-1.png" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-1">
+Past versions of unnamed-chunk-12-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-12-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-12-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="f3g_left-type-i-error-rate-as-a-function-to-n_bc"
 class="section level2" number="8.3">
@@ -1114,6 +1193,43 @@ save(stats_barcodes_all_levels, file = &quot;output/fdr_by_Nbc.rda&quot;)</code>
 <pre><code>Warning: Removed 80 rows containing non-finite outside the scale range
 (`stat_boxplot()`).</code></pre>
 <p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-16-1">
+Past versions of unnamed-chunk-16-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-16-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-16-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="raw-proportion" class="section level3" number="8.3.3">
 <h3><span class="header-section-number">8.3.3</span> Raw proportion</h3>
@@ -1182,6 +1298,43 @@ ggplot(FPR_box_raw, aes(x= as.factor(N_BC), y = Frac_signif, color = Method, gro
 <pre><code>Warning: Removed 84 rows containing non-finite outside the scale range
 (`stat_boxplot()`).</code></pre>
 <p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-18-1">
+Past versions of unnamed-chunk-18-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-18-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-18-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>rbind(
   data.frame(FPR_box_raw, prop_type  = &quot;Raw proportion&quot;), 
   data.frame(FPR_box, prop_type  = &quot;Updated proportion&quot;)
@@ -1211,6 +1364,43 @@ f3g1</code></pre>
 <pre><code>Warning: Removed 164 rows containing non-finite outside the scale range
 (`stat_boxplot()`).</code></pre>
 <p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-19-1.png" width="480" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-19-1">
+Past versions of unnamed-chunk-19-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-19-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-19-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="f3f-density-to-n_barcodes" class="section level2" number="8.4">
@@ -1350,6 +1540,43 @@ ggplot(BC_set_prop_filter_raw) +
   
 f3f</code></pre>
 <p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-22-1.png" width="384" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-1">
+Past versions of unnamed-chunk-22-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-22-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="f3d-quantile-distribution" class="section level2" number="8.5">
@@ -1367,6 +1594,43 @@ distribution</h2>
 
 f3d</code></pre>
 <p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-23-1.png" width="384" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-23-1">
+Past versions of unnamed-chunk-23-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-23-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-23-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="f3e_left-false-positives-in-quantiles" class="section level2"
 number="8.6">
@@ -1390,13 +1654,10 @@ plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.95)
   labs(title = &quot;Type I error rate in quanties&quot;) -&gt; f3e1</code></pre>
 </div>
 </div>
-<div id="figure-3-upper" class="section level1" number="9">
-<h1><span class="header-section-number">9</span> Figure 3 upper</h1>
-</div>
-<div id="tpr" class="section level1" number="10">
-<h1><span class="header-section-number">10</span> TPR</h1>
-<div id="check-premix" class="section level2" number="10.1">
-<h2><span class="header-section-number">10.1</span> Check premix</h2>
+<div id="tpr" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> TPR</h1>
+<div id="check-premix" class="section level2" number="9.1">
+<h2><span class="header-section-number">9.1</span> Check premix</h2>
 <ul>
 <li>confirming an equal mixture of pool1 and pool2 in baseline samples
 (the “null” samples).</li>
@@ -1428,7 +1689,7 @@ ggplot(check_mix_df, aes(x = ps, y = mixture_660)) +
   coord_fixed() +
   geom_smooth(method = &quot;lm&quot;)</code></pre>
 <pre><code>`geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-26-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
 <ul>
 <li>Confirming orthogonal between premix1 and premix2: barcodes mostly
 not overlapping between the two premix samples, but a few noise are
@@ -1436,22 +1697,59 @@ observed in premix2.</li>
 </ul>
 <pre class="r"><code>ggplot(data.frame(prop_raw) %&gt;% sqrt() %&gt;% asin()) + 
   geom_point(aes(x = P1, y = P2))</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-27-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-26-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-26-1">
+Past versions of unnamed-chunk-26-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-26-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-26-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>ggplot(data.frame(prop_raw) %&gt;% sqrt() %&gt;% asin(), aes(x = P1+P2, y = abs(P1-P2))) + 
   geom_point() +
   coord_fixed() +
   geom_smooth(method = &quot;lm&quot;)</code></pre>
 <pre><code>`geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-27-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-26-2.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>ggplot(data.frame(prop_raw), aes(x = P1+P2, y = abs(P1-P2))) + 
   geom_point() +
   coord_fixed() +
   geom_smooth(method = &quot;lm&quot;)</code></pre>
 <pre><code>`geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-27-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-26-3.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
-<div id="designed-differences" class="section level2" number="10.2">
-<h2><span class="header-section-number">10.2</span> Designed
+<div id="designed-differences" class="section level2" number="9.2">
+<h2><span class="header-section-number">9.2</span> Designed
 differences</h2>
 <pre class="r"><code>## theory
 a = 0.35
@@ -1464,8 +1762,8 @@ a = 0.35
 (1/2 + a) / (1+a) - 1/2</code></pre>
 <pre><code>[1] 0.07627119</code></pre>
 </div>
-<div id="model-perturbations" class="section level2" number="10.3">
-<h2><span class="header-section-number">10.3</span> Model
+<div id="model-perturbations" class="section level2" number="9.3">
+<h2><span class="header-section-number">9.3</span> Model
 perturbations</h2>
 <pre class="r"><code>mixture_plus1_top$sampleMetadata %&gt;% as.data.frame() %&gt;% summary()</code></pre>
 <pre><code>     Subset    BarcodeSize      Perturbation    TechRep
@@ -1505,8 +1803,8 @@ table(myblock)</code></pre>
           2           2           2           2           2           2 </code></pre>
 </div>
 <div id="apply-tests-extract-estimates" class="section level2"
-number="10.4">
-<h2><span class="header-section-number">10.4</span> Apply tests: extract
+number="9.4">
+<h2><span class="header-section-number">9.4</span> Apply tests: extract
 estimates</h2>
 <pre class="r"><code>myblock &lt;- NULL
 
@@ -1548,8 +1846,8 @@ es_de_logit_df &lt;- es_de_logit_df %&gt;%
 
 es_de_df &lt;- rbind(es_de_none_df, es_de_asin_df, es_de_logit_df)</code></pre>
 </div>
-<div id="fs4a-validate-estimates" class="section level2" number="10.5">
-<h2><span class="header-section-number">10.5</span> FS4A: Validate
+<div id="fs4a-validate-estimates" class="section level2" number="9.5">
+<h2><span class="header-section-number">9.5</span> FS4A: Validate
 estimates</h2>
 <pre class="r"><code>regression_stats_none &lt;- es_de_none_df %&gt;%
   group_by(Contrast) %&gt;%
@@ -1644,10 +1942,10 @@ p_es_de_logit &lt;- ggplot(es_de_logit_df, aes(x = diff, y = (meanDiff))) +
 fs4a</code></pre>
 <pre><code>Warning: Removed 7 rows containing missing values or values outside the scale range
 (`geom_point()`).</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-34-1.png" width="864" style="display: block; margin: auto;" />
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-33-1.png" width="864" style="display: block; margin: auto;" />
 ## F3G_right: TPR as a function to N_BC</p>
-<div id="updated-proportion-1" class="section level3" number="10.5.1">
-<h3><span class="header-section-number">10.5.1</span> Updated
+<div id="updated-proportion-1" class="section level3" number="9.5.1">
+<h3><span class="header-section-number">9.5.1</span> Updated
 proportion</h3>
 <pre class="r"><code>test_perturb &lt;- function(mixed, mixed_target, mixed_design, myblock, trans = &quot;none&quot;, a = 0.18) {
   tester &lt;- testBarcodeSignif(
@@ -1868,11 +2166,10 @@ test_TPR &lt;- test_all_levels %&gt;%
     theme(
         legend.title = element_text(size = 12), legend.text = element_text(size = 11),
         axis.title = element_text(size = 13), axis.text = element_text(size = 12))</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-37-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-36-1.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
-<div id="raw-proportion-2" class="section level3" number="10.5.2">
-<h3><span class="header-section-number">10.5.2</span> Raw
-proportion</h3>
+<div id="raw-proportion-2" class="section level3" number="9.5.2">
+<h3><span class="header-section-number">9.5.2</span> Raw proportion</h3>
 <pre class="r"><code>test_all_levels_raw &lt;- cbind(
   test_all_levels %&gt;% filter(filter_level == 0.95),  
   mean_prop,
@@ -1906,7 +2203,44 @@ ggplot(test_TPR_raw, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, g
     theme(
         legend.title = element_text(size = 12), legend.text = element_text(size = 11),
         axis.title = element_text(size = 13), axis.text = element_text(size = 12))</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-38-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-37-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-37-1">
+Past versions of unnamed-chunk-37-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-37-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-37-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>rbind(
   data.frame(test_TPR_raw, prop_type  = &quot;Raw proportion&quot;), 
   data.frame(test_TPR, prop_type  = &quot;Updated proportion&quot;)
@@ -1931,12 +2265,49 @@ ggplot(test_TPR_raw, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, g
         strip.text.x = element_blank(), strip.background.x = element_blank()) + guides(color = &quot;none&quot;) -&gt; f3g2
 
 f3g2</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-39-1.png" width="480" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-38-1.png" width="480" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-38-1">
+Past versions of unnamed-chunk-38-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-38-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-38-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="f3e_right-tpr-in-quantiles" class="section level2"
-number="10.6">
-<h2><span class="header-section-number">10.6</span> F3E_right: TPR in
+number="9.6">
+<h2><span class="header-section-number">9.6</span> F3E_right: TPR in
 quantiles</h2>
 <pre class="r"><code># plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.1), num_quantiles = 4)
 # plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.2), num_quantiles = 10)
@@ -1952,8 +2323,8 @@ plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.95), num_quan
   theme_barbieQ() +
   labs(title = &quot;Power (true positive rate) in quanties&quot;) -&gt; f3e2</code></pre>
 </div>
-<div id="fs4b-residules" class="section level2" number="10.7">
-<h2><span class="header-section-number">10.7</span> FS4B: Residules</h2>
+<div id="fs4b-residules" class="section level2" number="9.7">
+<h2><span class="header-section-number">9.7</span> FS4B: Residules</h2>
 <pre class="r"><code>resi_none &lt;- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = &quot;none&quot;))
 resi_asin &lt;- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = &quot;asin-sqrt&quot;))
 resi_logit &lt;- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = &quot;logit&quot;))
@@ -1988,7 +2359,7 @@ p_resid_qq_35 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.35 - 0&quot
         axis.title = element_text(size = 13), axis.text = element_text(size = 10)))
 
 fs4b</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-43-1.png" width="768" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-42-1.png" width="768" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>p_resid_distr_27 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.27 - 0&quot;), aes(x = Residual, color = Method)) +
   geom_density() +
   labs(x = &quot;Residual&quot;, y = &quot;Density&quot;) +
@@ -2019,12 +2390,12 @@ p_resid_qq_18 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.18 - 0&quot
   theme_bw() +
   theme(legend.position = &quot;none&quot;, strip.text = element_blank())</code></pre>
 <pre class="r"><code>p_resid_distr_35 + p_resid_distr_27 + p_resid_distr_18</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-45-1.png" width="768" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-44-1.png" width="768" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>p_resid_qq_35 + p_resid_qq_27 + p_resid_qq_18</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-45-2.png" width="768" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-44-2.png" width="768" style="display: block; margin: auto;" /></p>
 </div>
-<div id="consistency" class="section level2" number="10.8">
-<h2><span class="header-section-number">10.8</span> Consistency</h2>
+<div id="consistency" class="section level2" number="9.8">
+<h2><span class="header-section-number">9.8</span> Consistency</h2>
 <pre class="r"><code>asin_adjP_3con &lt;- es_de_asin_df %&gt;%
   dplyr::select(BC, Contrast, P.Value) %&gt;%
   tidyr::pivot_wider(
@@ -2049,11 +2420,11 @@ none_adjP_3con &lt;- es_de_none_df %&gt;%
 ))
 
 plot(eu, quantities = TRUE)</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-47-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-46-1.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
 </div>
-<div id="figure-3" class="section level1" number="11">
-<h1><span class="header-section-number">11</span> Figure 3</h1>
+<div id="figure-3" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Figure 3</h1>
 <pre class="r"><code>layout = &quot;
 AAAAAAAAAAAAA##
 AAAAAAAAAAAAA##
@@ -2102,7 +2473,44 @@ Ignoring unknown labels:
 • linetype : &quot;N_sample&quot;</code></pre>
 <pre><code>Warning: Removed 164 rows containing non-finite outside the scale range
 (`stat_boxplot()`).</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-48-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-47-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-47-1">
+Past versions of unnamed-chunk-47-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-47-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/dfa737ae3dc858728ab09f083b738cec265ef160/docs/figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-47-1.png" target="_blank">dfa737a</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2025-12-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>ggsave(
   filename = &quot;output/f3.png&quot;,
   plot = f3,
@@ -2123,8 +2531,8 @@ Ignoring unknown labels:
 (`stat_boxplot()`).</code></pre>
 <p>Saving this figure in <a href="../output/f3.png">f3</a></p>
 </div>
-<div id="figure-s4" class="section level1" number="12">
-<h1><span class="header-section-number">12</span> Figure S4</h1>
+<div id="figure-s4" class="section level1" number="11">
+<h1><span class="header-section-number">11</span> Figure S4</h1>
 <pre class="r"><code>layoutS4 = &quot;
 AAABB
 AAABB
@@ -2142,7 +2550,7 @@ fs4 &lt;- (
 fs4</code></pre>
 <pre><code>Warning: Removed 7 rows containing missing values or values outside the scale range
 (`geom_point()`).</code></pre>
-<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-50-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-49-1.png" width="1440" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>ggsave(
   filename = &quot;output/fs4.png&quot;,
   plot = fs4,
