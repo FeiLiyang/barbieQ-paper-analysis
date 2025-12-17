@@ -1,0 +1,2345 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Liyang Fei" />
+
+
+<title>barbieQ_paper_Figure3_FigureS4</title>
+
+<script src="site_libs/header-attrs-2.30/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="styles.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">public_barcode_count</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">barbieQ_paper_Figure3_FigureS4</h1>
+<h4 class="author">Liyang Fei</h4>
+<h4 class="date"><p>Initiated: 2025-09-07<br />
+Rendered: 2025-12-17</p></h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2025-12-17
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 5
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 2
+</p>
+<p>
+<strong>Knit directory:</strong> <code>public_barcode_count/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
+changes </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguncommittedchanges"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The R Markdown file has unstaged changes. To know which version of
+the R Markdown file created these results, you’ll want to first commit
+it to the Git repo. If you’re still working on the analysis, you can
+ignore this warning. When you’re finished, you can run
+<code>wflow_publish</code> to commit the R Markdown file and build the
+HTML.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongobjectspresent">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>Environment:</strong> objects present
+</a>
+</p>
+</div>
+<div id="strongEnvironmentstrongobjectspresent"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+The global environment had objects present when the code in the R
+Markdown file was run. These objects can affect the analysis in your R
+Markdown file in unknown ways. For reproduciblity it’s best to always
+run the code in an empty environment. Use <code>wflow_publish</code> or
+<code>wflow_build</code> to ensure that the code is always run in an
+empty environment.
+</p>
+<p>
+The following objects were defined in the global environment when these
+results were created:
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+Name
+</th>
+<th style="text-align:left;">
+Class
+</th>
+<th style="text-align:left;">
+Size
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+module
+</td>
+<td style="text-align:left;">
+function
+</td>
+<td style="text-align:left;">
+5.6 Kb
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250112code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250112)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250112code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250112)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttreec2766f9b7a09fffefaf196fa15aebcd868f12214targetblankc2766f9a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/c2766f9b7a09fffefaf196fa15aebcd868f12214" target="_blank">c2766f9</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttreec2766f9b7a09fffefaf196fa15aebcd868f12214targetblankc2766f9a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/c2766f9b7a09fffefaf196fa15aebcd868f12214" target="_blank">c2766f9</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    output/f2.png
+    Ignored:    output/f3.png
+    Ignored:    output/f3a_schematic.png
+    Ignored:    output/f4.png
+    Ignored:    output/fs4.png
+    Ignored:    public_barcode_count.Rproj
+
+Untracked files:
+    Untracked:  analysis/F3_simulation.R
+    Untracked:  analysis/F4_validation.R
+    Untracked:  analysis/FPR_to_NBC.Rmd
+    Untracked:  analysis/barbieQ_paper_S1.Rmd
+    Untracked:  analysis/plotBarcodeHistogram.R
+    Untracked:  analysis/styles.css
+    Untracked:  output/f4a_schematic.jpeg
+    Untracked:  output/fdr_by_Nbc.rda
+    Untracked:  output/mixture_barbieQ.rda
+    Untracked:  output/mixture_negative_simulation.rda
+    Untracked:  output/monkeyHSPC_barbieQ.rda
+    Untracked:  output/monkeyHSPC_raw_barbieQ.rda
+
+Unstaged changes:
+    Modified:   analysis/_site.yml
+    Modified:   analysis/barbieQ_paper_Figure2.Rmd
+    Modified:   analysis/barbieQ_paper_Figure3.Rmd
+    Modified:   analysis/barbieQ_paper_Figure4.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/barbieQ_paper_Figure3.Rmd</code>)
+and HTML (<code>docs/barbieQ_paper_Figure3.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c2766f9b7a09fffefaf196fa15aebcd868f12214/analysis/barbieQ_paper_Figure3.Rmd" target="_blank">c2766f9</a>
+</td>
+<td>
+Liyang Fei
+</td>
+<td>
+2025-10-07
+</td>
+<td>
+remake figures
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="load-dependencies" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load Dependencies</h1>
+<pre class="r"><code>library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(data.table) # for data.table()
+library(SummarizedExperiment)
+library(S4Vectors)
+library(grid)
+library(ggplot2)
+library(ggbreak)
+library(ggnewscale) # ggnewscale::new_scale_fill() 
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(magick) # image_read()
+library(eulerr)
+library(edgeR)
+
+source(&quot;analysis/plotBarcodeHistogram.R&quot;) ## accommodated from bartools::plotBarcodehistogram
+source(&quot;analysis/F3_simulation.R&quot;) ## for negative simulation</code></pre>
+</div>
+<div id="install-barbieq" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Install
+<code>barbieQ</code></h1>
+<p>Installing the latest devel version of <code>barbieQ</code> from
+GitHub.</p>
+<pre class="r"><code>if (!requireNamespace(&quot;barbieQ&quot;, quietly = TRUE)) {
+  remotes::install_github(&quot;Oshlack/barbieQ&quot;)
+}</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::first&#39; by &#39;dplyr::first&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::last&#39; by &#39;dplyr::last&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::between&#39; by &#39;dplyr::between&#39;
+when loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::as_data_frame&#39; by
+&#39;igraph::as_data_frame&#39; when loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::groups&#39; by &#39;igraph::groups&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::union&#39; by &#39;igraph::union&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre class="r"><code>library(barbieQ)</code></pre>
+<p>Check the version of <code>barbieQ</code>.</p>
+<pre class="r"><code>packageVersion(&quot;barbieQ&quot;)</code></pre>
+<pre><code>[1] &#39;1.1.3&#39;</code></pre>
+</div>
+<div id="set-seeds" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Set seeds</h1>
+<pre class="r"><code>set.seed(2025)</code></pre>
+</div>
+<div id="set-ggplot-theme" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Set ggplot theme</h1>
+<pre class="r"><code>## ggplot theme
+strip_zeros &lt;- function(x) {
+  x &lt;- format(x, scientific = FALSE)
+  x &lt;- sub(&quot;0+$&quot;, &quot;&quot;, x)
+  sub(&quot;\\.$&quot;, &quot;&quot;, x)
+}
+## ggplot theme
+theme_barbieQ &lt;- theme_barbie &lt;- function(base_size = 12, base_family = &quot;&quot;) {
+  theme_linedraw(base_size = base_size, base_family = base_family) +
+    theme(
+      # panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.title = element_text(size = base_size * 1.1),
+      axis.text  = element_text(size = base_size),
+      legend.title = element_text(size = base_size),
+      legend.text  = element_text(size = base_size * 0.9),
+      legend.key = element_blank(),
+      plot.title = element_text(size = base_size * 1.1),
+      plot.subtitle = element_text(size = base_size)
+    )
+}
+
+theme_barbieQ_size &lt;- theme_barbie &lt;- function(base_size = 12) {
+    theme(
+      axis.title = element_text(size = base_size * 1.1),
+      axis.text  = element_text(size = base_size),
+      legend.title = element_text(size = base_size),
+      legend.text  = element_text(size = base_size * 0.9),
+      plot.title = element_text(size = base_size * 1.1),
+      plot.subtitle = element_text(size = base_size)
+    )
+}</code></pre>
+</div>
+<div id="load-data" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Load data</h1>
+<pre class="r"><code>load(&quot;output/mixture_barbieQ.rda&quot;)</code></pre>
+</div>
+<div id="f3a-experimental-schematic" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> F3A: Experimental
+schematic</h1>
+<pre class="r"><code>schematic &lt;- image_read(&quot;output/f3a_schematic.png&quot;)
+f3a &lt;- rasterGrob(schematic, interpolate = FALSE) 
+wrap_elements(full = f3a)</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="f3b-plot-barcode-proportion-and-sample-annotation"
+class="section level1" number="7">
+<h1><span class="header-section-number">7</span> F3B: Plot barcode
+proportion and sample annotation</h1>
+<p><code>plotBarcodeHistogram</code>, sourced from
+“plotBarcodeHistogram.R”, is customized from the <code>bartools</code>
+package.</p>
+<pre class="r"><code>## pull out sample designs
+design_mixed &lt;- mixture_plus1_top$sampleMetadata %&gt;% as.data.frame()
+design_mixed$sample &lt;- colnames(mixture_plus1_top)
+str(design_mixed)</code></pre>
+<pre><code>&#39;data.frame&#39;:   38 obs. of  5 variables:
+ $ Subset      : Factor w/ 4 levels &quot;premix1&quot;,&quot;premix2&quot;,..: 1 2 3 3 3 3 3 3 3 3 ...
+ $ BarcodeSize : num  NA NA 660000 660000 330000 330000 160000 160000 80000 80000 ...
+ $ Perturbation: num  NA NA 0 0 0 0 0 0 0 0 ...
+ $ TechRep     : Factor w/ 2 levels &quot;1&quot;,&quot;2&quot;: 1 1 1 2 1 2 1 2 1 2 ...
+ $ sample      : chr  &quot;P1&quot; &quot;P2&quot; &quot;null_660.1&quot; &quot;null_660.2&quot; ...</code></pre>
+<pre class="r"><code>design_mixed$y = 1.05
+color_mapping &lt;- mixture_plus1_top@metadata$factorColors
+
+design_mixed$Subset &lt;- factor(design_mixed$Subset, levels = c(&quot;null&quot;, &quot;perturb&quot;), labels = c(&quot;baseline&quot;, &quot;perturbed&quot;))
+
+## order samples
+order_sample &lt;- design_mixed %&gt;% with(order(Subset, Perturbation, BarcodeSize))
+
+mixed_dge &lt;- DGEList(
+  counts = assay(mixture_plus1_top), 
+  group = mixture_plus1_top$sampleMetadata$Subset)
+
+## pull out ggplot data
+p_mixed &lt;- plotBarcodeHistogram(mixed_dge, orderSamples = colnames(mixture_plus1_top)[order_sample])</code></pre>
+<pre><code>Warning: Use of .data in tidyselect expressions was deprecated in tidyselect 1.2.0.
+ℹ Please use `&quot;barcode&quot;` instead of `.data$barcode`
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+generated.</code></pre>
+<pre><code>Warning: Use of .data in tidyselect expressions was deprecated in tidyselect 1.2.0.
+ℹ Please use `&quot;value&quot;` instead of `.data$value`
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+generated.</code></pre>
+<pre><code>Warning: Use of .data in tidyselect expressions was deprecated in tidyselect 1.2.0.
+ℹ Please use `&quot;name&quot;` instead of `.data$name`
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+generated.</code></pre>
+<pre><code>Warning: Use of .data in tidyselect expressions was deprecated in tidyselect 1.2.0.
+ℹ Please use `&quot;freq&quot;` instead of `.data$freq`
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+generated.</code></pre>
+<pre class="r"><code>p_mixed_illus &lt;- p_mixed +
+  ## label subset
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_mixed, aes(x = sample,y = y, fill = Subset), height = 0.04, inherit.aes = FALSE, color = &quot;white&quot;) +
+  scale_fill_manual(values = color_mapping$Subset) +
+  labs(fill = &quot;Subset&quot;) + 
+  guides(fill = guide_legend(ncol = 2)) + 
+  ## label perturbations
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_mixed, aes(x = sample,y = y+0.05, fill = as.factor(Perturbation)), height = 0.04, inherit.aes = FALSE, color = &quot;white&quot;) +
+  scale_fill_manual(values = color_mapping$Perturbation) +
+  labs(fill = &quot;Perturbation level&quot;) + 
+  guides(fill = guide_legend(ncol = 2)) + 
+  ## label libsize
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_mixed, aes(x = sample,y = y+0.10, fill = as.factor(BarcodeSize)), height = 0.04, inherit.aes = FALSE, color = &quot;white&quot;) +
+  scale_fill_manual(values = color_mapping$BarcodeSize)+
+  labs(fill = &quot;Num. of cells&quot;) + 
+  guides(fill = guide_legend(ncol = 2)) +
+  labs(x = &quot;Sample&quot;, y = &quot;Barcode proportion&quot;) +
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
+  theme(axis.text.x = element_blank(), panel.grid.major.x = element_blank())
+
+f3b &lt;- p_mixed_illus + 
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), aspect.ratio = 1,
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12)) + 
+  guides(fill = guide_legend(ncol = 2))
+f3b</code></pre>
+<pre><code>Warning: The `guide` argument in `scale_*()` cannot be `FALSE`. This was deprecated in
+ggplot2 3.3.4.
+ℹ Please use &quot;none&quot; instead.
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+generated.</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-6-1.png" width="576" style="display: block; margin: auto;" /></p>
+</div>
+<div id="fpr" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> FPR</h1>
+<p>Using <a href="barbieQ_paper_S1.html">mixture_plus1_top</a> data,
+where an offset (one) was added to the raw count, based on which
+proportion was calculated. However the “top” barcodes were filtered
+based on the raw count data.</p>
+<p>Here we subset the 12 “null” samples for evaluating FPR of diff_prop,
+and diff_occ methods.</p>
+<p>Three transformations with dif_prop were evaluated separately.</p>
+<ul>
+<li><strong>avoid running this chunk during rendering.
+<code>global_all_loops</code> was saved from the first
+run.</strong></li>
+</ul>
+<pre class="r"><code>nulls &lt;- mixture_plus1_top[, mixture_plus1_top$sampleMetadata$Subset == &quot;null&quot;]
+
+results_negsi &lt;- suppressMessages({
+  random_sampling(barbieQ = nulls, loop_times = 100)
+  })
+
+## `random_sampling()` save the simulations to global environment
+## as `global_all_loops`
+save(global_all_loops, file = &quot;output/mixture_negative_simulation.rda&quot;)
+
+results_negsi[[1]] &lt;- results_negsi[[1]] + ggtitle(&quot;Prop_asin, perturb_null&quot;)
+results_negsi[[2]] &lt;- results_negsi[[2]] + ggtitle(&quot;Prop_logit, perturb_null&quot;)
+results_negsi[[3]] &lt;- results_negsi[[3]] + ggtitle(&quot;Prop_noTrans, perturb_null&quot;)
+results_negsi[[4]] &lt;- results_negsi[[4]] + ggtitle(&quot;Occ_firth, perturb_null&quot;)
+results_negsi[[5]] &lt;- results_negsi[[5]] + ggtitle(&quot;Prop_asin, perturb_null&quot;)
+results_negsi[[6]] &lt;- results_negsi[[6]] + ggtitle(&quot;Prop_logit, perturb_null&quot;)
+results_negsi[[7]] &lt;- results_negsi[[7]] + ggtitle(&quot;Prop_noTrans, perturb_null&quot;)
+results_negsi[[8]] &lt;- results_negsi[[8]] + ggtitle(&quot;Occ_firth, perturb_null&quot;)
+
+wrap_plots(results_negsi[1:8], ncol = 4)</code></pre>
+<div id="load-results" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> load results</h2>
+<pre class="r"><code>## loading random sampling results to avoid running it repeatedly
+load(&quot;output/mixture_negative_simulation.rda&quot;)</code></pre>
+<pre class="r"><code>  # extract results from the loops
+  end_sampling &lt;- 6
+  
+  ## extract FPR
+  all_FPR &lt;- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$FPR
+  })
+  df_FPR &lt;- do.call(rbind, all_FPR)
+  
+  ## extract P.Val
+  all_P.Val &lt;- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$P.Val
+  })
+  df_P.Val &lt;- do.call(rbind, all_P.Val)
+  
+  ## extract MA
+  all_MA &lt;- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$MA
+  })
+  df_MA &lt;- do.call(rbind, all_MA)
+  
+  all_Group_Vec &lt;- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$Group_Vec
+  })
+  df_Group_Vec &lt;- do.call(rbind, all_Group_Vec)
+  
+  stats_barcodes &lt;- cbind(df_P.Val[,1:4], df_MA)</code></pre>
+</div>
+<div id="f3c-type-i-error-rate" class="section level2" number="8.2">
+<h2><span class="header-section-number">8.2</span> F3C: Type I Error
+Rate</h2>
+<ul>
+<li>Diff_prop</li>
+</ul>
+<pre class="r"><code>df_FPR$N_Samples &lt;- as.factor(df_FPR$N_Samples)
+  
+  ## reshape the data to fit methods for testing
+df_FPR_long &lt;- df_FPR %&gt;%
+  pivot_longer(cols = starts_with(&quot;Prop_&quot;),
+               names_to = &quot;Method&quot;,
+               values_to = &quot;Pval_Prop&quot;) %&gt;%
+  mutate(Method = factor(Method, levels = c(&quot;Prop_asin&quot;, &quot;Prop_logit&quot;, &quot;Prop_noTrans&quot;),
+                         labels = c(&quot;asin-sqrt&quot;, &quot;logit&quot;, &quot;no trans.&quot;)))
+
+P_FPR_add1_prop &lt;- ggplot(
+  df_FPR_long, aes(x = factor(N_Samples), y = Pval_Prop, color = Method)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = &quot;dashed&quot;, color = &quot;black&quot;) +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = &quot;Fraction of P-Value &lt; 0.05&quot;,
+       x = &quot;Number of samples per group&quot;,
+       title = &quot;Type I Erroe Rate&quot;,
+       subtitle = &quot;Differential proportion test&quot;) +
+  # facet_wrap(~Method, scales = &quot;free_y&quot;) +
+  theme_classic() +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<ul>
+<li>Diff_occ. when converting barcode presence / absence, setting the
+threshold as CPM&gt;10 instead of the default 1, as an offset (one) was
+added to the raw count <a
+href="barbieQ_paper_S1.html">preprocessing</a>.</li>
+</ul>
+<pre class="r"><code>P_FPR_occ &lt;- ggplot(
+  df_FPR, aes(x = factor(N_Samples), y = Occ_firth)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = &quot;dashed&quot;, color = &quot;black&quot;) +
+  scale_color_manual(values = c(&quot;Differential occurrrence test&quot; = &quot;black&quot;)) +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = &quot;Fraction of P-Value &lt; 0.05&quot;,
+       x = &quot;Number of samples per group&quot;,
+       subtitle = &quot;Differential occurrence test&quot;) +
+  theme_classic() +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<pre class="r"><code>f3c &lt;- P_FPR_add1_prop + theme(
+  plot.subtitle = element_text(size = 13),
+  legend.title = element_text(size = 12), legend.text = element_text(size = 11), 
+  axis.title = element_text(size = 13), axis.text = element_text(size = 12)
+  ) + 
+  P_FPR_occ + theme(
+    plot.subtitle = element_text(size = 13),
+    legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+    axis.title = element_text(size = 13), axis.text = element_text(size = 12)
+    )
+f3c</code></pre>
+<pre><code>Warning: No shared levels found between `names(values)` of the manual scale and the
+data&#39;s colour values.</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-12-1.png" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="f3g_left-type-i-error-rate-as-a-function-to-n_bc"
+class="section level2" number="8.3">
+<h2><span class="header-section-number">8.3</span> F3G_left: Type I
+Error Rate as a function to N_BC</h2>
+<div id="generate-subsets-of-barcodes" class="section level3"
+number="8.3.1">
+<h3><span class="header-section-number">8.3.1</span> Generate subsets of
+barcodes</h3>
+<pre class="r"><code>## with different filtering thresholds, how many &quot;top&quot; barcodes do we get
+1:9/10</code></pre>
+<pre><code>[1] 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9</code></pre>
+<pre class="r"><code>lapply(
+  c(1:9/10, 0.95), 
+  function(filter_level) {
+    mixture_plus1 &lt;- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+    paste0(&quot;filter_thresh=&quot;, filter_level, &quot;; N_barcodes=&quot;, sum(rowData(mixture_plus1)$isTopBarcode$isTop)) %&gt;% print()
+    # plotBarcodeSankey(mixture)
+    
+    return(
+      sum(rowData(mixture_plus1)$isTopBarcode$isTop)
+    )
+  }
+  ) %&gt;% unlist() %&gt;% 
+  setNames(nm = c(1:9/10, 0.95)) -&gt;
+  filter_to_N</code></pre>
+<pre><code>[1] &quot;filter_thresh=0.1; N_barcodes=12&quot;
+[1] &quot;filter_thresh=0.2; N_barcodes=32&quot;
+[1] &quot;filter_thresh=0.3; N_barcodes=64&quot;
+[1] &quot;filter_thresh=0.4; N_barcodes=101&quot;
+[1] &quot;filter_thresh=0.5; N_barcodes=169&quot;
+[1] &quot;filter_thresh=0.6; N_barcodes=269&quot;
+[1] &quot;filter_thresh=0.7; N_barcodes=394&quot;
+[1] &quot;filter_thresh=0.8; N_barcodes=617&quot;
+[1] &quot;filter_thresh=0.9; N_barcodes=1060&quot;
+[1] &quot;filter_thresh=0.95; N_barcodes=1553&quot;</code></pre>
+<pre class="r"><code>filter_to_N</code></pre>
+<pre><code> 0.1  0.2  0.3  0.4  0.5  0.6  0.7  0.8  0.9 0.95 
+  12   32   64  101  169  269  394  617 1060 1553 </code></pre>
+<pre class="r"><code>names(filter_to_N) %&gt;% str()</code></pre>
+<pre><code> chr [1:10] &quot;0.1&quot; &quot;0.2&quot; &quot;0.3&quot; &quot;0.4&quot; &quot;0.5&quot; &quot;0.6&quot; &quot;0.7&quot; &quot;0.8&quot; &quot;0.9&quot; &quot;0.95&quot;</code></pre>
+</div>
+<div id="update-proportion" class="section level3" number="8.3.2">
+<h3><span class="header-section-number">8.3.2</span> Update
+proportion</h3>
+<pre class="r"><code>## Compute medians per bin/method/N_Samples
+method_labels &lt;- c(
+  &quot;Prop_asin&quot; = &quot;asin-sqrt&quot;,
+  &quot;Prop_logit&quot; = &quot;logit&quot;,
+  &quot;Prop_noTrans&quot; = &quot;none&quot;
+ )</code></pre>
+<ul>
+<li>avoid running this chunk during rendering.
+<code>stats_barcodes_all_levels</code> was saved from the first
+run.</li>
+</ul>
+<pre class="r"><code>stats_barcodes_all_levels &lt;- lapply(
+  c(1:9/10, 0.95),
+  function(i) {
+    stats_barcodes_i &lt;- get_null_sample_by_filter(mixture_plus1, i, loop_times = 100)
+    stats_barcodes_i$filter_level &lt;- i
+    stats_barcodes_i$N_BC &lt;- filter_to_N[i %&gt;% as.character()]
+    return(stats_barcodes_i)
+  }
+)
+
+stats_barcodes_all_levels &lt;- do.call(rbind, stats_barcodes_all_levels)
+
+save(stats_barcodes_all_levels, file = &quot;output/fdr_by_Nbc.rda&quot;)</code></pre>
+<pre class="r"><code>load(&quot;output/fdr_by_Nbc.rda&quot;)
+
+ FPR_box &lt;- stats_barcodes_all_levels %&gt;%
+    pivot_longer(
+      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
+      names_to = &quot;method&quot;,
+      values_to = &quot;pvalue&quot;
+    ) %&gt;% 
+    group_by(method, N_Samples, N_BC, Loop_N) %&gt;%
+    summarize(N_signif = sum(pvalue &lt; 0.05), Frac_signif = sum(pvalue &lt; 0.05) / n(), .groups = &quot;drop&quot;) %&gt;% 
+    mutate(Method = recode(method, !!!method_labels))
+  
+  ggplot(FPR_box, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(N_BC, Method))) +
+    geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+    labs(
+      x = paste0(&quot;Number of total barcodes after filtering&quot;),
+      y = &quot;Fraction of P-Value &lt; 0.05&quot;, color = &quot;Method&quot;, shape = &quot;N_sample&quot;, linetype = &quot;N_sample&quot;,
+      title = &quot;Type I Error Rate as a function to number of barcodes&quot;
+      ) +
+    geom_hline(yintercept = 0.05, linetype = &quot;dashed&quot;) +
+    # facet_wrap(~N_Samples, ncol =4) +
+    theme_linedraw()+
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, size = 10, hjust = 0.5), aspect.ratio = 0.5) + 
+    theme(
+        legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12)) + 
+    scale_y_continuous(limits = c(0,0.2))</code></pre>
+<pre><code>Ignoring unknown labels:
+• shape : &quot;N_sample&quot;
+• linetype : &quot;N_sample&quot;</code></pre>
+<pre><code>Warning: Removed 80 rows containing non-finite outside the scale range
+(`stat_boxplot()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="raw-proportion" class="section level3" number="8.3.3">
+<h3><span class="header-section-number">8.3.3</span> Raw proportion</h3>
+<pre class="r"><code>## saving all p.vals from the N=1553 simulation
+# df_P.Val
+mixture_plus1 &lt;- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = 0.95)
+## get the subset of barcodes
+lapply(c(1:9/10, 0.95), function(filter_level) {
+  barbieQ &lt;- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  tag &lt;- rowData(barbieQ)$isTopBarcode$isTop
+  tag &lt;- tag[mixture_plus1@elementMetadata$isTopBarcode$isTop]
+  return(tag)
+}) -&gt; BC_set_by_filter
+
+BC_set_by_filter &lt;- do.call(cbind, BC_set_by_filter)
+colnames(BC_set_by_filter) &lt;- filter_to_N[c(1:9/10, 0.95) %&gt;% as.character()]
+## check
+colSums(BC_set_by_filter)</code></pre>
+<pre><code>  12   32   64  101  169  269  394  617 1060 1553 
+  12   32   64  101  169  269  394  617 1060 1553 </code></pre>
+<pre class="r"><code>mean_prop &lt;- rowMeans(mixture_plus1[mixture_plus1@elementMetadata$isTopBarcode$isTop,mixture_plus1$sampleMetadata$Subset==&quot;null&quot;]@assays@data$proportion)
+
+df_P.Val_0.95 &lt;- stats_barcodes_all_levels %&gt;% filter(filter_level==0.95)
+
+df_P.Val_filter_tag &lt;- cbind(
+  df_P.Val_0.95,  
+  mean_prop,
+  BC_set_by_filter[rep(seq_len(nrow(BC_set_by_filter)),length.out = nrow(df_P.Val_0.95)), ])</code></pre>
+<pre><code>Warning in data.frame(..., check.names = FALSE): row names were found from a
+short variable and have been discarded</code></pre>
+<pre class="r"><code>FPR_box_raw &lt;- df_P.Val_filter_tag %&gt;%
+  select(-N_BC) %&gt;% 
+    pivot_longer(
+      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
+      names_to = &quot;method&quot;,
+      values_to = &quot;pvalue&quot;
+    ) %&gt;% 
+   pivot_longer(
+     cols = as.character(filter_to_N[c(1:9/10, 0.95) %&gt;% as.character()]),
+     names_to = &quot;N_BC&quot;,
+     values_to = &quot;selectedBy&quot;
+   ) %&gt;% 
+    group_by(method, N_Samples, Loop_N, N_BC) %&gt;%
+    summarize(
+      N_signif = sum(pvalue &lt; 0.05 &amp; selectedBy), 
+      Frac_signif = sum(pvalue &lt; 0.05 &amp; selectedBy) / sum(selectedBy), .groups = &quot;drop&quot;) %&gt;% 
+    mutate(Method = recode(method, !!!method_labels))
+
+FPR_box_raw$N_BC &lt;- as.numeric(FPR_box_raw$N_BC)
+  
+ggplot(FPR_box_raw, aes(x= as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(Method, N_BC))) +
+    geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+    labs(
+      x = paste0(&quot;Number of total barcodes after filtering&quot;),
+      y = &quot;Fraction of P-Valuev &lt; 0.05&quot;, color = &quot;Method&quot;, shape = &quot;N_sample&quot;, linetype = &quot;N_sample&quot;
+      ) +
+    geom_hline(yintercept = 0.05, linetype = &quot;dashed&quot;) +
+    # facet_wrap(~N_Samples, ncol =4) +
+    theme_linedraw()+
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, size = 10, hjust = 0.5), aspect.ratio = 0.5) + 
+    theme_barbieQ_size() + 
+    scale_y_continuous(limits = c(0,0.2)) ## y scale zoom in</code></pre>
+<pre><code>Ignoring unknown labels:
+• shape : &quot;N_sample&quot;
+• linetype : &quot;N_sample&quot;</code></pre>
+<pre><code>Warning: Removed 84 rows containing non-finite outside the scale range
+(`stat_boxplot()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rbind(
+  data.frame(FPR_box_raw, prop_type  = &quot;Raw proportion&quot;), 
+  data.frame(FPR_box, prop_type  = &quot;Updated proportion&quot;)
+  ) %&gt;% 
+  mutate(prop_type = factor(prop_type, levels = c(&quot;Updated proportion&quot;, &quot;Raw proportion&quot;))) %&gt;% 
+  ## plot
+  ggplot(aes(x = as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(N_BC, Method))) +
+    geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+    labs(
+      x = paste0(&quot;Number of total barcodes after filtering&quot;),
+      y = &quot;Fraction of P-Value &lt; 0.05&quot;, color = &quot;Method&quot;, shape = &quot;N_sample&quot;, linetype = &quot;N_sample&quot;,
+      title = &quot;Type I error rate to number of barcodes&quot;
+      ) +
+  geom_hline(yintercept = 0.05, linetype = &quot;dashed&quot;) +
+  facet_grid(prop_type~1, switch = &quot;y&quot;) +
+  theme_bw()+
+  theme_barbieQ_size() +
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = &quot;top&quot;,
+        strip.placement = &quot;outside&quot;, strip.text.y = element_text(size = 12),
+        strip.text.x = element_blank(), strip.background.x = element_blank()) +
+  scale_y_continuous(limits = c(0,0.2)) -&gt; f3g1
+
+f3g1</code></pre>
+<pre><code>Ignoring unknown labels:
+• shape : &quot;N_sample&quot;
+• linetype : &quot;N_sample&quot;</code></pre>
+<pre><code>Warning: Removed 164 rows containing non-finite outside the scale range
+(`stat_boxplot()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-19-1.png" width="480" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="f3f-density-to-n_barcodes" class="section level2" number="8.4">
+<h2><span class="header-section-number">8.4</span> F3F: Density to
+N_Barcodes</h2>
+<div id="updated-proportion" class="section level3" number="8.4.1">
+<h3><span class="header-section-number">8.4.1</span> Updated
+proportion</h3>
+<pre class="r"><code>## get the subset of barcodes
+lapply(c(1:9/10, 0.95), function(filter_level) {
+  barbieQ &lt;- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  tag &lt;- rowData(barbieQ)$isTopBarcode$isTop
+  
+  prop_mat &lt;- mixture_plus1[tag,mixture_plus1$sampleMetadata$Subset==&quot;null&quot;]@assays@data$proportion
+  ## update prop
+  prop_mat &lt;- t(t(prop_mat) / colSums(prop_mat))
+  
+  df &lt;- data.frame(
+    prop = as.vector(prop_mat), 
+    N_BC=filter_to_N[as.character(filter_level)]
+    )
+  return(df)
+}) -&gt; BC_set_prop_filter</code></pre>
+<pre><code>Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded</code></pre>
+<pre class="r"><code>BC_set_prop_filter &lt;- do.call(rbind, BC_set_prop_filter)
+
+ggplot(BC_set_prop_filter) +
+  geom_density(aes(x = prop, color = as.factor(N_BC), group = as.factor(N_BC))) +
+  scale_x_log10(breaks = 10^seq(-6, -1, by = 1), labels = strip_zeros) +
+  coord_cartesian(xlim = c(1e-6, 3e-1)) +
+  labs(color = &quot;N_Barcodes&quot;, x = &quot;Barcode Proportion&quot;, y = &quot;Density&quot;, subtitle = &quot;with updated proportion&quot;) +
+  theme_barbieQ() +
+  theme(aspect.ratio = 0.9) -&gt; f3f1</code></pre>
+</div>
+<div id="raw-proportion-1" class="section level3" number="8.4.2">
+<h3><span class="header-section-number">8.4.2</span> Raw proportion</h3>
+<pre class="r"><code>## get the subset of barcodes
+lapply(c(1:9/10, 0.95), function(filter_level) {
+  barbieQ &lt;- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  tag &lt;- rowData(barbieQ)$isTopBarcode$isTop
+  ## keep raw prop
+  prop_mat &lt;- mixture_plus1[tag,mixture_plus1$sampleMetadata$Subset==&quot;null&quot;]@assays@data$proportion
+  df &lt;- data.frame(
+    prop = as.vector(prop_mat), 
+    N_BC=filter_to_N[as.character(filter_level)]
+    )
+  return(df)
+}) -&gt; BC_set_prop_filter_raw</code></pre>
+<pre><code>Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded
+Warning in data.frame(prop = as.vector(prop_mat), N_BC =
+filter_to_N[as.character(filter_level)]): row names were found from a short
+variable and have been discarded</code></pre>
+<pre class="r"><code>BC_set_prop_filter_raw &lt;- do.call(rbind, BC_set_prop_filter_raw)
+
+ggplot(BC_set_prop_filter_raw) +
+  geom_density(aes(x = prop, color = as.factor(N_BC), group = as.factor(N_BC))) +
+  scale_x_log10(breaks = 10^seq(-6, -1, by = 1), labels = strip_zeros) +
+  coord_cartesian(xlim = c(1e-6, 3e-1)) +
+  theme_linedraw() +
+  labs(color = &quot;N_Barcodes&quot;, x = &quot;Barcode Proportion&quot;, y = &quot;Density&quot;, subtitle = &quot;with raw proportion&quot;) +
+  theme_barbieQ() +
+  theme(aspect.ratio = 0.9) -&gt; f3f2</code></pre>
+<pre class="r"><code>rbind(
+  data.frame(BC_set_prop_filter_raw, prop_type  = &quot;Raw proportion&quot;), 
+  data.frame(BC_set_prop_filter, prop_type  = &quot;Updated proportion&quot;)
+  ) %&gt;% 
+  mutate(prop_type = factor(prop_type, levels = c(&quot;Updated proportion&quot;, &quot;Raw proportion&quot;))) %&gt;% 
+  ## pass to gplot
+  ggplot() +
+  geom_density(aes(x = prop, color = as.factor(N_BC), group = as.factor(N_BC))) +
+  scale_x_log10(breaks = 10^seq(-6, -1, by = 1), labels = strip_zeros) +
+  coord_cartesian(xlim = c(1e-6, 3e-1)) +
+  facet_grid(prop_type~1, switch = &quot;y&quot;) +
+  labs(color = &quot;Num. BC&quot;, x = &quot;Barcode Proportion&quot;, y = &quot;Density&quot;, title = &quot;Barcode distribution in datasets&quot;) +
+  theme_bw() +
+  theme_barbieQ_size() +
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = &quot;top&quot;, legend.key.size = unit(0.3, &quot;cm&quot;),
+        legend.title = element_text(size = 11), legend.text  = element_text(size = 10), 
+        strip.placement = &quot;outside&quot;, strip.text.y = element_text(size = 12),
+        strip.text.x = element_blank(), strip.background.x = element_blank()) -&gt;  ## disable column label
+  f3f
+  
+f3f</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-22-1.png" width="384" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="f3d-quantile-distribution" class="section level2" number="8.5">
+<h2><span class="header-section-number">8.5</span> F3D: Quantile
+distribution</h2>
+<pre class="r"><code>data.frame(x = (stats_barcodes_all_levels %&gt;% filter(filter_level==0.95))$Amean_prop) %&gt;%
+  mutate(quantile_bin = ntile(x, 10)) %&gt;% 
+  ggplot(aes(x = as.factor(quantile_bin), y = x, group = quantile_bin)) +
+  geom_jitter(color = &quot;grey&quot;, shape = &quot;.&quot;) + 
+  geom_boxplot() +
+  scale_y_log10(breaks = 10^seq(-5, -1, by = 1), labels = strip_zeros) +
+  theme_barbieQ() +
+  labs(x = &quot;Quantiles of barcode mean proportion&quot;, y = &quot;Barcode mean proportion&quot;,
+       title = &quot;Barcode proportion distribution&quot;, subtitle = &quot; &quot;) -&gt; f3d
+
+f3d</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-23-1.png" width="384" style="display: block; margin: auto;" /></p>
+</div>
+<div id="f3e_left-false-positives-in-quantiles" class="section level2"
+number="8.6">
+<h2><span class="header-section-number">8.6</span> F3E_left: False
+positives in quantiles</h2>
+<ul>
+<li>For diff_prop</li>
+</ul>
+<pre class="r"><code># plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.1), num_quantiles = 4)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.2), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.3), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.4), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.5), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.6), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.7), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.8), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.9), num_quantiles = 10)
+
+plot_fdr_on_quantile(stats_barcodes_all_levels %&gt;% filter(filter_level==0.95), num_quantiles = 10) + 
+  theme_barbieQ() +
+  labs(title = &quot;Type I error rate in quanties&quot;) -&gt; f3e1</code></pre>
+</div>
+</div>
+<div id="figure-3-upper" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Figure 3 upper</h1>
+</div>
+<div id="tpr" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> TPR</h1>
+<div id="check-premix" class="section level2" number="10.1">
+<h2><span class="header-section-number">10.1</span> Check premix</h2>
+<ul>
+<li>confirming an equal mixture of pool1 and pool2 in baseline samples
+(the “null” samples).</li>
+</ul>
+<pre class="r"><code>colnames(mixture_plus1_top)</code></pre>
+<pre><code> [1] &quot;P1&quot;               &quot;P2&quot;               &quot;null_660.1&quot;       &quot;null_660.2&quot;      
+ [5] &quot;null_330.1&quot;       &quot;null_330.2&quot;       &quot;null_160.1&quot;       &quot;null_160.2&quot;      
+ [9] &quot;null_80.1&quot;        &quot;null_80.2&quot;        &quot;null_40.1&quot;        &quot;null_40.2&quot;       
+[13] &quot;null_20.1&quot;        &quot;null_20.2&quot;        &quot;m_null_160.p35.1&quot; &quot;m_null_160.p27.1&quot;
+[17] &quot;m_null_160.p18.1&quot; &quot;m_null_160.p35.2&quot; &quot;m_null_160.p27.2&quot; &quot;m_null_160.p18.2&quot;
+[21] &quot;m_null_80.p35.1&quot;  &quot;m_null_80.p27.1&quot;  &quot;m_null_80.p18.1&quot;  &quot;m_null_80.p35.2&quot; 
+[25] &quot;m_null_80.p27.2&quot;  &quot;m_null_80.p18.2&quot;  &quot;m_null_40.p35.1&quot;  &quot;m_null_40.p27.1&quot; 
+[29] &quot;m_null_40.p18.1&quot;  &quot;m_null_40.p35.2&quot;  &quot;m_null_40.p27.2&quot;  &quot;m_null_40.p18.2&quot; 
+[33] &quot;m_null_20.p35.1&quot;  &quot;m_null_20.p27.1&quot;  &quot;m_null_20.p18.1&quot;  &quot;m_null_20.p35.2&quot; 
+[37] &quot;m_null_20.p27.2&quot;  &quot;m_null_20.p18.2&quot; </code></pre>
+<pre class="r"><code>prop_raw &lt;- mixture_plus1_top@assays@data$proportion
+
+pool1_vec &lt;- prop_raw[,1]
+pool2_vec &lt;- prop_raw[,2]
+
+## if equal mixture of pool1 and pool2; designed prop should be 1/2 of total props in original pool1 and pool2 
+check_mix_df &lt;- data.frame(
+  ps = rowMeans(prop_raw[,1:2]), 
+  mixture_660 = prop_raw[,3]
+  )
+
+ggplot(check_mix_df, aes(x = ps, y = mixture_660)) + 
+  geom_point() + 
+  coord_fixed() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<pre><code>`geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-26-1.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>Confirming orthogonal between premix1 and premix2: barcodes mostly
+not overlapping between the two premix samples, but a few noise are
+observed in premix2.</li>
+</ul>
+<pre class="r"><code>ggplot(data.frame(prop_raw) %&gt;% sqrt() %&gt;% asin()) + 
+  geom_point(aes(x = P1, y = P2))</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-27-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(data.frame(prop_raw) %&gt;% sqrt() %&gt;% asin(), aes(x = P1+P2, y = abs(P1-P2))) + 
+  geom_point() +
+  coord_fixed() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<pre><code>`geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-27-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(data.frame(prop_raw), aes(x = P1+P2, y = abs(P1-P2))) + 
+  geom_point() +
+  coord_fixed() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<pre><code>`geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-27-3.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="designed-differences" class="section level2" number="10.2">
+<h2><span class="header-section-number">10.2</span> Designed
+differences</h2>
+<pre class="r"><code>## theory
+a = 0.35
+((1/2 + a) / (1+a)) - (1/2)</code></pre>
+<pre><code>[1] 0.1296296</code></pre>
+<pre class="r"><code>a = 0.27
+(1/2 + a) / (1+a) - 1/2</code></pre>
+<pre><code>[1] 0.1062992</code></pre>
+<pre class="r"><code>a = 0.18
+(1/2 + a) / (1+a) - 1/2</code></pre>
+<pre><code>[1] 0.07627119</code></pre>
+</div>
+<div id="model-perturbations" class="section level2" number="10.3">
+<h2><span class="header-section-number">10.3</span> Model
+perturbations</h2>
+<pre class="r"><code>mixture_plus1_top$sampleMetadata %&gt;% as.data.frame() %&gt;% summary()</code></pre>
+<pre><code>     Subset    BarcodeSize      Perturbation    TechRep
+ premix1: 1   Min.   : 20000   Min.   :0.0000   1:20   
+ premix2: 1   1st Qu.: 40000   1st Qu.:0.0000   2:18   
+ null   :12   Median : 80000   Median :0.1800          
+ perturb:24   Mean   :121667   Mean   :0.1778          
+              3rd Qu.:160000   3rd Qu.:0.2700          
+              Max.   :660000   Max.   :0.3500          
+              NA&#39;s   :2        NA&#39;s   :2               </code></pre>
+<pre class="r"><code>mixed &lt;- mixture_plus1_top[, mixture_plus1_top$sampleMetadata$Subset %in% c(&quot;perturb&quot;, &quot;null&quot;)]
+mixed$sampleMetadata %&gt;% as.data.frame() %&gt;%  data.table()</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["Subset"],"name":[1],"type":["fct"],"align":["left"]},{"label":["BarcodeSize"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Perturbation"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["TechRep"],"name":[4],"type":["fct"],"align":["left"]}],"data":[{"1":"null","2":"660000","3":"0.00","4":"1"},{"1":"null","2":"660000","3":"0.00","4":"2"},{"1":"null","2":"330000","3":"0.00","4":"1"},{"1":"null","2":"330000","3":"0.00","4":"2"},{"1":"null","2":"160000","3":"0.00","4":"1"},{"1":"null","2":"160000","3":"0.00","4":"2"},{"1":"null","2":"80000","3":"0.00","4":"1"},{"1":"null","2":"80000","3":"0.00","4":"2"},{"1":"null","2":"40000","3":"0.00","4":"1"},{"1":"null","2":"40000","3":"0.00","4":"2"},{"1":"null","2":"20000","3":"0.00","4":"1"},{"1":"null","2":"20000","3":"0.00","4":"2"},{"1":"perturb","2":"160000","3":"0.35","4":"1"},{"1":"perturb","2":"160000","3":"0.27","4":"1"},{"1":"perturb","2":"160000","3":"0.18","4":"1"},{"1":"perturb","2":"160000","3":"0.35","4":"2"},{"1":"perturb","2":"160000","3":"0.27","4":"2"},{"1":"perturb","2":"160000","3":"0.18","4":"2"},{"1":"perturb","2":"80000","3":"0.35","4":"1"},{"1":"perturb","2":"80000","3":"0.27","4":"1"},{"1":"perturb","2":"80000","3":"0.18","4":"1"},{"1":"perturb","2":"80000","3":"0.35","4":"2"},{"1":"perturb","2":"80000","3":"0.27","4":"2"},{"1":"perturb","2":"80000","3":"0.18","4":"2"},{"1":"perturb","2":"40000","3":"0.35","4":"1"},{"1":"perturb","2":"40000","3":"0.27","4":"1"},{"1":"perturb","2":"40000","3":"0.18","4":"1"},{"1":"perturb","2":"40000","3":"0.35","4":"2"},{"1":"perturb","2":"40000","3":"0.27","4":"2"},{"1":"perturb","2":"40000","3":"0.18","4":"2"},{"1":"perturb","2":"20000","3":"0.35","4":"1"},{"1":"perturb","2":"20000","3":"0.27","4":"1"},{"1":"perturb","2":"20000","3":"0.18","4":"1"},{"1":"perturb","2":"20000","3":"0.35","4":"2"},{"1":"perturb","2":"20000","3":"0.27","4":"2"},{"1":"perturb","2":"20000","3":"0.18","4":"2"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>mixed_target &lt;- mixed$sampleMetadata %&gt;% as.data.frame()
+## factorize perturbation levels and barcodeSize levels
+mixed_target$Perturbation &lt;- as.factor(mixed_target$Perturbation)
+levels(mixed_target$Perturbation)</code></pre>
+<pre><code>[1] &quot;0&quot;    &quot;0.18&quot; &quot;0.27&quot; &quot;0.35&quot;</code></pre>
+<pre class="r"><code>mixed_target$BarcodeSize &lt;- as.factor(mixed_target$BarcodeSize)
+levels(mixed_target$BarcodeSize)</code></pre>
+<pre><code>[1] &quot;20000&quot;  &quot;40000&quot;  &quot;80000&quot;  &quot;160000&quot; &quot;330000&quot; &quot;660000&quot;</code></pre>
+<pre class="r"><code>mixed_design &lt;- mixed_target %&gt;%
+    with(model.matrix(~0 + Perturbation + BarcodeSize))
+
+myblock &lt;- mixed_target %&gt;% with(paste(BarcodeSize, Perturbation))
+table(myblock)</code></pre>
+<pre><code>myblock
+   160000 0 160000 0.18 160000 0.27 160000 0.35     20000 0  20000 0.18 
+          2           2           2           2           2           2 
+ 20000 0.27  20000 0.35    330000 0     40000 0  40000 0.18  40000 0.27 
+          2           2           2           2           2           2 
+ 40000 0.35    660000 0     80000 0  80000 0.18  80000 0.27  80000 0.35 
+          2           2           2           2           2           2 </code></pre>
+</div>
+<div id="apply-tests-extract-estimates" class="section level2"
+number="10.4">
+<h2><span class="header-section-number">10.4</span> Apply tests: extract
+estimates</h2>
+<pre class="r"><code>myblock &lt;- NULL
+
+es_de_none &lt;- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(mixed, mixed_design, myblock, a = i))</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre class="r"><code>es_de_none_df &lt;- do.call(rbind, es_de_none)
+es_de_none_df &lt;- es_de_none_df %&gt;% 
+  mutate(Signif. = ifelse(P.Value&lt;0.05, &quot;signif.&quot;, &quot;n.s.&quot;)) %&gt;% 
+  mutate(Signif. = factor(Signif., levels = c(&quot;signif.&quot;, &quot;n.s.&quot;)))
+
+es_de_asin &lt;- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(mixed, mixed_design, myblock, a = i, trans = &quot;asin-sqrt&quot;))</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.
+no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre class="r"><code>es_de_asin_df &lt;- do.call(rbind, es_de_asin)
+es_de_asin_df &lt;- es_de_asin_df %&gt;% 
+  mutate(Signif. = ifelse(P.Value&lt;0.05, &quot;signif.&quot;, &quot;n.s.&quot;)) %&gt;% 
+  mutate(Signif. = factor(Signif., levels = c(&quot;signif.&quot;, &quot;n.s.&quot;)))
+
+es_de_logit &lt;- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(mixed, mixed_design, myblock, a = i, trans = &quot;logit&quot;))</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.
+no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre class="r"><code>es_de_logit_df &lt;- do.call(rbind, es_de_logit)
+es_de_logit_df &lt;- es_de_logit_df %&gt;% 
+  mutate(Signif. = ifelse(P.Value&lt;0.05, &quot;signif.&quot;, &quot;n.s.&quot;)) %&gt;% 
+  mutate(Signif. = factor(Signif., levels = c(&quot;signif.&quot;, &quot;n.s.&quot;)))
+
+es_de_df &lt;- rbind(es_de_none_df, es_de_asin_df, es_de_logit_df)</code></pre>
+</div>
+<div id="fs4a-validate-estimates" class="section level2" number="10.5">
+<h2><span class="header-section-number">10.5</span> FS4A: Validate
+estimates</h2>
+<pre class="r"><code>regression_stats_none &lt;- es_de_none_df %&gt;%
+  group_by(Contrast) %&gt;%
+  summarise(
+    cor = cor(diff, meanDiff),
+    slope = coef(lm(meanDiff ~ I(diff)))[2],
+    interc = coef(lm(meanDiff ~ I(diff)))[1],
+    # res = resid(mod &lt;- lm(meanDiff ~ I(diff))),
+    # meanDiff = meanDiff,
+    .groups = &quot;drop&quot;
+  )
+regression_stats_none$Method = &quot;none&quot;
+regression_stats_none$x = -0.01
+regression_stats_none$y = 0.01
+
+regression_stats_asin &lt;- es_de_asin_df %&gt;%
+  group_by(Contrast) %&gt;%
+  summarise(
+    cor = cor(diff, meanDiff),
+    slope = coef(lm((meanDiff) ~ I(diff)))[2],
+    interc = coef(lm((meanDiff) ~ I(diff)))[1],
+    .groups = &quot;drop&quot;
+  )
+regression_stats_asin$Method = &quot;asin-sqrt&quot;
+regression_stats_asin$x = -0.001
+regression_stats_asin$y = 0.001
+
+
+regression_stats_logit &lt;- es_de_logit_df %&gt;%
+  group_by(Contrast) %&gt;%
+  summarise(
+    cor = cor(diff, (meanDiff)),
+    slope = coef(lm((meanDiff) ~ I(diff)))[2],
+    interc = coef(lm((meanDiff) ~ I(diff)))[1],
+    .groups = &quot;drop&quot;
+  )
+regression_stats_logit$Method = &quot;logit&quot;
+regression_stats_logit$x = -0.05
+regression_stats_logit$y = 1
+
+regression_stats &lt;- rbind(regression_stats_asin, regression_stats_none, regression_stats_logit)</code></pre>
+<p>(facet_grid doesn’t allow free x sclae for the same column. so plot
+three methods seperately.)</p>
+<pre class="r"><code>p_es_de_asin &lt;- ggplot(es_de_asin_df, aes(x = diff, y = (meanDiff))) +
+  geom_point(aes(color = Signif.), alpha = 0.5) +
+  # stat_smooth(method = &quot;lm&quot;, linetype = &quot;dashed&quot;, colour = &quot;black&quot;) +
+    geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = &quot;dashed&quot;) +
+  theme_bw() +
+  # coord_fixed() +
+  facet_wrap(~paste0(&quot;Contrast: &quot;, Contrast)) +
+  geom_text(data = regression_stats_asin, x = -0.01, y = 0.01, 
+            aes(label = paste0(&quot;r = &quot;, round(cor, digits = 2), &quot;\n&quot;, &quot;slope = &quot;, round(slope, digits = 2)))) + 
+  theme(axis.title.x = element_blank(), legend.position = &quot;none&quot;) +
+  labs(color = &quot;Barcode&quot;, y = &quot; \n \n (asin-sqrt)&quot;)
+
+
+p_es_de_none &lt;- ggplot(es_de_none_df, aes(x = diff, y = (meanDiff))) +
+  geom_point(aes(color = Signif.), alpha = 0.5) +
+  # stat_smooth(method = &quot;lm&quot;, linetype = &quot;dashed&quot;, colour = &quot;black&quot;) +
+  geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = &quot;dashed&quot;) +
+  theme_linedraw()+
+  # coord_fixed() +
+  facet_wrap(~paste0(&quot;Contrast: &quot;, Contrast)) +
+    geom_text(data = regression_stats_none, x = -0.0015, y = 0.001, 
+            aes(label = paste0(&quot;r = &quot;, round(cor, digits = 2), &quot;\n&quot;, &quot;slope = &quot;, round(slope, digits = 2)))) + 
+  labs(y = &quot; \n \n (no transformation)&quot;, x = &quot; \n Designed differences&quot;)+
+  ## zoom in, removing a few barcodes with large proportion. 
+  scale_x_continuous(limits = c(-0.003, 0.003)) +
+  scale_y_continuous(limits = c(-0.003, 0.003)) +
+  theme(legend.position = &quot;none&quot;, strip.text = element_blank()) + # remove facet titles
+  labs(color = &quot;Barcode&quot;)
+
+p_es_de_logit &lt;- ggplot(es_de_logit_df, aes(x = diff, y = (meanDiff))) +
+  geom_point(aes(color = Signif.), alpha = 0.5) +
+  # stat_smooth(method = &quot;lm&quot;, linetype = &quot;dashed&quot;, colour = &quot;black&quot;) +
+  geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = &quot;dashed&quot;) +
+  theme_linedraw()+
+  facet_wrap(~paste0(&quot;Contrast: &quot;, Contrast)) +
+    geom_text(data = regression_stats_logit, x = -0.15, y = 1, 
+            aes(label = paste0(&quot;r = &quot;, round(cor, digits = 2), &quot;\n&quot;, &quot;slope = &quot;, round(slope, digits = 2)))) + 
+  labs(y = &quot;Estimated differences \n \n (logit)&quot;, color = &quot;Barcode&quot;) +
+   ## zoom in, removing one barcode with large proportion. 
+  # scale_x_continuous(limits = c(-0.3, 0.3)) +
+  # scale_y_continuous(limits = c(-0.3, 0.3)) +
+  theme(axis.title.x = element_blank(), legend.position = &quot;right&quot;, strip.text = element_blank())  # remove facet titles</code></pre>
+<pre class="r"><code>fs4a &lt;- (p_es_de_asin + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12)) ) / 
+  (p_es_de_logit + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12))) /
+  (p_es_de_none + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12))) 
+fs4a</code></pre>
+<pre><code>Warning: Removed 7 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-34-1.png" width="864" style="display: block; margin: auto;" />
+## F3G_right: TPR as a function to N_BC</p>
+<div id="updated-proportion-1" class="section level3" number="10.5.1">
+<h3><span class="header-section-number">10.5.1</span> Updated
+proportion</h3>
+<pre class="r"><code>test_perturb &lt;- function(mixed, mixed_target, mixed_design, myblock, trans = &quot;none&quot;, a = 0.18) {
+  tester &lt;- testBarcodeSignif(
+    barbieQ = mixed, sampleMetadata = mixed_target, sampleGroup = &quot;Perturbation&quot;, 
+    contrastFormula = paste0(&quot;Perturbation&quot;, a, &quot; - Perturbation0&quot;), transformation = trans,
+    designMatrix = mixed_design, block = myblock)
+  
+  veri_diff &lt;- as.data.frame(tester@elementMetadata$testingBarcode)
+  
+  veri_diff &lt;- rownames_to_column(veri_diff, var = &quot;BC&quot;) 
+  veri_diff$Contrast = paste0(a, &quot; - 0&quot;)
+  veri_diff$Method = trans
+
+  
+  return(veri_diff)
+}</code></pre>
+<pre class="r"><code>test_all_levels &lt;- lapply(
+  c(1:9/10, 0.95),
+  function(i) {get_mixted_by_filter(barbieQ = mixture_plus1, filter_level = i)}
+)</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre><code>setting Perturbation as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>no block specified, so there are no duplicate measurements.</code></pre>
+<pre class="r"><code>test_all_levels &lt;- do.call(rbind, test_all_levels)
+
+test_TPR &lt;- test_all_levels %&gt;% 
+  group_by(Method, Contrast, N_BC) %&gt;% 
+  summarize(Frac_signif = sum(P.Value &lt; 0.05) / n(), .groups = &quot;drop&quot;)</code></pre>
+<pre class="r"><code>ggplot(test_TPR, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, linetype = Contrast, shape = Contrast)) +
+  # geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+  geom_line(aes(group = paste0(Contrast, Method))) +
+  geom_point() +
+    labs(
+      x = paste0(&quot;Number of total barcodes after filtering&quot;),
+      y = &quot;Fraction of P-Value &lt; 0.05&quot;,
+      title = &quot;True postive rate as a function to total barcode number&quot;
+      ) +
+    geom_hline(yintercept = 0.05, linetype = &quot;dashed&quot;) +
+    theme_linedraw()+
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, size = 10, hjust = 0.5), aspect.ratio = 0.5) + 
+    theme(
+        legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12))</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-37-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="raw-proportion-2" class="section level3" number="10.5.2">
+<h3><span class="header-section-number">10.5.2</span> Raw
+proportion</h3>
+<pre class="r"><code>test_all_levels_raw &lt;- cbind(
+  test_all_levels %&gt;% filter(filter_level == 0.95),  
+  mean_prop,
+  BC_set_by_filter[rep(seq_len(nrow(BC_set_by_filter)),length.out = nrow(test_all_levels %&gt;% filter(filter_level == 0.95))), ])</code></pre>
+<pre><code>Warning in data.frame(..., check.names = FALSE): row names were found from a
+short variable and have been discarded</code></pre>
+<pre class="r"><code>test_TPR_raw &lt;- test_all_levels_raw %&gt;%
+   select(-N_BC) %&gt;% 
+   pivot_longer(
+     cols = as.character(filter_to_N[c(1:9/10, 0.95) %&gt;% as.character()]),
+     names_to = &quot;N_BC&quot;,
+     values_to = &quot;selectedBy&quot;
+   ) %&gt;% 
+    group_by(Method, Contrast, N_BC) %&gt;% 
+    summarize(Frac_signif = sum(P.Value &lt; 0.05 &amp; selectedBy) / sum(selectedBy), .groups = &quot;drop&quot;)
+
+test_TPR_raw$N_BC &lt;- as.numeric(test_TPR_raw$N_BC)
+
+ggplot(test_TPR_raw, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(Method, Contrast))) +
+  # geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+  geom_point(aes(shape = Contrast)) +
+  geom_line(aes(linetype = Contrast)) +
+    labs(
+      x = paste0(&quot;Number of total barcodes after filtering&quot;),
+      y = &quot;Fraction of P-Value &lt; 0.05&quot;
+      ) +
+    geom_hline(yintercept = 0.05, linetype = &quot;dashed&quot;) +
+    # facet_wrap(~Contrast, ncol =3) +
+    theme_linedraw()+
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, size = 10, hjust = 0.5), aspect.ratio = 0.5) + 
+    theme(
+        legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12))</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-38-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rbind(
+  data.frame(test_TPR_raw, prop_type  = &quot;Raw proportion&quot;), 
+  data.frame(test_TPR, prop_type  = &quot;Updated proportion&quot;)
+  ) %&gt;% 
+  mutate(prop_type = factor(prop_type, levels = c(&quot;Updated proportion&quot;, &quot;Raw proportion&quot;))) %&gt;% 
+  ## plot
+  ggplot(aes(x = as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(Method, Contrast))) +
+  # geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+  geom_point(aes(shape = Contrast)) +
+  geom_line(aes(linetype = Contrast)) +
+    labs(
+      x = paste0(&quot;Number of total barcodes after filtering&quot;),
+      y = &quot;Fraction of P-Value &lt; 0.05&quot;, color = &quot;Method&quot;, shape = &quot;Contrast&quot;, linetype = &quot;Contrast&quot;,
+      title = &quot;True positive rate to number of barcodes&quot;
+      ) +
+  geom_hline(yintercept = 0.05, linetype = &quot;dashed&quot;) +
+  facet_grid(prop_type~1, switch = &quot;y&quot;) +
+  theme_bw()+
+  theme_barbieQ_size() +
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = &quot;top&quot;,
+        strip.placement = &quot;outside&quot;, strip.text.y = element_text(size = 12),
+        strip.text.x = element_blank(), strip.background.x = element_blank()) + guides(color = &quot;none&quot;) -&gt; f3g2
+
+f3g2</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-39-1.png" width="480" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="f3e_right-tpr-in-quantiles" class="section level2"
+number="10.6">
+<h2><span class="header-section-number">10.6</span> F3E_right: TPR in
+quantiles</h2>
+<pre class="r"><code># plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.1), num_quantiles = 4)
+# plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.2), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.3), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.4), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.5), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.6), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.7), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.8), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.9), num_quantiles = 10)
+
+plot_tpr_on_quantile(test_all_levels %&gt;% filter(filter_level==0.95), num_quantiles = 10) +
+  theme_barbieQ() +
+  labs(title = &quot;Power (true positive rate) in quanties&quot;) -&gt; f3e2</code></pre>
+</div>
+<div id="fs4b-residules" class="section level2" number="10.7">
+<h2><span class="header-section-number">10.7</span> FS4B: Residules</h2>
+<pre class="r"><code>resi_none &lt;- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = &quot;none&quot;))
+resi_asin &lt;- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = &quot;asin-sqrt&quot;))
+resi_logit &lt;- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = &quot;logit&quot;))
+
+resi_df &lt;- rbind(do.call(rbind, resi_none), do.call(rbind, resi_asin), do.call(rbind, resi_logit))</code></pre>
+<ul>
+<li>Distribution and QQ plot.</li>
+</ul>
+<pre class="r"><code>p_resid_distr_35 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.35 - 0&quot;),
+                        aes(x = Residual, color = Method)) +
+  geom_density() +
+  labs(x = &quot;Residual&quot;, y = &quot;Density&quot;) +
+  facet_wrap(~Method, scales = &quot;free&quot;, ncol = 1, strip.position = &quot;left&quot;) +
+  theme_bw() +
+  theme(legend.position = &quot;none&quot;, plot.title.position = &quot;panel&quot;)
+
+
+p_resid_qq_35 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.35 - 0&quot;), 
+                     aes(sample = Residual, color = Method)) +
+  stat_qq() +
+  stat_qq_line(color = &quot;black&quot;, linetype = &quot;dashed&quot;) +
+  labs(x = &quot;Normal Quantiles&quot;, y = &quot;\n Residual Quuantiles&quot;) +
+  facet_wrap(~Method, scales = &quot;free&quot;, ncol = 1) +
+  theme_bw() +
+  theme(legend.position = &quot;none&quot;, strip.text = element_blank(), plot.title.position = &quot;panel&quot;)</code></pre>
+<pre class="r"><code>fs4b &lt;- (p_resid_distr_35 + 
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), strip.text = element_text(size = 12),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 10))
+  ) +
+(p_resid_qq_35 + 
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), 
+        axis.title = element_text(size = 13), axis.text = element_text(size = 10)))
+
+fs4b</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-43-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>p_resid_distr_27 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.27 - 0&quot;), aes(x = Residual, color = Method)) +
+  geom_density() +
+  labs(x = &quot;Residual&quot;, y = &quot;Density&quot;) +
+  facet_wrap(~Method, scales = &quot;free&quot;, ncol = 1) +
+  theme_bw() +
+  theme(legend.position = &quot;none&quot;, strip.text = element_blank())
+
+p_resid_qq_27 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.27 - 0&quot;), aes(sample = Residual, color = Method)) +
+  stat_qq() +
+  stat_qq_line(color = &quot;black&quot;, linetype = &quot;dashed&quot;) +
+  labs(x = &quot;Normal Quantiles&quot;, y = &quot;Residule Quantiles&quot;) +
+  facet_wrap(~Method, scales = &quot;free&quot;, ncol = 1) +
+  theme_bw() +
+  theme(legend.position = &quot;none&quot;, strip.text = element_blank())
+
+p_resid_distr_18 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.18 - 0&quot;), aes(x = Residual, color = Method)) +
+  geom_density() +
+  labs(x = &quot;Residual&quot;, y = &quot;Density&quot;) +
+  facet_wrap(~Method, scales = &quot;free&quot;, ncol = 1) +
+  theme_bw() +
+  theme(legend.position = &quot;none&quot;, strip.text = element_blank())
+
+p_resid_qq_18 &lt;- ggplot(resi_df %&gt;% filter(Contrast == &quot;0.18 - 0&quot;), aes(sample = Residual, color = Method)) +
+  stat_qq() +
+  stat_qq_line(color = &quot;black&quot;, linetype = &quot;dashed&quot;) +
+  labs(x = &quot;Normal Quantiles&quot;, y = &quot;Residule Quantiles&quot;) +
+  facet_wrap(~Method, scales = &quot;free&quot;, ncol = 1) +
+  theme_bw() +
+  theme(legend.position = &quot;none&quot;, strip.text = element_blank())</code></pre>
+<pre class="r"><code>p_resid_distr_35 + p_resid_distr_27 + p_resid_distr_18</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-45-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>p_resid_qq_35 + p_resid_qq_27 + p_resid_qq_18</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-45-2.png" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="consistency" class="section level2" number="10.8">
+<h2><span class="header-section-number">10.8</span> Consistency</h2>
+<pre class="r"><code>asin_adjP_3con &lt;- es_de_asin_df %&gt;%
+  dplyr::select(BC, Contrast, P.Value) %&gt;%
+  tidyr::pivot_wider(
+    id_cols = BC,
+    names_from = Contrast,
+    values_from = P.Value
+  )
+none_adjP_3con &lt;- es_de_none_df %&gt;%
+  dplyr::select(BC, Contrast, P.Value) %&gt;%
+  tidyr::pivot_wider(
+    id_cols = BC,
+    names_from = Contrast,
+    values_from = P.Value
+  )</code></pre>
+<pre class="r"><code>eu &lt;- eulerr::euler(list(
+  asin_C0.18 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.18 - 0` &lt; 0.05],
+  asin_C0.27 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.27 - 0` &lt; 0.05],
+  asin_C0.35 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.35 - 0` &lt; 0.05],
+  none_C0.18 = rownames(none_adjP_3con)[none_adjP_3con$`0.18 - 0` &lt; 0.05],
+  none_C0.27 = rownames(none_adjP_3con)[none_adjP_3con$`0.27 - 0` &lt; 0.05],
+  none_C0.35 = rownames(none_adjP_3con)[none_adjP_3con$`0.35 - 0` &lt; 0.05]
+))
+
+plot(eu, quantities = TRUE)</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-47-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="figure-3" class="section level1" number="11">
+<h1><span class="header-section-number">11</span> Figure 3</h1>
+<pre class="r"><code>layout = &quot;
+AAAAAAAAAAAAA##
+AAAAAAAAAAAAA##
+AAAAAAAAAAAAA##
+BBBBBBCCCCCCCCC
+BBBBBBCCCCCCCCC
+BBBBBBCCCCCCCCC
+BBBBBBCCCCCCCCC
+DDDDEEEEEFFFFFF
+DDDDEEEEEFFFFFF
+DDDDEEEEEFFFFFF
+DDDDEEEEEFFFFFF
+DDDDEEEEEFFFFFF
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+&quot;
+f3 &lt;- ((wrap_elements(full = f3a) + theme(plot.margin = unit(c(0,0,0,0), &quot;cm&quot;))) + 
+    wrap_elements(f3b + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;))) + 
+    wrap_elements(f3c + theme(plot.margin = unit(c(0,0,0,0), &quot;cm&quot;))) +
+    wrap_elements(f3d + theme(legend.position = &quot;top&quot;, plot.margin = unit(rep(0,4), &quot;cm&quot;))) +
+    wrap_elements(f3e1 + theme(legend.position = &quot;top&quot;, plot.margin = unit(rep(0,4), &quot;cm&quot;))) +
+    wrap_elements(f3e2 + theme(legend.position = &quot;top&quot;, plot.margin = unit(rep(0,4), &quot;cm&quot;)) + guides(color = &quot;none&quot;)) +
+    wrap_elements(f3f + theme(legend.position = &quot;top&quot;, plot.margin = unit(c(0,0,0,0), &quot;cm&quot;))) +
+    wrap_elements(f3g1 + theme(legend.position = &quot;top&quot;,plot.margin = unit(rep(0,4), &quot;cm&quot;))) +
+    wrap_elements(f3g2 + theme(legend.position = &quot;top&quot;,plot.margin = unit(rep(0,4), &quot;cm&quot;))) 
+      
+    )+ 
+  plot_layout(design = layout) +
+  ## space is okay but must be unique
+  plot_annotation(tag_levels = list(c(&quot;A&quot;, &quot;B&quot;,&quot;C&quot;, &quot;D&quot;, &quot;E&quot;, &quot;  &quot;, &quot;F&quot;, &quot;G&quot;, &quot; &quot;))) &amp;
+  theme(plot.tag = element_text(size = 24, face = &quot;bold&quot;, family = &quot;arial&quot;))
+
+f3</code></pre>
+<pre><code>Warning: No shared levels found between `names(values)` of the manual scale and the
+data&#39;s colour values.</code></pre>
+<pre><code>Ignoring unknown labels:
+• shape : &quot;N_sample&quot;
+• linetype : &quot;N_sample&quot;
+Ignoring unknown labels:
+• shape : &quot;N_sample&quot;
+• linetype : &quot;N_sample&quot;</code></pre>
+<pre><code>Warning: Removed 164 rows containing non-finite outside the scale range
+(`stat_boxplot()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-48-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggsave(
+  filename = &quot;output/f3.png&quot;,
+  plot = f3,
+  width = 15,
+  height = 20,
+  units = &quot;in&quot;, # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )</code></pre>
+<pre><code>Warning: No shared levels found between `names(values)` of the manual scale and the
+data&#39;s colour values.</code></pre>
+<pre><code>Ignoring unknown labels:
+• shape : &quot;N_sample&quot;
+• linetype : &quot;N_sample&quot;
+Ignoring unknown labels:
+• shape : &quot;N_sample&quot;
+• linetype : &quot;N_sample&quot;</code></pre>
+<pre><code>Warning: Removed 164 rows containing non-finite outside the scale range
+(`stat_boxplot()`).</code></pre>
+<p>Saving this figure in <a href="../output/f3.png">f3</a></p>
+</div>
+<div id="figure-s4" class="section level1" number="12">
+<h1><span class="header-section-number">12</span> Figure S4</h1>
+<pre class="r"><code>layoutS4 = &quot;
+AAABB
+AAABB
+AAABB
+&quot;
+fs4 &lt;- (
+    wrap_elements(fs4a + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;))) + 
+    wrap_elements(fs4b + theme(plot.margin = unit(c(0,0,0,0), &quot;cm&quot;)))
+    )+ 
+  plot_layout(design = layoutS4) +
+  ## space is okay but must be unique
+  plot_annotation(tag_levels = list(c(&quot;A&quot;, &quot;B&quot;))) &amp;
+  theme(plot.tag = element_text(size = 24, face = &quot;bold&quot;, family = &quot;arial&quot;))
+
+fs4</code></pre>
+<pre><code>Warning: Removed 7 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure3.Rmd/unnamed-chunk-50-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggsave(
+  filename = &quot;output/fs4.png&quot;,
+  plot = fs4,
+  width = 15,
+  height = 8,
+  units = &quot;in&quot;, # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )</code></pre>
+<pre><code>Warning: Removed 7 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p>Saving this figure in <a href="../output/fs4.png">fs4</a></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.5.0 (2025-04-11)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.6 (Plow)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] grid      stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] barbieQ_1.1.3               edgeR_4.6.3                
+ [3] limma_3.64.3                eulerr_7.0.4               
+ [5] magick_2.9.0                ComplexHeatmap_2.24.1      
+ [7] ggVennDiagram_1.5.4         scales_1.4.0               
+ [9] patchwork_1.3.2             ggnewscale_0.5.2           
+[11] ggbreak_0.1.6               ggplot2_4.0.0              
+[13] SummarizedExperiment_1.38.1 Biobase_2.68.0             
+[15] GenomicRanges_1.60.0        GenomeInfoDb_1.44.3        
+[17] IRanges_2.42.0              S4Vectors_0.46.0           
+[19] BiocGenerics_0.54.0         generics_0.1.4             
+[21] MatrixGenerics_1.20.0       matrixStats_1.5.0          
+[23] data.table_1.17.8           knitr_1.50                 
+[25] tibble_3.3.0                tidyr_1.3.1                
+[27] dplyr_1.1.4                 magrittr_2.0.4             
+[29] readxl_1.4.5                workflowr_1.7.2            
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3      rstudioapi_0.17.1       jsonlite_2.0.0         
+  [4] shape_1.4.6.1           jomo_2.7-6              nloptr_2.2.1           
+  [7] farver_2.1.2            logistf_1.26.1          rmarkdown_2.30         
+ [10] ragg_1.5.0              GlobalOptions_0.1.2     fs_1.6.6               
+ [13] vctrs_0.6.5             minqa_1.2.8             memoise_2.0.1          
+ [16] htmltools_0.5.8.1       S4Arrays_1.8.1          broom_1.0.10           
+ [19] cellranger_1.1.0        SparseArray_1.8.1       gridGraphics_0.5-1     
+ [22] mitml_0.4-5             sass_0.4.10             bslib_0.9.0            
+ [25] cachem_1.1.0            whisker_0.4.1           igraph_2.1.4           
+ [28] lifecycle_1.0.4         iterators_1.0.14        pkgconfig_2.0.3        
+ [31] Matrix_1.7-3            R6_2.6.1                fastmap_1.2.0          
+ [34] rbibutils_2.3           GenomeInfoDbData_1.2.14 clue_0.3-66            
+ [37] digest_0.6.37           aplot_0.2.9             colorspace_2.1-2       
+ [40] ps_1.9.1                rprojroot_2.1.1         textshaping_1.0.3      
+ [43] labeling_0.4.3          httr_1.4.7              polyclip_1.10-7        
+ [46] abind_1.4-8             mgcv_1.9-1              compiler_4.5.0         
+ [49] withr_3.0.2             doParallel_1.0.17       backports_1.5.0        
+ [52] S7_0.2.0                viridis_0.6.5           ggforce_0.5.0          
+ [55] pan_1.9                 MASS_7.3-65             rappdirs_0.3.3         
+ [58] DelayedArray_0.34.1     rjson_0.2.23            tools_4.5.0            
+ [61] httpuv_1.6.16           nnet_7.3-20             glue_1.8.0             
+ [64] callr_3.7.6             nlme_3.1-168            promises_1.3.3         
+ [67] polylabelr_0.3.0        getPass_0.2-4           cluster_2.1.8.1        
+ [70] operator.tools_1.6.3    gtable_0.3.6            formula.tools_1.7.1    
+ [73] tidygraph_1.3.1         XVector_0.48.0          ggrepel_0.9.6          
+ [76] foreach_1.5.2           pillar_1.11.1           stringr_1.5.2          
+ [79] yulab.utils_0.2.1       later_1.4.4             circlize_0.4.16        
+ [82] splines_4.5.0           tweenr_2.0.3            lattice_0.22-6         
+ [85] survival_3.8-3          tidyselect_1.2.1        locfit_1.5-9.12        
+ [88] git2r_0.36.2            reformulas_0.4.1        gridExtra_2.3          
+ [91] xfun_0.53               graphlayouts_1.2.2      statmod_1.5.0          
+ [94] stringi_1.8.7           UCSC.utils_1.4.0        boot_1.3-31            
+ [97] ggfun_0.2.0             yaml_2.3.10             evaluate_1.0.5         
+[100] codetools_0.2-20        ggraph_2.2.2            ggplotify_0.1.3        
+[103] cli_3.6.5               rpart_4.1.24            systemfonts_1.3.1      
+[106] Rdpack_2.6.4            processx_3.8.6          jquerylib_0.1.4        
+[109] Rcpp_1.1.0              png_0.1-8               parallel_4.5.0         
+[112] lme4_1.1-37             glmnet_4.1-10           viridisLite_0.4.2      
+[115] purrr_1.1.0             crayon_1.5.3            GetoptLong_1.0.5       
+[118] rlang_1.1.6             mice_3.18.0            </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

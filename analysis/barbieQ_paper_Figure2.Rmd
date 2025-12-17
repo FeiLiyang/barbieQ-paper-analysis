@@ -1,133 +1,357 @@
 ---
-title: "barbieQ_paper_Figure2 & Supplementary1: Preprocessing."
+title: "barbieQ_paper_Figure2: Preprocessing `Monkey HSPC dataset`"
 author: "Liyang Fei"
 date: |
   Initiated: 2025-09-07  
   Rendered: `r format(Sys.Date(), '%Y-%m-%d')`
-output: workflowr::wflow_html
+output: html_document
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Linked to Preprocessing analyses of all datasets in the barbieQ paper: 
+ 
+ - [Monkey HSPC]()
+ 
+ - [AML data]()
+ 
+ - [Mouse HSPC]()
+ 
+ - [Mixture data]()
+
 # Load Dependencies
 
-```{r load library}
+```{r load library, message=FALSE, warning=TRUE}
 library(readxl)
 library(magrittr)
 library(dplyr)
 library(tidyr) # for pivot_longer
 library(tibble) # for rownames_to _column
 library(knitr) # for kable()
+library(data.table) # for data.table()
 library(SummarizedExperiment)
 library(S4Vectors)
 library(ggplot2)
+library(ggbreak)
 library(patchwork)
 library(scales)
 library(ggVennDiagram)
 library(ComplexHeatmap)
-library(limma)
 ```
 
-# Install barbieQ
+# Install `barbieQ`
+
+Installing the latest devel version of `barbieQ` from GitHub.
 
 ```{r load barbieQ}
-## install the latest devel version of barbieQ
 if (!requireNamespace("barbieQ", quietly = TRUE)) {
-  install_github("Oshlack/barbieQ")
+  remotes::install_github("Oshlack/barbieQ")
 }
 
 library(barbieQ)
 ```
 
-# Clean up datasets {.tabset .tabset-fade .tabset-pills}
-
-## Monkey HSPC
+Check the version of `barbieQ`.
 
 ```{r}
-## data is separated by "\t", so use read.table()
+packageVersion("barbieQ")
+```
+
+# Set seeds
+
+```{r}
+set.seed(2025)
+getwd()
+```
+
+
+# Clean up datasets {.tabset .tabset-fade .tabset-pills}
+
+The data was downloaded from [barcodetrackRData](https://github.com/dunbarlabNIH/barcodetrackRData) repository on GitHub. The experiment was described in [Wu, Chuanfeng, et al. "Clonal expansion and compartmentalized maintenance of rhesus macaque NK cell subsets." Science Immunology (2018)](http://dx.doi.org/10.1126/sciimmunol.aat9781).
+
+Load barcode count matrix. Check barcode sequence: pass.
+
+```{r}
+## data is separated by "\t". so we use `read.table()` for loading data.
 count <- read.table("data/WuC/monkey_ZG66.txt", header = TRUE, sep = "\t", row.names = 1)
 
 ## rownames are barcode sequence, basically consist of ATGCs: "^[ATGC]+$"
-# lapply(rownames(count), function(x) grepl("^[ATGC]+$", x)) %>% unlist() %>% table()
+## check patterns of rownames
+lapply(rownames(count), function(x) grepl("^[ATGC]+$", x)) %>% unlist() %>% table()
+## print untypical rownamse
+rownames(count)[!lapply(rownames(count), function(x) grepl("^[ATGC]+$", x)) %>% unlist()]
+## allow "N" in rowname patterns: "^[ATGCN]+$"
+lapply(rownames(count), function(x) grepl("^[ATGCN]+$", x)) %>% unlist() %>% table()
+```
 
-## read metadata of samples.
+Load sample meta information. Clean up experimental conditions.
+
+```{r}
 metadata <- read.table("data/WuC/monkey_ZG66_metadata.txt", header = 1, row.names = 1)
 
-## update the variable names following camelCase style.
+## update the variable names using the camelCase style.
 colnames(metadata)[grepl("Cell_type", colnames(metadata))] <- "Celltype"
-# print(colnames(metadata))
+print(colnames(metadata))
 
-## Timepoint and Months variables in the `metadata` are simply repetition, delete one
+## `Timepoint` and `Months` variables in the `metadata` are repetition, delete `Timepoint`.
+identical(gsub("m$", "", metadata$Timepoint) %>%  as.numeric(), metadata$Months)
 metadata$Timepoint <- NULL
+print(colnames(metadata))
 
-## create an object to store the barcode count matrix and sample metadata.
-monkeyHSPC <- barbieQ::createBarbieQ(object = count, sampleMetadata = metadata)
-```
+## all samples are from the "ZG66". delete `Monkey` variable.
+metadata$Monkey %>% table()
+metadata$Monkey <- NULL
+print(colnames(metadata))
 
-```{r}
-## clean up sample metadata
-updateSampleMetadata <- monkeyHSPC$sampleMetadata %>% 
+## categorize `Months` by `Phase`
+## replace "Gr_1" and "Gr_2" by "Gr" - I don't know what exactly happened in the experiment regarding the unmatched cell type names.
+metadata$Months
+metadata$Celltype %>% table()
+metadata <- metadata %>% 
   as.data.frame() %>% 
   select(Celltype, Months) %>% 
-  mutate(Phase = ifelse(Months < 6, "early", ifelse(Months >=55, "late", "mid"))) %>% 
-  mutate(Celltype = gsub("(Gr).*", "\\1", Celltype))
-## update sample metadata
-monkeyHSPC$sampleMetadata <- S4Vectors::DataFrame(updateSampleMetadata)
-## add more info
-metadata(monkeyHSPC) <- list("Monkey" = "ZG66")
+  mutate(Celltype = gsub("(Gr).*", "\\1", Celltype)) %>% 
+  ## to repeat the analyses in the original paper, we select same set of samples, which is the first 30 samples, basically collected from those time points
+  mutate(inOriginalPaper = Months %in% c(6.5, 12, 17, 27, 36, 42))
 
-## subset samples by excluding the late time points where samples were sorted into NK subtypes - we don;t need them here
-monkeyHSPC <- monkeyHSPC[, monkeyHSPC$sampleMetadata$Phase != "late"]
+## turn `Celltype` into factors and set up levels.
+metadata$Celltype <- factor(metadata$Celltype, levels = c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p", "NK_NKG2Ap_CD16p", "NK_NKG2Ap_CD16p_KIR3DL01n", "NK_NKG2Ap_CD16p_KIR3DL01p"))
+
+data.table(metadata)
 ```
 
-## AML data
+# Create `barbieQ` object
 
-## Mouse HSPC
-
-## Mixture data
-
-# Identify correlating barcodes {.tabset .tabset-fade .tabset-pills}
-
-## Monkey HSPC
-
-Tag top barcodes in advance to save the time for running 
+Store count matrix and sample metadata into a `barbieQ` object.
 
 ```{r}
-## check min group size
-table(monkeyHSPC$sampleMetadata$Celltype)
+## set up the color mapping for the conditions
+conditionColor0 <- list(
+  Celltype = setNames(
+    c("yellowgreen", "darkolivegreen", "goldenrod", "steelblue1", "slateblue1", "orchid", "lightpink", "violetred"), 
+    c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p", "NK_NKG2Ap_CD16p", "NK_NKG2Ap_CD16p_KIR3DL01n", "NK_NKG2Ap_CD16p_KIR3DL01p")),
+  Months = circlize::colorRamp2(
+    breaks = c(6.5, 12, 17, 27, 36, 42, 68),
+    colors = c("#CFCFFF", "#B2B2FF", "#8282FF", "#4D4FFF", "#1D1DFF", "#0000B2", "#00006A"))
+)
 
+## for this specific subset of samples - removing conditions not existing
+conditionColor <- list(
+    Celltype = setNames(c("yellowgreen", "darkolivegreen", "goldenrod", "steelblue1", "slateblue1"), 
+                        c("T", "B", "Gr", "NK_CD56p_CD16n", "NK_CD56n_CD16p")),
+    Months = circlize::colorRamp2(
+      breaks = c(6.5, 12, 17, 27, 36, 42),
+      colors = c("#CFCFFF", "#B2B2FF", "#8282FF", "#4D4FFF", "#1D1DFF", "#0000B2"))
+)
+```
+
+```{r}
+## create an object to store the barcode count matrix and sample metadata.
+## only passing Celltype and Months to sample metadata
+## to repeat the analyses in the original paper, we select same set of samples, which is the first 30 samples, basically samples of Months %in% c(6.5, 12, 17, 27, 36, 42)
+monkeyHSPC_raw <- barbieQ::createBarbieQ(
+  object = count, 
+  sampleMetadata = metadata, 
+  factorColors = conditionColor0)
+
+## add monkey ID to object metadata.
+monkeyHSPC_raw@metadata$Monkey <- list("Monkey" = "ZG66")
+```
+
+
+```{r}
+## create an object to store the barcode count matrix and sample metadata.
+## only passing Celltype and Months to sample metadata
+## to repeat the analyses in the original paper, we select same set of samples, which is the first 30 samples, basically samples of Months %in% c(6.5, 12, 17, 27, 36, 42)
+monkeyHSPC <- barbieQ::createBarbieQ(
+  object = count[,1:30], 
+  sampleMetadata = metadata[1:30, c("Celltype", "Months")], 
+  factorColors = conditionColor)
+
+## add monkey ID to object metadata.
+monkeyHSPC@metadata$Monkey <- list("Monkey" = "ZG66")
+```
+
+# Cluster correlating barcodes {.tabset .tabset-fade .tabset-pills}
+
+Select "top" barcodes in advance to save the time & space for running `plotBarcodePairCorrelation`.
+
+```{r}
+## check min group size as `nSampleThreshold` in `tagTopBarcodes`
+table(monkeyHSPC$sampleMetadata$Celltype)
+## select top barcodes
 monkeyHSPC <- barbieQ::tagTopBarcodes(monkeyHSPC, nSampleThreshold = 6)
+## print number of unselected / selected barcodes
 monkeyHSPC@elementMetadata$isTopBarcode %>% table()
 ```
 
-```{r}
+Compute barcode pair-wise correlation. Default to Pearson correlation.
+
+```{r, fig.width=5, fig.height=4}
 p_monkey_pair_cor <- plotBarcodePairCorrelation(barbieQ = monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])
-p_monkey_pair_cor
+f2a <- p_monkey_pair_cor + theme(legend.position = "top")
+f2a
+```
+
+Cluster barcodes by correlation.
+
+```{r}
+monkeyHSPC_top <- barbieQ::clusterCorrelatingBarcodes(barbieQ = monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])
+```
+
+Inspect barcode clusters.
+
+```{r}
+p_cluster_list <- barbieQ::inspectCorrelatingBarcodes(monkeyHSPC_top)
+```
+
+`p_cluster` is not a classical ggplot object, instead, it's converted from a base R plot generated by `igraph`. Here's how to change the `geom_node_text` size for it.
+
+```{r fig.width=4, fig.height=4}
+## update the geom_node_text for `p_cluster`
+## find the geom_node_text layer
+layer_index <- which(sapply(p_cluster_list$p_cluster$layers, function(x) inherits(x$geom, "GeomTextRepel")))
+## update the size for that layer
+p_cluster_list$p_cluster$layers[[layer_index]]$aes_params$size <- 1.4  # new size
+f2b <- p_cluster_list$p_cluster + theme(legend.position = "none")
+
+f2b
+```
+
+```{r include=FALSE}
+f2c <- (((p_cluster_list$p_cluster_size + theme(axis.text.x = element_blank(),
+                                         axis.title.x = element_blank(),
+                                         axis.ticks.x = element_blank(),
+                                         axis.line.x = element_blank(),
+                                         strip.text = element_blank(),
+                                         plot.margin = unit(c(0, 0, 0, 0.1), "lines"))
+   ) %>% print() %>% wrap_elements(clip = FALSE)) / ((p_cluster_list$p_cluster_prop + theme(plot.margin = unit(c(0,0.6,0,0.6), "line"))) %>% wrap_elements(clip = FALSE)) + plot_layout(guides = "collect"))
+```
+
+```{r fig.width=4, fig.height=8}
+f2c
 ```
 
 
-## AML data
 
-## Mouse HSPC
+# Merge correlating barcodes
 
-## Mixture data
+Use the barcode correlation information saved in `monkeyHSPC_top` to merge barcodes in the initial data `monkeyHSPC`.
+
+Barcode proportion, CPM, rank, ... are re-calculated based on the selected barcodes in the new barbieQ object.
+
+```{r}
+monkeyHSPC_merged <- barbieQ::mergeCorrelatingBarcodes(barbieQ_clustered = monkeyHSPC_top, barbieQ_toMerge = monkeyHSPC)
+dim(monkeyHSPC_merged)
+
+monkeyHSPC_merged@metadata$predicted_barcode_clusters
+monkeyHSPC_merged@metadata$removed_barcodes
+```
+
 
 # Filter low-count barcodes {.tabset .tabset-fade .tabset-pills}
 
-## Monkey HSPC
+Tag top barcodes.
 
 ```{r}
-
+## check min group size as `nSampleThreshold` in `tagTopBarcodes`
+table(monkeyHSPC_merged$sampleMetadata$Celltype)
+## select top barcodes
+monkeyHSPC_merged <- barbieQ::tagTopBarcodes(monkeyHSPC_merged, nSampleThreshold = 6)
+## print number of unselected / selected barcodes
+monkeyHSPC_merged@elementMetadata$isTopBarcode %>% table()
 ```
 
-## AML data
+Visualize barcodes by "top" and "bottom".
 
-## Mouse HSPC
+```{r, fig.width=5, fig.height=4}
+f2d <- barbieQ::plotBarcodePareto(barbieQ = monkeyHSPC_merged) +
+  ylim(-8, 7) + 
+  annotate("text", x = c(pi * 0.05), y = c(7), label = c("Relative proportion %"), color = "#999966", size = 3, angle = 0, fontface = "bold", hjust = 1)
+f2e <- barbieQ::plotBarcodeSankey(barbieQ = monkeyHSPC_merged)
 
-## Mixture data
+f2d
+f2e
+```
 
-# Figure 2
+
+```{r}
+## subset barcodes by top barcodes.
+monkeyHSPC_merged_top <- monkeyHSPC_merged[monkeyHSPC_merged@elementMetadata$isTopBarcode$isTop,]
+dim(monkeyHSPC_merged_top)
+```
+
+Visualize barcode heatmaps by pre- and post- filtering.
+
+```{r}
+p_ht_all <- barbieQ::plotBarcodeHeatmap(monkeyHSPC_merged)
+## setting heatmap matrix size with accessors
+p_ht_all@matrix_param$width <- grid::unit(7, "cm")
+p_ht_all@matrix_param$height <- grid::unit(7, "cm")
+```
+
+```{r}
+p_ht_top <- barbieQ::plotBarcodeHeatmap(monkeyHSPC_merged_top)
+
+p_ht_top@matrix_param$width <- grid::unit(7, "cm")
+p_ht_top@matrix_param$height <- grid::unit(7, "cm")
+
+# barbieQ::plotBarcodeHeatmap(monkeyHSPC_merged_top, colorMapTo = "proportion")
+# barbieQ::plotBarcodeHeatmap(monkeyHSPC_merged_top, colorMapTo = "logit proportion")
+```
+
+# Figure2
+
+```{r, fig.width=13, fig.height=12}
+layout = "
+AAAAABBBBCCCC
+AAAAABBBBCCCC
+DDDDDEEEECCCC
+DDDDDEEEECCCC
+FFFFFGGGGGG##
+FFFFFGGGGGG##
+"
+f2 <- (wrap_elements(f2a + theme(plot.margin = unit(c(0,0.6,0,0.6), "line"))) + 
+    wrap_elements(f2b + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(f2c + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(f2d + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(f2e + theme(plot.margin = unit(rep(0,4), "cm"), legend.position = "top")) + 
+    wrap_plots(list(p_ht_all %>% draw(heatmap_legend_side = "left", show_annotation_legend = FALSE) %>% grid.grabExpr())) +
+    wrap_plots(list(p_ht_top %>% draw(heatmap_legend_side = "left") %>% grid.grabExpr())) 
+  ) + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c("A","B","C", "D", "E", "F", ""))) &
+  theme(
+    plot.tag = element_text(size = 24, face = "bold", family = "arial"),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+f2
+```
+
+```{r}
+ggsave(
+  filename = "output/f2.png",
+  plot = f2,
+  width = 13,
+  height = 12,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 300
+  )
+```
+
+Saving this figure in [f2](../output/f2.png)
+
+# Save preprocessed `barbieQ` objects in .rda
+
+```{r}
+save(monkeyHSPC_merged, monkeyHSPC_merged_top, file = "output/monkeyHSPC_barbieQ.rda")
+save(monkeyHSPC_raw, file = "output/monkeyHSPC_raw_barbieQ.rda")
+```
+

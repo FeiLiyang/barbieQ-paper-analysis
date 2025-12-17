@@ -1,17 +1,1181 @@
 ---
-title: "barbieQ_paper_Figure3 & Supplementary 2,3: Statistical test"
+title: "barbieQ_paper_Figure3_FigureS4"
 author: "Liyang Fei"
 date: |
   Initiated: 2025-09-07  
   Rendered: `r format(Sys.Date(), '%Y-%m-%d')`
 output: workflowr::wflow_html
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-## Introduction
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Dependencies
+
+```{r load library, message=FALSE, warning=TRUE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(data.table) # for data.table()
+library(SummarizedExperiment)
+library(S4Vectors)
+library(grid)
+library(ggplot2)
+library(ggbreak)
+library(ggnewscale) # ggnewscale::new_scale_fill() 
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(magick) # image_read()
+library(eulerr)
+library(edgeR)
+
+source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
+source("analysis/F3_simulation.R") ## for negative simulation
+```
+
+# Install `barbieQ`
+
+Installing the latest devel version of `barbieQ` from GitHub.
+
+```{r load barbieQ}
+if (!requireNamespace("barbieQ", quietly = TRUE)) {
+  remotes::install_github("Oshlack/barbieQ")
+}
+
+library(barbieQ)
+```
+
+Check the version of `barbieQ`.
 
 ```{r}
+packageVersion("barbieQ")
+```
+
+# Set seeds
+
+```{r}
+set.seed(2025)
+```
+
+# Set ggplot theme
+
+```{r}
+## ggplot theme
+strip_zeros <- function(x) {
+  x <- format(x, scientific = FALSE)
+  x <- sub("0+$", "", x)
+  sub("\\.$", "", x)
+}
+## ggplot theme
+theme_barbieQ <- theme_barbie <- function(base_size = 12, base_family = "") {
+  theme_linedraw(base_size = base_size, base_family = base_family) +
+    theme(
+      # panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.title = element_text(size = base_size * 1.1),
+      axis.text  = element_text(size = base_size),
+      legend.title = element_text(size = base_size),
+      legend.text  = element_text(size = base_size * 0.9),
+      legend.key = element_blank(),
+      plot.title = element_text(size = base_size * 1.1),
+      plot.subtitle = element_text(size = base_size)
+    )
+}
+
+theme_barbieQ_size <- theme_barbie <- function(base_size = 12) {
+    theme(
+      axis.title = element_text(size = base_size * 1.1),
+      axis.text  = element_text(size = base_size),
+      legend.title = element_text(size = base_size),
+      legend.text  = element_text(size = base_size * 0.9),
+      plot.title = element_text(size = base_size * 1.1),
+      plot.subtitle = element_text(size = base_size)
+    )
+}
+```
+
+
+# Load data
+
+```{r}
+load("output/mixture_barbieQ.rda")
+```
+
+# F3A: Experimental schematic
+
+```{r}
+schematic <- image_read("output/f3a_schematic.png")
+f3a <- rasterGrob(schematic, interpolate = FALSE) 
+wrap_elements(full = f3a)
+```
+
+# F3B: Plot barcode proportion and sample annotation
+
+`plotBarcodeHistogram`, sourced from "plotBarcodeHistogram.R", is customized from the `bartools` package.
+
+```{r, fig.width=6, fig.height=4}
+## pull out sample designs
+design_mixed <- mixture_plus1_top$sampleMetadata %>% as.data.frame()
+design_mixed$sample <- colnames(mixture_plus1_top)
+str(design_mixed)
+
+design_mixed$y = 1.05
+color_mapping <- mixture_plus1_top@metadata$factorColors
+
+design_mixed$Subset <- factor(design_mixed$Subset, levels = c("null", "perturb"), labels = c("baseline", "perturbed"))
+
+## order samples
+order_sample <- design_mixed %>% with(order(Subset, Perturbation, BarcodeSize))
+
+mixed_dge <- DGEList(
+  counts = assay(mixture_plus1_top), 
+  group = mixture_plus1_top$sampleMetadata$Subset)
+
+## pull out ggplot data
+p_mixed <- plotBarcodeHistogram(mixed_dge, orderSamples = colnames(mixture_plus1_top)[order_sample])
+
+p_mixed_illus <- p_mixed +
+  ## label subset
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_mixed, aes(x = sample,y = y, fill = Subset), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = color_mapping$Subset) +
+  labs(fill = "Subset") + 
+  guides(fill = guide_legend(ncol = 2)) + 
+  ## label perturbations
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_mixed, aes(x = sample,y = y+0.05, fill = as.factor(Perturbation)), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = color_mapping$Perturbation) +
+  labs(fill = "Perturbation level") + 
+  guides(fill = guide_legend(ncol = 2)) + 
+  ## label libsize
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = design_mixed, aes(x = sample,y = y+0.10, fill = as.factor(BarcodeSize)), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = color_mapping$BarcodeSize)+
+  labs(fill = "Num. of cells") + 
+  guides(fill = guide_legend(ncol = 2)) +
+  labs(x = "Sample", y = "Barcode proportion") +
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
+  theme(axis.text.x = element_blank(), panel.grid.major.x = element_blank())
+
+f3b <- p_mixed_illus + 
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), aspect.ratio = 1,
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12)) + 
+  guides(fill = guide_legend(ncol = 2))
+f3b
 
 ```
 
+# FPR
+
+Using [mixture_plus1_top](barbieQ_paper_S1.html) data, where an offset (one) was added to the raw count, based on which proportion was calculated. However the "top" barcodes were filtered based on the raw count data.
+
+Here we subset the 12 "null" samples for evaluating FPR of diff_prop, and diff_occ methods.
+
+Three transformations with dif_prop were evaluated separately.
+
+ - **avoid running this chunk during rendering. `global_all_loops` was saved from the first run.**
+
+```{r eval=FALSE, fig.height=8, fig.width=16, include=TRUE}
+nulls <- mixture_plus1_top[, mixture_plus1_top$sampleMetadata$Subset == "null"]
+
+results_negsi <- suppressMessages({
+  random_sampling(barbieQ = nulls, loop_times = 100)
+  })
+
+## `random_sampling()` save the simulations to global environment
+## as `global_all_loops`
+save(global_all_loops, file = "output/mixture_negative_simulation.rda")
+
+results_negsi[[1]] <- results_negsi[[1]] + ggtitle("Prop_asin, perturb_null")
+results_negsi[[2]] <- results_negsi[[2]] + ggtitle("Prop_logit, perturb_null")
+results_negsi[[3]] <- results_negsi[[3]] + ggtitle("Prop_noTrans, perturb_null")
+results_negsi[[4]] <- results_negsi[[4]] + ggtitle("Occ_firth, perturb_null")
+results_negsi[[5]] <- results_negsi[[5]] + ggtitle("Prop_asin, perturb_null")
+results_negsi[[6]] <- results_negsi[[6]] + ggtitle("Prop_logit, perturb_null")
+results_negsi[[7]] <- results_negsi[[7]] + ggtitle("Prop_noTrans, perturb_null")
+results_negsi[[8]] <- results_negsi[[8]] + ggtitle("Occ_firth, perturb_null")
+
+wrap_plots(results_negsi[1:8], ncol = 4)
+```
+
+## load results
+
+```{r}
+## loading random sampling results to avoid running it repeatedly
+load("output/mixture_negative_simulation.rda")
+```
+
+```{r }
+  # extract results from the loops
+  end_sampling <- 6
+  
+  ## extract FPR
+  all_FPR <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$FPR
+  })
+  df_FPR <- do.call(rbind, all_FPR)
+  
+  ## extract P.Val
+  all_P.Val <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$P.Val
+  })
+  df_P.Val <- do.call(rbind, all_P.Val)
+  
+  ## extract MA
+  all_MA <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$MA
+  })
+  df_MA <- do.call(rbind, all_MA)
+  
+  all_Group_Vec <- lapply(seq(3:end_sampling), function(n) {
+    global_all_loops[[n]]$Group_Vec
+  })
+  df_Group_Vec <- do.call(rbind, all_Group_Vec)
+  
+  stats_barcodes <- cbind(df_P.Val[,1:4], df_MA)
+
+```
+
+## F3C: Type I Error Rate
+
+ - Diff_prop
+
+```{r}
+df_FPR$N_Samples <- as.factor(df_FPR$N_Samples)
+  
+  ## reshape the data to fit methods for testing
+df_FPR_long <- df_FPR %>%
+  pivot_longer(cols = starts_with("Prop_"),
+               names_to = "Method",
+               values_to = "Pval_Prop") %>%
+  mutate(Method = factor(Method, levels = c("Prop_asin", "Prop_logit", "Prop_noTrans"),
+                         labels = c("asin-sqrt", "logit", "no trans.")))
+
+P_FPR_add1_prop <- ggplot(
+  df_FPR_long, aes(x = factor(N_Samples), y = Pval_Prop, color = Method)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       title = "Type I Erroe Rate",
+       subtitle = "Differential proportion test") +
+  # facet_wrap(~Method, scales = "free_y") +
+  theme_classic() +
+  theme(legend.position = "top")
+```
+
+ - Diff_occ. when converting barcode presence / absence, setting the threshold as CPM>10 instead of the default 1, as an offset (one) was added to the raw count [preprocessing](barbieQ_paper_S1.html).
+
+```{r}
+P_FPR_occ <- ggplot(
+  df_FPR, aes(x = factor(N_Samples), y = Occ_firth)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("Differential occurrrence test" = "black")) +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       subtitle = "Differential occurrence test") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+```
+
+```{r, fig.width=9, fig.height=5}
+f3c <- P_FPR_add1_prop + theme(
+  plot.subtitle = element_text(size = 13),
+  legend.title = element_text(size = 12), legend.text = element_text(size = 11), 
+  axis.title = element_text(size = 13), axis.text = element_text(size = 12)
+  ) + 
+  P_FPR_occ + theme(
+    plot.subtitle = element_text(size = 13),
+    legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+    axis.title = element_text(size = 13), axis.text = element_text(size = 12)
+    )
+f3c
+```
+
+## F3G_left: Type I Error Rate as a function to N_BC
+
+### Generate subsets of barcodes
+
+```{r}
+## with different filtering thresholds, how many "top" barcodes do we get
+1:9/10
+lapply(
+  c(1:9/10, 0.95), 
+  function(filter_level) {
+    mixture_plus1 <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+    paste0("filter_thresh=", filter_level, "; N_barcodes=", sum(rowData(mixture_plus1)$isTopBarcode$isTop)) %>% print()
+    # plotBarcodeSankey(mixture)
+    
+    return(
+      sum(rowData(mixture_plus1)$isTopBarcode$isTop)
+    )
+  }
+  ) %>% unlist() %>% 
+  setNames(nm = c(1:9/10, 0.95)) ->
+  filter_to_N
+
+filter_to_N
+names(filter_to_N) %>% str()
+```
+
+### Update proportion
+
+```{r}
+## Compute medians per bin/method/N_Samples
+method_labels <- c(
+  "Prop_asin" = "asin-sqrt",
+  "Prop_logit" = "logit",
+  "Prop_noTrans" = "none"
+ )
+
+```
+
+ - avoid running this chunk during rendering. `stats_barcodes_all_levels` was saved from the first run.
+
+```{r eval=FALSE, include=TRUE}
+stats_barcodes_all_levels <- lapply(
+  c(1:9/10, 0.95),
+  function(i) {
+    stats_barcodes_i <- get_null_sample_by_filter(mixture_plus1, i, loop_times = 100)
+    stats_barcodes_i$filter_level <- i
+    stats_barcodes_i$N_BC <- filter_to_N[i %>% as.character()]
+    return(stats_barcodes_i)
+  }
+)
+
+stats_barcodes_all_levels <- do.call(rbind, stats_barcodes_all_levels)
+
+save(stats_barcodes_all_levels, file = "output/fdr_by_Nbc.rda")
+```
+
+
+```{r}
+load("output/fdr_by_Nbc.rda")
+
+ FPR_box <- stats_barcodes_all_levels %>%
+    pivot_longer(
+      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
+      names_to = "method",
+      values_to = "pvalue"
+    ) %>% 
+    group_by(method, N_Samples, N_BC, Loop_N) %>%
+    summarize(N_signif = sum(pvalue < 0.05), Frac_signif = sum(pvalue < 0.05) / n(), .groups = "drop") %>% 
+    mutate(Method = recode(method, !!!method_labels))
+  
+  ggplot(FPR_box, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(N_BC, Method))) +
+    geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+    labs(
+      x = paste0("Number of total barcodes after filtering"),
+      y = "Fraction of P-Value < 0.05", color = "Method", shape = "N_sample", linetype = "N_sample",
+      title = "Type I Error Rate as a function to number of barcodes"
+      ) +
+    geom_hline(yintercept = 0.05, linetype = "dashed") +
+    # facet_wrap(~N_Samples, ncol =4) +
+    theme_linedraw()+
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, size = 10, hjust = 0.5), aspect.ratio = 0.5) + 
+    theme(
+        legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12)) + 
+    scale_y_continuous(limits = c(0,0.2))
+```
+
+### Raw proportion
+
+
+```{r}
+## saving all p.vals from the N=1553 simulation
+# df_P.Val
+mixture_plus1 <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = 0.95)
+## get the subset of barcodes
+lapply(c(1:9/10, 0.95), function(filter_level) {
+  barbieQ <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  tag <- rowData(barbieQ)$isTopBarcode$isTop
+  tag <- tag[mixture_plus1@elementMetadata$isTopBarcode$isTop]
+  return(tag)
+}) -> BC_set_by_filter
+
+BC_set_by_filter <- do.call(cbind, BC_set_by_filter)
+colnames(BC_set_by_filter) <- filter_to_N[c(1:9/10, 0.95) %>% as.character()]
+## check
+colSums(BC_set_by_filter)
+
+mean_prop <- rowMeans(mixture_plus1[mixture_plus1@elementMetadata$isTopBarcode$isTop,mixture_plus1$sampleMetadata$Subset=="null"]@assays@data$proportion)
+
+df_P.Val_0.95 <- stats_barcodes_all_levels %>% filter(filter_level==0.95)
+
+df_P.Val_filter_tag <- cbind(
+  df_P.Val_0.95,  
+  mean_prop,
+  BC_set_by_filter[rep(seq_len(nrow(BC_set_by_filter)),length.out = nrow(df_P.Val_0.95)), ])
+```
+
+```{r}
+FPR_box_raw <- df_P.Val_filter_tag %>%
+  select(-N_BC) %>% 
+    pivot_longer(
+      cols = c(Prop_asin, Prop_logit, Prop_noTrans),
+      names_to = "method",
+      values_to = "pvalue"
+    ) %>% 
+   pivot_longer(
+     cols = as.character(filter_to_N[c(1:9/10, 0.95) %>% as.character()]),
+     names_to = "N_BC",
+     values_to = "selectedBy"
+   ) %>% 
+    group_by(method, N_Samples, Loop_N, N_BC) %>%
+    summarize(
+      N_signif = sum(pvalue < 0.05 & selectedBy), 
+      Frac_signif = sum(pvalue < 0.05 & selectedBy) / sum(selectedBy), .groups = "drop") %>% 
+    mutate(Method = recode(method, !!!method_labels))
+
+FPR_box_raw$N_BC <- as.numeric(FPR_box_raw$N_BC)
+  
+ggplot(FPR_box_raw, aes(x= as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(Method, N_BC))) +
+    geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+    labs(
+      x = paste0("Number of total barcodes after filtering"),
+      y = "Fraction of P-Valuev < 0.05", color = "Method", shape = "N_sample", linetype = "N_sample"
+      ) +
+    geom_hline(yintercept = 0.05, linetype = "dashed") +
+    # facet_wrap(~N_Samples, ncol =4) +
+    theme_linedraw()+
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, size = 10, hjust = 0.5), aspect.ratio = 0.5) + 
+    theme_barbieQ_size() + 
+    scale_y_continuous(limits = c(0,0.2)) ## y scale zoom in
+```
+
+```{r, fig.width=5, fig.height=7}
+rbind(
+  data.frame(FPR_box_raw, prop_type  = "Raw proportion"), 
+  data.frame(FPR_box, prop_type  = "Updated proportion")
+  ) %>% 
+  mutate(prop_type = factor(prop_type, levels = c("Updated proportion", "Raw proportion"))) %>% 
+  ## plot
+  ggplot(aes(x = as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(N_BC, Method))) +
+    geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+    labs(
+      x = paste0("Number of total barcodes after filtering"),
+      y = "Fraction of P-Value < 0.05", color = "Method", shape = "N_sample", linetype = "N_sample",
+      title = "Type I error rate to number of barcodes"
+      ) +
+  geom_hline(yintercept = 0.05, linetype = "dashed") +
+  facet_grid(prop_type~1, switch = "y") +
+  theme_bw()+
+  theme_barbieQ_size() +
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = "top",
+        strip.placement = "outside", strip.text.y = element_text(size = 12),
+        strip.text.x = element_blank(), strip.background.x = element_blank()) +
+  scale_y_continuous(limits = c(0,0.2)) -> f3g1
+
+f3g1
+  
+```
+
+
+## F3F: Density to N_Barcodes
+
+### Updated proportion
+
+```{r}
+## get the subset of barcodes
+lapply(c(1:9/10, 0.95), function(filter_level) {
+  barbieQ <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  tag <- rowData(barbieQ)$isTopBarcode$isTop
+  
+  prop_mat <- mixture_plus1[tag,mixture_plus1$sampleMetadata$Subset=="null"]@assays@data$proportion
+  ## update prop
+  prop_mat <- t(t(prop_mat) / colSums(prop_mat))
+  
+  df <- data.frame(
+    prop = as.vector(prop_mat), 
+    N_BC=filter_to_N[as.character(filter_level)]
+    )
+  return(df)
+}) -> BC_set_prop_filter
+
+BC_set_prop_filter <- do.call(rbind, BC_set_prop_filter)
+
+ggplot(BC_set_prop_filter) +
+  geom_density(aes(x = prop, color = as.factor(N_BC), group = as.factor(N_BC))) +
+  scale_x_log10(breaks = 10^seq(-6, -1, by = 1), labels = strip_zeros) +
+  coord_cartesian(xlim = c(1e-6, 3e-1)) +
+  labs(color = "N_Barcodes", x = "Barcode Proportion", y = "Density", subtitle = "with updated proportion") +
+  theme_barbieQ() +
+  theme(aspect.ratio = 0.9) -> f3f1
+```
+
+
+### Raw proportion
+
+```{r}
+## get the subset of barcodes
+lapply(c(1:9/10, 0.95), function(filter_level) {
+  barbieQ <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  tag <- rowData(barbieQ)$isTopBarcode$isTop
+  ## keep raw prop
+  prop_mat <- mixture_plus1[tag,mixture_plus1$sampleMetadata$Subset=="null"]@assays@data$proportion
+  df <- data.frame(
+    prop = as.vector(prop_mat), 
+    N_BC=filter_to_N[as.character(filter_level)]
+    )
+  return(df)
+}) -> BC_set_prop_filter_raw
+
+BC_set_prop_filter_raw <- do.call(rbind, BC_set_prop_filter_raw)
+
+ggplot(BC_set_prop_filter_raw) +
+  geom_density(aes(x = prop, color = as.factor(N_BC), group = as.factor(N_BC))) +
+  scale_x_log10(breaks = 10^seq(-6, -1, by = 1), labels = strip_zeros) +
+  coord_cartesian(xlim = c(1e-6, 3e-1)) +
+  theme_linedraw() +
+  labs(color = "N_Barcodes", x = "Barcode Proportion", y = "Density", subtitle = "with raw proportion") +
+  theme_barbieQ() +
+  theme(aspect.ratio = 0.9) -> f3f2
+```
+
+```{r fig.width=4, fig.height=7}
+rbind(
+  data.frame(BC_set_prop_filter_raw, prop_type  = "Raw proportion"), 
+  data.frame(BC_set_prop_filter, prop_type  = "Updated proportion")
+  ) %>% 
+  mutate(prop_type = factor(prop_type, levels = c("Updated proportion", "Raw proportion"))) %>% 
+  ## pass to gplot
+  ggplot() +
+  geom_density(aes(x = prop, color = as.factor(N_BC), group = as.factor(N_BC))) +
+  scale_x_log10(breaks = 10^seq(-6, -1, by = 1), labels = strip_zeros) +
+  coord_cartesian(xlim = c(1e-6, 3e-1)) +
+  facet_grid(prop_type~1, switch = "y") +
+  labs(color = "Num. BC", x = "Barcode Proportion", y = "Density", title = "Barcode distribution in datasets") +
+  theme_bw() +
+  theme_barbieQ_size() +
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = "top", legend.key.size = unit(0.3, "cm"),
+        legend.title = element_text(size = 11), legend.text  = element_text(size = 10), 
+        strip.placement = "outside", strip.text.y = element_text(size = 12),
+        strip.text.x = element_blank(), strip.background.x = element_blank()) ->  ## disable column label
+  f3f
+  
+f3f
+```
+
+## F3D: Quantile distribution
+
+```{r, fig.width=4, fig.height=5}
+data.frame(x = (stats_barcodes_all_levels %>% filter(filter_level==0.95))$Amean_prop) %>%
+  mutate(quantile_bin = ntile(x, 10)) %>% 
+  ggplot(aes(x = as.factor(quantile_bin), y = x, group = quantile_bin)) +
+  geom_jitter(color = "grey", shape = ".") + 
+  geom_boxplot() +
+  scale_y_log10(breaks = 10^seq(-5, -1, by = 1), labels = strip_zeros) +
+  theme_barbieQ() +
+  labs(x = "Quantiles of barcode mean proportion", y = "Barcode mean proportion",
+       title = "Barcode proportion distribution", subtitle = " ") -> f3d
+
+f3d
+```
+
+## F3E_left: False positives in quantiles
+
+- For diff_prop
+
+```{r}
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.1), num_quantiles = 4)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.2), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.3), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.4), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.5), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.6), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.7), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.8), num_quantiles = 10)
+# plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.9), num_quantiles = 10)
+
+plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.95), num_quantiles = 10) + 
+  theme_barbieQ() +
+  labs(title = "Type I error rate in quanties") -> f3e1
+```
+
+# TPR
+
+## Check premix
+
+- confirming an equal mixture of pool1 and pool2 in baseline samples (the "null" samples).
+
+```{r}
+colnames(mixture_plus1_top)
+
+prop_raw <- mixture_plus1_top@assays@data$proportion
+
+pool1_vec <- prop_raw[,1]
+pool2_vec <- prop_raw[,2]
+
+## if equal mixture of pool1 and pool2; designed prop should be 1/2 of total props in original pool1 and pool2 
+check_mix_df <- data.frame(
+  ps = rowMeans(prop_raw[,1:2]), 
+  mixture_660 = prop_raw[,3]
+  )
+
+ggplot(check_mix_df, aes(x = ps, y = mixture_660)) + 
+  geom_point() + 
+  coord_fixed() +
+  geom_smooth(method = "lm")
+```
+
+ - Confirming orthogonal between premix1 and premix2: barcodes mostly not overlapping between the two premix samples, but a few noise are observed in premix2.
+
+```{r}
+ggplot(data.frame(prop_raw) %>% sqrt() %>% asin()) + 
+  geom_point(aes(x = P1, y = P2))
+
+ggplot(data.frame(prop_raw) %>% sqrt() %>% asin(), aes(x = P1+P2, y = abs(P1-P2))) + 
+  geom_point() +
+  coord_fixed() +
+  geom_smooth(method = "lm")
+
+ggplot(data.frame(prop_raw), aes(x = P1+P2, y = abs(P1-P2))) + 
+  geom_point() +
+  coord_fixed() +
+  geom_smooth(method = "lm")
+
+```
+
+## Designed differences
+
+```{r}
+## theory
+a = 0.35
+((1/2 + a) / (1+a)) - (1/2)
+a = 0.27
+(1/2 + a) / (1+a) - 1/2
+a = 0.18
+(1/2 + a) / (1+a) - 1/2
+
+```
+
+```{r eval=FALSE, include=FALSE}
+calc_theory(a = 0.18)
+calc_theory(a = 0.18, trans = "asin-sqrt")
+calc_theory(a = 0.18, trans = "logit")
+
+calc_theory(a = 0.27)
+calc_theory(a = 0.27, trans = "asin-sqrt")
+calc_theory(a = 0.27, trans = "logit")
+
+calc_theory(a = 0.35)
+calc_theory(a = 0.35, trans = "asin-sqrt")
+calc_theory(a = 0.35, trans = "logit")
+```
+
+## Model perturbations
+
+```{r}
+mixture_plus1_top$sampleMetadata %>% as.data.frame() %>% summary()
+
+mixed <- mixture_plus1_top[, mixture_plus1_top$sampleMetadata$Subset %in% c("perturb", "null")]
+mixed$sampleMetadata %>% as.data.frame() %>%  data.table()
+
+mixed_target <- mixed$sampleMetadata %>% as.data.frame()
+## factorize perturbation levels and barcodeSize levels
+mixed_target$Perturbation <- as.factor(mixed_target$Perturbation)
+levels(mixed_target$Perturbation)
+mixed_target$BarcodeSize <- as.factor(mixed_target$BarcodeSize)
+levels(mixed_target$BarcodeSize)
+
+mixed_design <- mixed_target %>%
+    with(model.matrix(~0 + Perturbation + BarcodeSize))
+
+myblock <- mixed_target %>% with(paste(BarcodeSize, Perturbation))
+table(myblock)
+
+```
+
+## Apply tests: extract estimates
+
+
+```{r}
+myblock <- NULL
+
+es_de_none <- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(mixed, mixed_design, myblock, a = i))
+es_de_none_df <- do.call(rbind, es_de_none)
+es_de_none_df <- es_de_none_df %>% 
+  mutate(Signif. = ifelse(P.Value<0.05, "signif.", "n.s.")) %>% 
+  mutate(Signif. = factor(Signif., levels = c("signif.", "n.s.")))
+
+es_de_asin <- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(mixed, mixed_design, myblock, a = i, trans = "asin-sqrt"))
+es_de_asin_df <- do.call(rbind, es_de_asin)
+es_de_asin_df <- es_de_asin_df %>% 
+  mutate(Signif. = ifelse(P.Value<0.05, "signif.", "n.s.")) %>% 
+  mutate(Signif. = factor(Signif., levels = c("signif.", "n.s.")))
+
+es_de_logit <- lapply(c(0.18, 0.27, 0.35), function(i) apply_model(mixed, mixed_design, myblock, a = i, trans = "logit"))
+es_de_logit_df <- do.call(rbind, es_de_logit)
+es_de_logit_df <- es_de_logit_df %>% 
+  mutate(Signif. = ifelse(P.Value<0.05, "signif.", "n.s.")) %>% 
+  mutate(Signif. = factor(Signif., levels = c("signif.", "n.s.")))
+
+es_de_df <- rbind(es_de_none_df, es_de_asin_df, es_de_logit_df)
+
+```
+
+## FS4A: Validate estimates
+
+```{r}
+regression_stats_none <- es_de_none_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(diff, meanDiff),
+    slope = coef(lm(meanDiff ~ I(diff)))[2],
+    interc = coef(lm(meanDiff ~ I(diff)))[1],
+    # res = resid(mod <- lm(meanDiff ~ I(diff))),
+    # meanDiff = meanDiff,
+    .groups = "drop"
+  )
+regression_stats_none$Method = "none"
+regression_stats_none$x = -0.01
+regression_stats_none$y = 0.01
+
+regression_stats_asin <- es_de_asin_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(diff, meanDiff),
+    slope = coef(lm((meanDiff) ~ I(diff)))[2],
+    interc = coef(lm((meanDiff) ~ I(diff)))[1],
+    .groups = "drop"
+  )
+regression_stats_asin$Method = "asin-sqrt"
+regression_stats_asin$x = -0.001
+regression_stats_asin$y = 0.001
+
+
+regression_stats_logit <- es_de_logit_df %>%
+  group_by(Contrast) %>%
+  summarise(
+    cor = cor(diff, (meanDiff)),
+    slope = coef(lm((meanDiff) ~ I(diff)))[2],
+    interc = coef(lm((meanDiff) ~ I(diff)))[1],
+    .groups = "drop"
+  )
+regression_stats_logit$Method = "logit"
+regression_stats_logit$x = -0.05
+regression_stats_logit$y = 1
+
+regression_stats <- rbind(regression_stats_asin, regression_stats_none, regression_stats_logit)
+```
+
+(facet_grid doesn't allow free x sclae for the same column. so plot three methods seperately.)
+
+```{r, fig.width=8, fig.height=4}
+p_es_de_asin <- ggplot(es_de_asin_df, aes(x = diff, y = (meanDiff))) +
+  geom_point(aes(color = Signif.), alpha = 0.5) +
+  # stat_smooth(method = "lm", linetype = "dashed", colour = "black") +
+    geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = "dashed") +
+  theme_bw() +
+  # coord_fixed() +
+  facet_wrap(~paste0("Contrast: ", Contrast)) +
+  geom_text(data = regression_stats_asin, x = -0.01, y = 0.01, 
+            aes(label = paste0("r = ", round(cor, digits = 2), "\n", "slope = ", round(slope, digits = 2)))) + 
+  theme(axis.title.x = element_blank(), legend.position = "none") +
+  labs(color = "Barcode", y = " \n \n (asin-sqrt)")
+
+
+p_es_de_none <- ggplot(es_de_none_df, aes(x = diff, y = (meanDiff))) +
+  geom_point(aes(color = Signif.), alpha = 0.5) +
+  # stat_smooth(method = "lm", linetype = "dashed", colour = "black") +
+  geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = "dashed") +
+  theme_linedraw()+
+  # coord_fixed() +
+  facet_wrap(~paste0("Contrast: ", Contrast)) +
+    geom_text(data = regression_stats_none, x = -0.0015, y = 0.001, 
+            aes(label = paste0("r = ", round(cor, digits = 2), "\n", "slope = ", round(slope, digits = 2)))) + 
+  labs(y = " \n \n (no transformation)", x = " \n Designed differences")+
+  ## zoom in, removing a few barcodes with large proportion. 
+  scale_x_continuous(limits = c(-0.003, 0.003)) +
+  scale_y_continuous(limits = c(-0.003, 0.003)) +
+  theme(legend.position = "none", strip.text = element_blank()) + # remove facet titles
+  labs(color = "Barcode")
+
+p_es_de_logit <- ggplot(es_de_logit_df, aes(x = diff, y = (meanDiff))) +
+  geom_point(aes(color = Signif.), alpha = 0.5) +
+  # stat_smooth(method = "lm", linetype = "dashed", colour = "black") +
+  geom_abline(data = regression_stats_none, aes(intercept = interc, slope = slope), linetype = "dashed") +
+  theme_linedraw()+
+  facet_wrap(~paste0("Contrast: ", Contrast)) +
+    geom_text(data = regression_stats_logit, x = -0.15, y = 1, 
+            aes(label = paste0("r = ", round(cor, digits = 2), "\n", "slope = ", round(slope, digits = 2)))) + 
+  labs(y = "Estimated differences \n \n (logit)", color = "Barcode") +
+   ## zoom in, removing one barcode with large proportion. 
+  # scale_x_continuous(limits = c(-0.3, 0.3)) +
+  # scale_y_continuous(limits = c(-0.3, 0.3)) +
+  theme(axis.title.x = element_blank(), legend.position = "right", strip.text = element_blank())  # remove facet titles
+```
+
+```{r, fig.width=9, fig.height=8}
+fs4a <- (p_es_de_asin + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12)) ) / 
+  (p_es_de_logit + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12))) /
+  (p_es_de_none + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12))) 
+fs4a
+```
+## F3G_right: TPR as a function to N_BC
+
+### Updated proportion
+
+```{r}
+test_perturb <- function(mixed, mixed_target, mixed_design, myblock, trans = "none", a = 0.18) {
+  tester <- testBarcodeSignif(
+    barbieQ = mixed, sampleMetadata = mixed_target, sampleGroup = "Perturbation", 
+    contrastFormula = paste0("Perturbation", a, " - Perturbation0"), transformation = trans,
+    designMatrix = mixed_design, block = myblock)
+  
+  veri_diff <- as.data.frame(tester@elementMetadata$testingBarcode)
+  
+  veri_diff <- rownames_to_column(veri_diff, var = "BC") 
+  veri_diff$Contrast = paste0(a, " - 0")
+  veri_diff$Method = trans
+
+  
+  return(veri_diff)
+}
+
+```
+
+```{r}
+test_all_levels <- lapply(
+  c(1:9/10, 0.95),
+  function(i) {get_mixted_by_filter(barbieQ = mixture_plus1, filter_level = i)}
+)
+
+test_all_levels <- do.call(rbind, test_all_levels)
+
+test_TPR <- test_all_levels %>% 
+  group_by(Method, Contrast, N_BC) %>% 
+  summarize(Frac_signif = sum(P.Value < 0.05) / n(), .groups = "drop")
+
+```
+
+```{r}
+ggplot(test_TPR, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, linetype = Contrast, shape = Contrast)) +
+  # geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+  geom_line(aes(group = paste0(Contrast, Method))) +
+  geom_point() +
+    labs(
+      x = paste0("Number of total barcodes after filtering"),
+      y = "Fraction of P-Value < 0.05",
+      title = "True postive rate as a function to total barcode number"
+      ) +
+    geom_hline(yintercept = 0.05, linetype = "dashed") +
+    theme_linedraw()+
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, size = 10, hjust = 0.5), aspect.ratio = 0.5) + 
+    theme(
+        legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12))
+
+```
+
+### Raw proportion
+
+```{r}
+test_all_levels_raw <- cbind(
+  test_all_levels %>% filter(filter_level == 0.95),  
+  mean_prop,
+  BC_set_by_filter[rep(seq_len(nrow(BC_set_by_filter)),length.out = nrow(test_all_levels %>% filter(filter_level == 0.95))), ])
+
+test_TPR_raw <- test_all_levels_raw %>%
+   select(-N_BC) %>% 
+   pivot_longer(
+     cols = as.character(filter_to_N[c(1:9/10, 0.95) %>% as.character()]),
+     names_to = "N_BC",
+     values_to = "selectedBy"
+   ) %>% 
+    group_by(Method, Contrast, N_BC) %>% 
+    summarize(Frac_signif = sum(P.Value < 0.05 & selectedBy) / sum(selectedBy), .groups = "drop")
+
+test_TPR_raw$N_BC <- as.numeric(test_TPR_raw$N_BC)
+
+ggplot(test_TPR_raw, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(Method, Contrast))) +
+  # geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+  geom_point(aes(shape = Contrast)) +
+  geom_line(aes(linetype = Contrast)) +
+    labs(
+      x = paste0("Number of total barcodes after filtering"),
+      y = "Fraction of P-Value < 0.05"
+      ) +
+    geom_hline(yintercept = 0.05, linetype = "dashed") +
+    # facet_wrap(~Contrast, ncol =3) +
+    theme_linedraw()+
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, size = 10, hjust = 0.5), aspect.ratio = 0.5) + 
+    theme(
+        legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 12))
+
+```
+
+```{r, fig.width=5, fig.height=7}
+rbind(
+  data.frame(test_TPR_raw, prop_type  = "Raw proportion"), 
+  data.frame(test_TPR, prop_type  = "Updated proportion")
+  ) %>% 
+  mutate(prop_type = factor(prop_type, levels = c("Updated proportion", "Raw proportion"))) %>% 
+  ## plot
+  ggplot(aes(x = as.factor(N_BC), y = Frac_signif, color = Method, group = paste0(Method, Contrast))) +
+  # geom_boxplot(alpha = 0.6, position = position_dodge(), outliers = T) +
+  geom_point(aes(shape = Contrast)) +
+  geom_line(aes(linetype = Contrast)) +
+    labs(
+      x = paste0("Number of total barcodes after filtering"),
+      y = "Fraction of P-Value < 0.05", color = "Method", shape = "Contrast", linetype = "Contrast",
+      title = "True positive rate to number of barcodes"
+      ) +
+  geom_hline(yintercept = 0.05, linetype = "dashed") +
+  facet_grid(prop_type~1, switch = "y") +
+  theme_bw()+
+  theme_barbieQ_size() +
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = "top",
+        strip.placement = "outside", strip.text.y = element_text(size = 12),
+        strip.text.x = element_blank(), strip.background.x = element_blank()) + guides(color = "none") -> f3g2
+
+f3g2
+```
+
+
+## F3E_right: TPR in quantiles
+
+```{r}
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.1), num_quantiles = 4)
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.2), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.3), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.4), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.5), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.6), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.7), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.8), num_quantiles = 10)
+# plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.9), num_quantiles = 10)
+
+plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.95), num_quantiles = 10) +
+  theme_barbieQ() +
+  labs(title = "Power (true positive rate) in quanties") -> f3e2
+```
+
+
+## FS4B: Residules
+
+```{r}
+resi_none <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = "none"))
+resi_asin <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = "asin-sqrt"))
+resi_logit <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = "logit"))
+
+resi_df <- rbind(do.call(rbind, resi_none), do.call(rbind, resi_asin), do.call(rbind, resi_logit))
+
+```
+
+ - Distribution and QQ plot.
+
+```{r}
+p_resid_distr_35 <- ggplot(resi_df %>% filter(Contrast == "0.35 - 0"),
+                        aes(x = Residual, color = Method)) +
+  geom_density() +
+  labs(x = "Residual", y = "Density") +
+  facet_wrap(~Method, scales = "free", ncol = 1, strip.position = "left") +
+  theme_bw() +
+  theme(legend.position = "none", plot.title.position = "panel")
+
+
+p_resid_qq_35 <- ggplot(resi_df %>% filter(Contrast == "0.35 - 0"), 
+                     aes(sample = Residual, color = Method)) +
+  stat_qq() +
+  stat_qq_line(color = "black", linetype = "dashed") +
+  labs(x = "Normal Quantiles", y = "\n Residual Quuantiles") +
+  facet_wrap(~Method, scales = "free", ncol = 1) +
+  theme_bw() +
+  theme(legend.position = "none", strip.text = element_blank(), plot.title.position = "panel")
+```
+
+```{r, fig.width=8, fig.height=9}
+fs4b <- (p_resid_distr_35 + 
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), strip.text = element_text(size = 12),
+        axis.title = element_text(size = 13), axis.text = element_text(size = 10))
+  ) +
+(p_resid_qq_35 + 
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), 
+        axis.title = element_text(size = 13), axis.text = element_text(size = 10)))
+
+fs4b
+```
+
+```{r}
+p_resid_distr_27 <- ggplot(resi_df %>% filter(Contrast == "0.27 - 0"), aes(x = Residual, color = Method)) +
+  geom_density() +
+  labs(x = "Residual", y = "Density") +
+  facet_wrap(~Method, scales = "free", ncol = 1) +
+  theme_bw() +
+  theme(legend.position = "none", strip.text = element_blank())
+
+p_resid_qq_27 <- ggplot(resi_df %>% filter(Contrast == "0.27 - 0"), aes(sample = Residual, color = Method)) +
+  stat_qq() +
+  stat_qq_line(color = "black", linetype = "dashed") +
+  labs(x = "Normal Quantiles", y = "Residule Quantiles") +
+  facet_wrap(~Method, scales = "free", ncol = 1) +
+  theme_bw() +
+  theme(legend.position = "none", strip.text = element_blank())
+
+p_resid_distr_18 <- ggplot(resi_df %>% filter(Contrast == "0.18 - 0"), aes(x = Residual, color = Method)) +
+  geom_density() +
+  labs(x = "Residual", y = "Density") +
+  facet_wrap(~Method, scales = "free", ncol = 1) +
+  theme_bw() +
+  theme(legend.position = "none", strip.text = element_blank())
+
+p_resid_qq_18 <- ggplot(resi_df %>% filter(Contrast == "0.18 - 0"), aes(sample = Residual, color = Method)) +
+  stat_qq() +
+  stat_qq_line(color = "black", linetype = "dashed") +
+  labs(x = "Normal Quantiles", y = "Residule Quantiles") +
+  facet_wrap(~Method, scales = "free", ncol = 1) +
+  theme_bw() +
+  theme(legend.position = "none", strip.text = element_blank())
+```
+
+```{r, fig.width=8, fig.height=7}
+p_resid_distr_35 + p_resid_distr_27 + p_resid_distr_18
+
+p_resid_qq_35 + p_resid_qq_27 + p_resid_qq_18
+```
+
+
+## Consistency
+
+```{r}
+asin_adjP_3con <- es_de_asin_df %>%
+  dplyr::select(BC, Contrast, P.Value) %>%
+  tidyr::pivot_wider(
+    id_cols = BC,
+    names_from = Contrast,
+    values_from = P.Value
+  )
+none_adjP_3con <- es_de_none_df %>%
+  dplyr::select(BC, Contrast, P.Value) %>%
+  tidyr::pivot_wider(
+    id_cols = BC,
+    names_from = Contrast,
+    values_from = P.Value
+  )
+
+```
+
+```{r}
+eu <- eulerr::euler(list(
+  asin_C0.18 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.18 - 0` < 0.05],
+  asin_C0.27 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.27 - 0` < 0.05],
+  asin_C0.35 = rownames(asin_adjP_3con)[asin_adjP_3con$`0.35 - 0` < 0.05],
+  none_C0.18 = rownames(none_adjP_3con)[none_adjP_3con$`0.18 - 0` < 0.05],
+  none_C0.27 = rownames(none_adjP_3con)[none_adjP_3con$`0.27 - 0` < 0.05],
+  none_C0.35 = rownames(none_adjP_3con)[none_adjP_3con$`0.35 - 0` < 0.05]
+))
+
+plot(eu, quantities = TRUE)
+```
+
+# Figure 3
+
+```{r, fig.width=15, fig.height=20}
+layout = "
+AAAAAAAAAAAAA##
+AAAAAAAAAAAAA##
+AAAAAAAAAAAAA##
+BBBBBBCCCCCCCCC
+BBBBBBCCCCCCCCC
+BBBBBBCCCCCCCCC
+BBBBBBCCCCCCCCC
+DDDDEEEEEFFFFFF
+DDDDEEEEEFFFFFF
+DDDDEEEEEFFFFFF
+DDDDEEEEEFFFFFF
+DDDDEEEEEFFFFFF
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+GGGGHHHHHIIIIII
+"
+f3 <- ((wrap_elements(full = f3a) + theme(plot.margin = unit(c(0,0,0,0), "cm"))) + 
+    wrap_elements(f3b + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(f3c + theme(plot.margin = unit(c(0,0,0,0), "cm"))) +
+    wrap_elements(f3d + theme(legend.position = "top", plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_elements(f3e1 + theme(legend.position = "top", plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_elements(f3e2 + theme(legend.position = "top", plot.margin = unit(rep(0,4), "cm")) + guides(color = "none")) +
+    wrap_elements(f3f + theme(legend.position = "top", plot.margin = unit(c(0,0,0,0), "cm"))) +
+    wrap_elements(f3g1 + theme(legend.position = "top",plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_elements(f3g2 + theme(legend.position = "top",plot.margin = unit(rep(0,4), "cm"))) 
+      
+    )+ 
+  plot_layout(design = layout) +
+  ## space is okay but must be unique
+  plot_annotation(tag_levels = list(c("A", "B","C", "D", "E", "  ", "F", "G", " "))) &
+  theme(plot.tag = element_text(size = 24, face = "bold", family = "arial"))
+
+f3
+```
+
+```{r}
+ggsave(
+  filename = "output/f3.png",
+  plot = f3,
+  width = 15,
+  height = 20,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )
+```
+
+Saving this figure in [f3](../output/f3.png)
+
+# Figure S4
+
+```{r, fig.width=15, fig.height=8}
+layoutS4 = "
+AAABB
+AAABB
+AAABB
+"
+fs4 <- (
+    wrap_elements(fs4a + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(fs4b + theme(plot.margin = unit(c(0,0,0,0), "cm")))
+    )+ 
+  plot_layout(design = layoutS4) +
+  ## space is okay but must be unique
+  plot_annotation(tag_levels = list(c("A", "B"))) &
+  theme(plot.tag = element_text(size = 24, face = "bold", family = "arial"))
+
+fs4
+```
+
+```{r}
+ggsave(
+  filename = "output/fs4.png",
+  plot = fs4,
+  width = 15,
+  height = 8,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )
+```
+
+Saving this figure in [fs4](../output/fs4.png)

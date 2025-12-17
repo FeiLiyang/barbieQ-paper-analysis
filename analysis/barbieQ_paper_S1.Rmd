@@ -1,0 +1,274 @@
+---
+title: "barbieQ_paper Supplementary 1: Preprocessing"
+author: "Liyang Fei"
+date: |
+  Initiated: 2025-09-07  
+  Rendered: `r format(Sys.Date(), '%Y-%m-%d')`
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Linked to Preprocessing analyses of all datasets in the barbieQ paper: 
+ 
+ - [Monkey HSPC]("barbieQ_paper_Figure2.html")
+ 
+ - [AML data]()
+ 
+ - [Mouse HSPC]()
+ 
+ - [Mixture data]()
+
+# Load Dependencies
+
+```{r load library, message=FALSE, warning=TRUE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(data.table) # for data.table()
+library(SummarizedExperiment)
+library(S4Vectors)
+library(grid)
+library(ggplot2)
+library(ggbreak)
+library(ggnewscale) # ggnewscale::new_scale_fill() 
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(magick) # image_read()
+library(eulerr)
+library(edgeR)
+
+source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
+```
+
+# Install `barbieQ`
+
+Installing the latest devel version of `barbieQ` from GitHub.
+
+```{r load barbieQ}
+if (!requireNamespace("barbieQ", quietly = TRUE)) {
+  remotes::install_github("Oshlack/barbieQ")
+}
+
+library(barbieQ)
+```
+
+Check the version of `barbieQ`.
+
+```{r}
+packageVersion("barbieQ")
+```
+
+# Set seeds
+
+```{r}
+set.seed(2025)
+```
+
+# Clean up data
+
+```{r}
+EV1 <- read.csv("data/DEBRA/msb199195-sup-0004-datasetev1.csv", row.names = 1)
+```
+
+Here, TechRep 1 and 2 only means two replicates under the same condition. They don't match between conditions.
+
+The actual "block" should be `paste0(Subset, BarcodeSize, Perturbation)`.
+
+```{r clean up data}
+sampleName <- colnames(EV1)
+
+## extract P1P2, nulls and perturbs
+Subset <- gsub("m_null_.*", "perturb", sampleName)
+Subset <- gsub("null.*", "null", Subset)
+Subset[Subset=="P1"] <- "premix1"
+Subset[Subset=="P2"] <- "premix2"
+
+## extract cell size (Barcode size, i.e. total number of Barcodes in each sample)
+BarcodeSize <- gsub(".*null_(\\d+)\\..*", "\\1", sampleName)
+BarcodeSize <- gsub("(P\\d)", "", BarcodeSize)
+
+## extract perturbation level in the perturb samples
+Perturbation <- gsub(".*p(\\d+).*", "\\1", sampleName)
+Perturbation <- gsub("null.*", "0", Perturbation)
+Perturbation <- gsub("[A-Za-z]+.*", "", Perturbation)
+
+## extract technical rep
+TechRep <- gsub(".*\\.(\\d)", "\\1", sampleName)
+TechRep <- gsub("P\\d", "1", TechRep)
+
+## combine these into a data.frame
+Design <- data.frame(
+  Subset = factor(Subset, levels = c("premix1", "premix2", "null", "perturb")),
+  BarcodeSize = as.numeric(BarcodeSize) * 1000,
+  Perturbation = as.numeric(Perturbation) / 100,
+  TechRep = factor(TechRep)
+)
+
+lapply(Design, table)
+```
+
+color mapping.
+
+```{r}
+color_mapping <- list(
+  Subset = setNames(
+    c("#FF5959", "#33AAFF", "yellowgreen", "slateblue"), 
+    c("premix1", "premix2", "null", "perturb")), 
+  BarcodeSize = setNames(
+    c("#CFCFFF", "#B2B2FF", "#8282FF", "#4D4FFF", "#1D1DFF", "#0000B2"),
+    c(20000, 40000, 80000, 160000, 330000, 660000)),
+  Perturbation = setNames(
+    c("#C3FF85", "#DBB8FF", "#A951FF", "#7500EA"),
+    c(0, 0.18, 0.27, 0.35)),
+  TechRep = setNames(c("grey25", "grey75"), c(1, 2))
+)
+```
+
+
+# Save to barbieQ
+
+- Save count to a barbieQ object
+
+- Save (count+1) to a barbieQ object to address the drop-out issue.
+
+```{r create barbieQ}
+mixture <- createBarbieQ(object = EV1, sampleMetadata = Design, factorColors = color_mapping)
+mixture_plus1 <- createBarbieQ(object = EV1+1, sampleMetadata = Design, factorColors = color_mapping)
+```
+# Tag top barcodes
+
+Getting minimum group size for filtering parameter. 
+
+- Set `nSampleThreshold = 8` for subsequent filtering.
+
+```{r tag top}
+## check min group size
+mixture$sampleMetadata %>% as.data.frame() %>% with(paste0(Subset, Perturbation, BarcodeSize)) %>% table()
+mixture$sampleMetadata %>% as.data.frame() %>% with(paste0(Subset, Perturbation)) %>% table()
+```
+
+Find appropriate `proportionThreshold`.
+
+- In the two premix samples, solid barcodes should be only detected once.
+
+- Minimize the number of barcodes being tagged as "top" in twice, which are considered "noisy barcodes" based on the experimental design, that barcodes shouldn't overlap between the two premix samples.
+
+```{r}
+## tag top barcodes, `proportionThreshold` defaults to 0.99
+mixture <- tagTopBarcodes(mixture, nSampleThreshold = 8)
+mixture_plus1 <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8)
+
+## flag the two premix samples
+flag_premix <- mixture$sampleMetadata$Subset %in% c("premix1", "premix2") ## two in total
+## frequency of being tagged top for each barcode
+mixture@assays@data$isTopAssay[,flag_premix] %>% rowSums() %>% table()
+## if going ahead with the current `proportionThreshold` to select "top" barcodes
+## frequency of being tagged top for each "selected" barcode
+mixture@assays@data$isTopAssay[mixture@elementMetadata$isTopBarcode$isTop,flag_premix] %>% rowSums() %>% table()
+
+## same applied to mixture_plus1
+mixture_plus1@assays@data$isTopAssay[,flag_premix] %>% rowSums() %>% table()
+mixture_plus1@assays@data$isTopAssay[mixture_plus1@elementMetadata$isTopBarcode$isTop,flag_premix] %>% rowSums() %>% table()
+```
+
+- Default `proportionThreshold=0.99` keeps too many noisy barcodes.
+
+- Setting `proportionThreshold=0.95` keeps small amount of noisy barcodes, and gets close sets of selected barcodes between `mxiture` and `mixture_plus1` data.
+
+- Set `proportionThreshold=0.95` for subsequent filtering.
+
+```{r}
+## tag top barcodes, `proportionThreshold` set to 0.97
+mixture <- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = 0.95)
+mixture_plus1 <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = 0.95)
+
+## flag the two premix samples
+flag_premix <- mixture$sampleMetadata$Subset %in% c("premix1", "premix2") ## two in total
+## frequency of being tagged top for each barcode
+mixture@assays@data$isTopAssay[,flag_premix] %>% rowSums() %>% table()
+## if going ahead with the current `proportionThreshold` to select "top" barcodes
+## frequency of being tagged top for each "selected" barcode
+mixture@assays@data$isTopAssay[mixture@elementMetadata$isTopBarcode$isTop,flag_premix] %>% rowSums() %>% table()
+
+## same applied to mixture_plus1
+mixture_plus1@assays@data$isTopAssay[,flag_premix] %>% rowSums() %>% table()
+mixture_plus1@assays@data$isTopAssay[mixture_plus1@elementMetadata$isTopBarcode$isTop,flag_premix] %>% rowSums() %>% table()
+```
+
+# Determine barcode occurrence
+
+Zeros per BC.
+
+- Total cell number for the "null" samples is known as `mixture_plus1$sampleMetadata$BarcodeSize`; for the "perturbed" samples, total cell number should be `(mixture_plus1$sampleMetadata$BarcodeSize)*(1+mixture_plus1$sampleMetadata$Perturbation)`. The "perturbation" for the null samples is 0.
+
+- Raw counts bigger than (total barcode count / total cell number) are considered "present", otherwise "absent". Note that we've added 1 to the raw counts before.
+
+```{r}
+detection_level <- colSums(assay(mixture_plus1)) / ((mixture_plus1$sampleMetadata$BarcodeSize)*(1+mixture_plus1$sampleMetadata$Perturbation))
+
+detection <- sweep(assay(mixture_plus1), 2, detection_level, FUN = "-")
+
+## plot the number of absence for each barcode.
+ggplot(data.frame(N_zero = rowSums(detection <= 0, na.rm = T))) +
+  geom_freqpoly(aes(x = N_zero))
+## plot the number of absence for each selected barcode by filtering.
+ggplot(data.frame(N_zero = rowSums(detection[mixture_plus1@elementMetadata$isTopBarcode$isTop,] <= 0, na.rm = T))) +
+  geom_freqpoly(aes(x = N_zero))
+
+
+## update the "occurrence" assay based on the detection here.
+mixture_plus1@assays@data$occurrence <- detection <= 0
+```
+
+Barcode detection in the two premix samples.
+
+# Detect correlating barcodes
+
+No correlating barcodes detected.Actually, 
+
+```{r}
+plotBarcodePairCorrelation(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = "none")
+```
+
+- looking weird if using "asin-sqrt" transformation here.
+
+```{r}
+clusterCorrelatingBarcodes(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = "asin-sqrt") %>% 
+  inspectCorrelatingBarcodes()
+```
+
+# Filter top barcodes
+
+```{r}
+plotBarcodePareto(mixture_plus1)
+plotBarcodeSankey(mixture_plus1)
+```
+
+```{r}
+mixture_plus1_top <- mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,]
+```
+
+# Supplementary 1
+
+```{r}
+
+```
+
+
+# Save to rda
+
+```{r}
+save(mixture_plus1, mixture_plus1_top, file = "output/mixture_barbieQ.rda")
+```
+
+

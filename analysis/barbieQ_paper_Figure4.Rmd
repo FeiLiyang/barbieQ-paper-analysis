@@ -6,12 +6,723 @@ date: |
   Rendered: `r format(Sys.Date(), '%Y-%m-%d')`
 output: workflowr::wflow_html
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-## Introduction
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Dependencies
+
+```{r load library, message=FALSE, warning=TRUE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(data.table) # for data.table()
+library(SummarizedExperiment)
+library(S4Vectors)
+library(grid)
+library(ggplot2)
+library(ggbreak)
+library(ggnewscale) # ggnewscale::new_scale_fill() 
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(magick)
+library(eulerr)
+library(edgeR)
+
+source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
+source("analysis/F4_validation.R") ## functions for Figure4 validations
+```
+
+# Install `barbieQ`
+
+Installing the latest devel version of `barbieQ` from GitHub.
+
+```{r load barbieQ}
+if (!requireNamespace("barbieQ", quietly = TRUE)) {
+  remotes::install_github("Oshlack/barbieQ")
+}
+
+library(barbieQ)
+```
+
+Check the version of `barbieQ`.
 
 ```{r}
+packageVersion("barbieQ")
+```
+
+# Set seeds
+
+```{r}
+set.seed(2025)
+```
+
+# Load preprocessed data
+
+Loading `barbieQ` object preprocessed from [barbieQ_paper_Figure2]("barbieQ_paper_Figure2.html")
+
+```{r}
+load("output/monkeyHSPC_barbieQ.rda")
+# load("output/monkeyHSPC_raw_barbieQ.rda")
+```
+
+# Experimental schematic
+
+```{r}
+schematic <- image_read("output/f4a_schematic.jpeg")
+f4a <- rasterGrob(schematic, interpolate = FALSE) 
+wrap_elements(full = f4a)
+```
+
+# Plot barcode proportion and sample annotation
+
+`plotBarcodeHistogram` is customized from the `bartools` package.
+
+```{r}
+## get sample conditions and color mapping
+metadata <- monkeyHSPC_merged_top$sampleMetadata %>% as.data.frame()
+metadata$sample <- rownames(metadata)
+metadata$y = 1.05 ## for ggplot tile position
+color_mapping <- monkeyHSPC_merged_top@metadata$factorColors
+
+## order samples
+order_sample <- metadata %>% with(order(Celltype, Months))
+
+monkey_dge <- DGEList(
+  counts = assay(monkeyHSPC_merged_top), 
+  group = metadata$Celltype)
+
+## pull out ggplot data
+p_stacked_prop <- plotBarcodeHistogram(monkey_dge, orderSamples = colnames(monkeyHSPC_merged_top)[order_sample])
+
+f4b <- p_stacked_prop +
+  ## label perturbations
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = metadata, aes(x = sample,y = y, fill = Celltype), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = color_mapping$Celltype) +
+  labs(fill = "Cell type") + 
+  ## label libsize
+  ggnewscale::new_scale_fill() +
+  geom_tile(data = metadata, aes(x = sample,y = y+0.05, fill = as.factor(Months)), height = 0.04, inherit.aes = FALSE, color = "white") +
+  scale_fill_manual(values = setNames(attr(color_mapping$Months, "colors"), attr(color_mapping$Months, "breaks"))) +
+  labs(fill = "Month") +
+  labs(x = "Sample", y = "Barcode proportion") +
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
+  theme(axis.text.x = element_blank(), panel.grid.major.x = element_blank())
+
+f4b
+```
+
+# Compare filtering
+
+## top10each vs. barbieQ filter
+
+The original paper filter barcodes by tagging top 10 barcodes from each sample, and collectively keeping the tagged barcodes across all samples.
+Here we compare this "top10each" (and "top20each") strategy with `barbieQ` filtering.
+
+The `tagTopN` function is sourced from "F4_validation.R".
+
+```{r, fig.width=12, fig.height=4}
+## tagging top 10 in all samples
+colTags <- lapply(as.data.frame(assays(monkeyHSPC_merged)$proportion), function(col) tagTopN(col, N = 10))
+colTagMat <- do.call(cbind, colTags) %>% as.matrix()
+colnames(colTagMat) <- colnames(monkeyHSPC_merged)
+rownames(colTagMat) <- rownames(monkeyHSPC_merged)
+## filtering by keeping barcodes tagged for at least once
+colTagVec <- rowSums(colTagMat) >= 1
+## ensuring we've tagged 10 barcodes within each sample
+all(colSums(colTagMat) == 10)
+
+## copying the barbieQ object and manually labeling the filtered barcodes based on the above strategy
+monkeyHSPC_top10each <- monkeyHSPC_merged
+rowData(monkeyHSPC_top10each)$isTopBarcode$isTop <- colTagVec
+assays(monkeyHSPC_top10each)$isTopAssay <- colTagMat
+p_sankey_top10 <- barbieQ::plotBarcodeSankey(monkeyHSPC_top10each)
+p_sankey_barbieQ <- barbieQ::plotBarcodeSankey(monkeyHSPC_merged)
+
+## repeat the process for top20 each
+colTags2 <- lapply(as.data.frame(assays(monkeyHSPC_merged)$proportion), function(col) tagTopN(col, N = 20))
+colTagMat2 <- do.call(cbind, colTags2) %>% as.matrix()
+colnames(colTagMat2) <- colnames(monkeyHSPC_merged)
+rownames(colTagMat2) <- rownames(monkeyHSPC_merged)
+colTagVec2 <- rowSums(colTagMat2) >= 1
+all(colSums(colTagMat2) == 20)
+
+monkeyHSPC_top20each <- monkeyHSPC_merged
+rowData(monkeyHSPC_top20each)$isTopBarcode$isTop <- colTagVec2
+assays(monkeyHSPC_top20each)$isTopAssay <- colTagMat2
+p_sankey_top20 <- barbieQ::plotBarcodeSankey(monkeyHSPC_top20each)
+
+
+## plot sankeys
+f4d <- p_sankey_barbieQ + 
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5, vjust = 1), 
+        strip.text.x = element_blank(), strip.text.y = element_blank()) + labs(title = "barbieQ") +
+  p_sankey_top10 + 
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5, vjust = 1),
+        strip.text.x = element_blank(), strip.text.y = element_blank()) + labs(title = "top10each") + 
+  p_sankey_top20 + 
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5, vjust = 1),
+        strip.text.x = element_blank(), strip.text.y = element_blank()) + labs(title = "top20each")
+
+f4d
+```
+
+## overlap
+
+```{r, fig.width=6, fig.height=4}
+list_top_BC <- list(
+  barbieQ = rownames(monkeyHSPC_merged)[monkeyHSPC_merged@elementMetadata$isTopBarcode$isTop],
+  top10each = rownames(monkeyHSPC_merged)[colTagVec],
+  top20each = rownames(monkeyHSPC_merged)[colTagVec2]
+  )
+
+venn_filter <- eulerr::euler(list_top_BC) %>% 
+  plot(fills = c("pink", "skyblue", "steelblue"), 
+       alpha = 0.5, labels = list(font = 4, cex = 1), quantities = list(font = 1, cex = 1)) 
+
+f4c <- venn_filter %>% plot() %>% grid.grabExpr() %>% wrap_plots()
+f4c
+
+# ggVennDiagram(list_top_BC, label = "count") + scale_fill_gradient(low="white", high = "skyblue")
+```
+
+## inspect two sets: heatmap
+
+```{r fig.width=7, fig.height=9}
+barcodeArray <- monkeyHSPC_merged@elementMetadata$isTopBarcode$isTop | colTagVec
+length(colTagVec)
+length(monkeyHSPC_merged@elementMetadata$isTopBarcode$isTop)
+table(barcodeArray)
+
+monkeyHSPC_compare_filter <- monkeyHSPC_merged[barcodeArray,]
+
+# Create a named vector indicating where each element belongs
+region_labels <- data.frame(
+  barcode = rownames(monkeyHSPC_compare_filter),
+  region = "both")
+region_labels[monkeyHSPC_merged@elementMetadata$isTopBarcode$isTop[barcodeArray] & !(colTagVec[barcodeArray]), "region"] <- "barbieQ only"
+region_labels[!(monkeyHSPC_merged@elementMetadata$isTopBarcode$isTop[barcodeArray]) & colTagVec[barcodeArray], "region"] <- "top10each only"
+
+region_labels$region %>% table()
+
+ht_filter <- plotBarcodeHeatmap(
+  monkeyHSPC_compare_filter, 
+  barcodeAnnotation = rowAnnotation(
+    filteredBy = region_labels$region,
+    col = list(filteredBy = c("barbieQ only" = "hotpink", "both" = "slateblue", "top10each only" = "steelblue1")),
+    annotation_name_side = "top", annotation_name_rot = 45, annotation_name_gp = grid::gpar(fontsize = 10)))
+
+## ht_filter@heatmap_param[["calling_env"]][["sampleAnnotation"]]@anno_list[["Months"]]@show_legend <- FALSE
+## ht_filter@heatmap_param[["calling_env"]][["groupAnnotation"]]@anno_list[["Celltype"]]@show_legend <- FALSE
+
+f4e <- draw(ht_filter, row_split = region_labels$region, width = unit(6, "cm"), height = unit(15, "cm")) %>%
+  grid.grabExpr() %>% list() %>% wrap_plots()
+
+f4e <- Heatmap(
+  monkeyHSPC_compare_filter@assays@data$proportion %>% sqrt() %>% asin(), name = "asin-sqrt prop.",
+  cluster_rows = TRUE, cluster_columns = TRUE, show_row_names = FALSE, show_column_names = FALSE, 
+  right_annotation = rowAnnotation(
+    filteredBy = region_labels$region,
+    col = list(filteredBy = c("barbieQ only" = "hotpink", "both" = "slateblue", "top10each only" = "steelblue1")),
+    annotation_name_side = "top", annotation_name_rot = 45),
+  row_split = region_labels$region, width = unit(6, "cm"), height = unit(15, "cm"), row_title = "Barcodes",
+  top_annotation = HeatmapAnnotation(
+    Celltype = monkeyHSPC_compare_filter$sampleMetadata$Celltype,
+    Months = monkeyHSPC_compare_filter$sampleMetadata$Months,
+    col = monkeyHSPC_compare_filter@metadata$factorColors,
+    show_legend = FALSE, annotation_name_side = "left"
+  ))
+
+f4e
+```
+
+# Figure 4 upper
+
+```{r eval=FALSE, fig.height=12, fig.width=16, include=FALSE}
+layout = "
+AAAAAAA##
+AAAAAAA##
+BBBCCEEEE
+BBBCCEEEE
+DDDDDEEEE
+DDDDDEEEE
+"
+f4 <- (wrap_elements(f4a + theme(plot.margin = unit(rep(0,4), "cm")), full = grob) + 
+    wrap_elements(f4b + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(f4c + theme(plot.margin = unit(c(1,0,1,0), "cm"))) +
+    wrap_elements(f4d + theme(plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_elements(f4e + theme(plot.margin = unit(rep(0,4), "cm")))
+    )+ 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c("A","B","C", "D", "E"))) &
+  theme(
+    plot.tag = element_text(size = 24, face = "bold", family = "arial"),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+f4
+```
+
+# Compare difference identification on top10each filtering approach
+
+## barbieQ filter + barbieQ test
+
+```{r}
+monkeyHSPC_top10each@elementMetadata$isTopBarcode$isTop %>% table()
+## subset the 79 barcodes filtered by top10each
+monkeyHSPC_top10each_79 <- monkeyHSPC_top10each[monkeyHSPC_top10each@elementMetadata$isTopBarcode$isTop,]
+##need to take Time into account
+designs <- monkeyHSPC_top10each_79$sampleMetadata %>% as.data.frame() %>%
+  mutate(Months = as.factor(Months)) %>% 
+  with(model.matrix(~0+ Celltype + Months))
+
+monkeyHSPC_top10each_79 <- testBarcodeSignif(
+  barbieQ = monkeyHSPC_top10each_79, designMatrix = designs,
+  contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+# check design
+monkeyHSPC_top10each_79@elementMetadata$testingBarcode@metadata$contrasts
+monkeyHSPC_top10each_79@elementMetadata$testingBarcode@metadata$design %>% data.table(keep.rownames = T)
+```
+
+## barbieQ filter + LFC approach
+
+(i) >1% contribution to CD56−CD16+ cells and 
+
+(ii) >10-fold abundance in contribution to CD56−CD16+ cells compared with T, B, Gr, and CD56+CD16− cells.
+
+`calc_bias_LFC` function sourced from "F4_validation.R".
+
+```{r}
+list_BC_top10each_LFC <- calc_bias_LFC(monkeyHSPC_top10each_79)
+union_LFC_top10each <- unlist(list_BC_top10each_LFC) %>% unique()
+```
+
+```{r}
+## check overlaps between months
+venn_top10each_LFC <- eulerr::euler(list_BC_top10each_LFC)
+plot(venn_top10each_LFC, fills = c("white"), alpha = 0.5, labels = T, quantities = T)
+```
+
+## overlap
+
+```{r}
+list_top10each_feature <- list(
+    barbieQ = rownames(monkeyHSPC_top10each_79)[monkeyHSPC_top10each_79@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
+    heuristics = union_LFC_top10each)
+
+venn_top10each_feature <- eulerr::euler(list_top10each_feature) %>% 
+  plot(fills = c("pink","slateblue"),
+       alpha = 0.5, labels = list(font = 4, cex = 1), quantities = list(font = 1, cex = 1)) 
+
+f4g <- venn_top10each_feature %>% plot() %>% grid.grabExpr() %>% wrap_plots()
+
+f4g
+```
+
+## inspect two sets: boxplot
+
+- Box plot to visualize the LFC of sets of selected barcodes.
+
+```{r}
+FC_top10each <- calc_bias_LFC(barbieQ = monkeyHSPC_top10each_79, get_FC = T) %>% as.data.frame()
+rownames(FC_top10each) <- rownames(monkeyHSPC_top10each_79)
+## annotating BC by barbieQ seletion
+FC_top10each$bbq <- monkeyHSPC_top10each_79@elementMetadata$testingBarcode$direction
+## annotating BC by heuristic selection
+FC_top10each$heu = 0
+FC_top10each[union_LFC_top10each, "heu"] = 1
+  ## adding BC name
+FC_top10each <- FC_top10each %>% 
+  mutate(Barcode = rownames(monkeyHSPC_top10each_79)) %>% 
+  ## summarizing two selecting methods overlaps
+  mutate(identifiedBy = ifelse(bbq == 1, 
+                             ifelse(heu == 1, "both", "barbieQ only"), 
+                             ifelse(heu == 1, "heuristics only", "neither"))) %>% 
+  dplyr::select(-c(heu, bbq))
+
+## extract FC from testing
+coff_FC <- monkeyHSPC_top10each_79@elementMetadata$testingBarcode$meanDiff
+FC_top10each$testing_coeff <- coff_FC
+
+long_FC_top10each <- FC_top10each %>% 
+  mutate(Barcode = rownames(monkeyHSPC_top10each_79)) %>% 
+  pivot_longer(
+      cols = -c(Barcode, identifiedBy, testing_coeff),     # keep Celltype and Months fixed
+      names_to = "Month",
+      values_to = "FC"
+    )
+```
+
+Draw box plot, barcodes ordered by mean LFC
+
+```{r}
+## order BC in x axis by contrast coefficient
+barcode_order <- long_FC_top10each %>%
+  group_by(Barcode) %>%
+  summarise(mean_LFC = mean((testing_coeff), na.rm = TRUE)) %>%
+  arrange(mean_LFC) %>%
+  pull(Barcode)
+
+long_FC_top10each$identifiedBy <- factor(
+  long_FC_top10each$identifiedBy,
+  levels = c("barbieQ only", "heuristics only", "both", "neither")
+)
+
+## remove level "heuristics only"
+long_FC_top10each$identifiedBy <- factor(
+  long_FC_top10each$identifiedBy,
+  levels = c("barbieQ only",  "both", "neither")
+)
+
+p_box_coef <- ggplot(long_FC_top10each, aes(x = factor(Barcode, levels = barcode_order), y = log2(FC), group = (Barcode), color = identifiedBy)) +
+  geom_boxplot(varwidth = T) +
+  # geom_jitter()+
+  theme_classic() +
+  theme(axis.text.x = element_blank(), legend.position = "right", axis.title = element_text(size = 14)) +
+  geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "snow4") +
+  labs(x = "",
+       y = "Log2(FC) per month") +
+  scale_color_manual(
+    values = c("both" = "slateblue", "barbieQ only" = "hotpink", "heuristics only" = "steelblue1", "neither" = "slategray"),
+    drop = FALSE)
+
+p_box_coef_2 <- ggplot(long_FC_top10each, aes(x = factor(Barcode, levels = barcode_order), y = testing_coeff, group = (Barcode), color = identifiedBy)) +
+  geom_boxplot(varwidth = T) +
+  theme_classic() +
+  theme(axis.text.x = element_blank(), legend.position = "none", axis.title = element_text(size = 14)) +
+  geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "snow4") +
+  labs(x = "Barocdes ordered by barbieQ-estimated coefficient for the contrast",
+       y = "Contrast coefficient") +
+  scale_color_manual(values = c("both" = "slateblue", "barbieQ only" = "hotpink", "heuristics only" = "steelblue1", "neither" = "slategray"))
+
+f4f <- p_box_coef / p_box_coef_2 + plot_layout(heights = c(3, 1))
+f4f
+```
+
+# Compare fitering with barbieQ testing
+
+## top10each + barbieQ test
+
+```{r}
+##need to take Time into account
+designs <- monkeyHSPC_merged_top$sampleMetadata %>% as.data.frame() %>%
+  mutate(Months = as.factor(Months)) %>% 
+  with(model.matrix(~0+ Celltype + Months))
+
+monkeyHSPC_merged_top <- testBarcodeSignif(
+  barbieQ = monkeyHSPC_merged_top, designMatrix = designs,
+  contrastFormula = "(CelltypeNK_CD56n_CD16p) - (CelltypeB+CelltypeGr+CelltypeT+CelltypeNK_CD56p_CD16n)/4",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+# check design
+monkeyHSPC_merged_top@elementMetadata$testingBarcode@metadata$contrasts
+monkeyHSPC_merged_top@elementMetadata$testingBarcode@metadata$design %>% data.table(keep.rownames = T)
+```
+
+## stacked proportion
+
+`plot_validation` sourced from "F4_validation.R"
+
+```{r, fig.width=12, fig.height=5}
+ f4h <- (plot_validation(monkeyHSPC_top10each_79) + 
+    theme( plot.title = element_text(hjust = 0.5, vjust = 1)) + labs(title = "Based on top10each")) +
+  (plot_validation(monkeyHSPC_merged_top) + 
+     theme( plot.title = element_text(hjust = 0.5, vjust = 1)) + labs(title = "Based on barbieQ"))
+
+f4h
+```
+
+## overlap
+
+- compare sets of significant barcodes
+
+```{r}
+## signif. BC
+filter_venn_signif_list <- list(
+  ## signif. BC
+  top10each = rownames(monkeyHSPC_top10each_79)[monkeyHSPC_top10each_79@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
+  barbieQ = rownames(monkeyHSPC_merged_top)[monkeyHSPC_merged_top@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
+  ## all BC in test
+  top10each_all = rownames(monkeyHSPC_top10each_79),
+  barbieQ_filter_all = rownames(monkeyHSPC_merged_top))
+
+venn_filter_signif <- eulerr::euler(filter_venn_signif_list[1:2]) %>% 
+  plot(fills = c("skyblue", "pink"), 
+       alpha = 0.5, labels = list(font = 4, cex = 1), quantities = list(font = 1, cex = 1))
+
+venn_filter_signif  %>% plot() %>% grid.grabExpr() %>% wrap_plots()
 
 ```
+
+## inspect two sets: boxplot
+
+- box plot on two sets of significant barcodes based on two filtering appraoches
+
+```{r}
+BC_filter_sig <- filter_venn_signif_list[1:2] %>% unlist %>% unique()
+
+FC_filter_sig <- calc_bias_LFC(barbieQ = monkeyHSPC_merged[BC_filter_sig,], get_FC = T) %>% 
+  as.data.frame()
+Mean_filter_sig <- calc_bias_LFC(barbieQ = monkeyHSPC_merged[BC_filter_sig,], get_AMean = T) %>%
+  as.data.frame()
+rownames(FC_filter_sig) <- BC_filter_sig
+## annotating BC by barbieQ seletion
+FC_filter_sig$top10each = 0
+FC_filter_sig$bbq = 0
+## annotating BC by heuristic selection, `filter_venn_signif_list` obtained from last chunk
+FC_filter_sig[filter_venn_signif_list[[1]], "top10each"] = 1
+FC_filter_sig[filter_venn_signif_list[[2]], "bbq"] = 1
+  ## adding BC name
+FC_filter_sig <- FC_filter_sig %>% 
+  mutate(Barcode = BC_filter_sig) %>% 
+  ## summarizing two selecting methods overlaps
+  mutate(FilteringMethod = ifelse(top10each == 1, 
+                                  ifelse(bbq == 1, "both", "top10each"),
+                                  ifelse(bbq == 1, "barbieQ", "neither"))) %>% 
+  dplyr::select(-c(top10each, bbq))
+
+## extract FC from testing
+
+long_FC_filter_sig <- FC_filter_sig %>% 
+  mutate(Barcode = BC_filter_sig) %>% 
+  pivot_longer(
+      cols = -c(Barcode, FilteringMethod),     # keep Celltype and Months fixed
+      names_to = "Month",
+      values_to = "FC"
+    )
+# Add barcode column to Mean_filter_sig
+Mean_filter_sig <- Mean_filter_sig %>%
+  mutate(Barcode = BC_filter_sig)
+
+long_Mean <- Mean_filter_sig %>%
+  pivot_longer(
+    cols = -Barcode,
+    names_to = "Month",
+    values_to = "Mean"
+  )
+
+long_FC_filter_sig <- long_FC_filter_sig %>%
+  left_join(long_Mean, by = c("Barcode", "Month"))
+
+```
+
+```{r fig.width=10, fig.height=5}
+barcode_order_filter_sig <- long_FC_filter_sig %>%
+  group_by(Barcode) %>%
+  summarise(AMean = mean(Mean, na.rm = TRUE)) %>%
+  arrange(AMean) %>%
+  pull(Barcode)
+
+barcode_order_df_filter_sig <- long_FC_filter_sig %>%
+  group_by(Barcode, FilteringMethod) %>%
+  summarise(AMean = mean(Mean, na.rm = TRUE)) %>%
+  arrange(AMean)
+
+p_AMean_0 <- ggplot()+
+  geom_point(data = barcode_order_df_filter_sig,
+             aes(x = factor(Barcode, levels = barcode_order_filter_sig),
+                 y = log10(AMean),
+                 color = FilteringMethod),
+             size = 1.5, shape = 15,
+             inherit.aes = FALSE) +
+  theme_classic() +
+  theme(axis.text.x = element_blank(), legend.position = "none", axis.title = element_text(size = 14)) +
+  labs(x = "Barocdes ordered by mean proportion across cell types across time (Amean)",
+       y = "Log10 (Amean)") +
+  scale_color_manual(values = c("both" = "slateblue", "barbieQ" = "hotpink", "top10each" = "steelblue1"))
+
+
+p_box_0 <- ggplot(long_FC_filter_sig, aes(x = factor(Barcode, levels = barcode_order_filter_sig), y = log2(FC), group = (Barcode), color = FilteringMethod)) +
+  geom_boxplot(varwidth = T) +
+  theme_classic() +
+  theme(axis.text.x = element_blank(), legend.position = "right", axis.title = element_text(size = 14)) +
+  geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "grey") +
+  labs(x = "",
+       y = "Log2(FC) per month") +
+  scale_color_manual(values = c("both" = "slateblue", "barbieQ" = "hotpink", "top10each" = "steelblue1"))
+
+f4i <- p_box_0 / p_AMean_0 + plot_layout(heights = c(3, 1))
+f4i
+```
+
+# Example difference over time
+
+```{r eval=FALSE, include=FALSE}
+flag_NK <- monkeyHSPC_raw$sampleMetadata$Celltype == "NK_CD56n_CD16p"
+colTags <- lapply(
+  as.data.frame(assays(monkeyHSPC_raw)$proportion[,flag_NK]), 
+  function(col) tagTopN(col, N = 10)
+  )
+colTagMatNK <- do.call(cbind, colTags) %>% as.matrix()
+colnames(colTagMatNK) <- colnames(monkeyHSPC_raw)[flag_NK]
+rownames(colTagMatNK) <- rownames(monkeyHSPC_raw)
+## filtering by keeping barcodes tagged for at least once
+colTagVecNK <- rowSums(colTagMatNK) >= 1
+sum(colTagVecNK)
+## ensuring we've tagged 10 barcodes within each sample
+all(colSums(colTagMatNK) == 10)
+
+NKnp <- monkeyHSPC_raw[colTagVecNK,flag_NK]
+dim(NKnp)
+```
+
+```{r}
+designs <- monkeyHSPC_top10each_79$sampleMetadata %>% as.data.frame() %>%
+  with(model.matrix(~0+ Celltype+ Celltype:Months))
+designs <- designs[,c(1:5, 9:13)]
+colnames(designs) <- gsub(":", ".", colnames(designs))
+
+monkeyHSPC_top10each_79_NK <- testBarcodeSignif(
+  barbieQ = monkeyHSPC_top10each_79, 
+  sampleMetadata = designs, designMatrix = designs, sampleGroup = "CelltypeNK_CD56n_CD16p.Months",
+  method = "diffProp", transformation = "asin-sqrt"
+)
+
+monkeyHSPC_top10each_79_NK@elementMetadata$testingBarcode$tendencyTo %>% table()
+monkeyHSPC_top10each_79_NK@elementMetadata$testingBarcode@metadata$design %>% data.table()
+monkeyHSPC_top10each_79_NK@elementMetadata$testingBarcode@metadata$contrasts
+monkeyHSPC_top10each_79_NK@elementMetadata$testingBarcode@metadata$contrastGroups
+
+
+NKnp_fig <- monkeyHSPC_top10each_79_NK[,monkeyHSPC_top10each_79_NK$sampleMetadata$Celltype == "NK_CD56n_CD16p"]
+```
+
+
+```{r eval=FALSE, include=FALSE}
+designs <- NKnp$sampleMetadata %>% as.data.frame() %>%
+  with(model.matrix(~0+ Months))
+
+NKnp <- testBarcodeSignif(
+  barbieQ = NKnp, sampleMetadata = NKnp$sampleMetadata[,2,drop=F], sampleGroup = "Months",
+  method = "diffProp", transformation = "asin-sqrt", designMatrix = designs
+)
+
+NKnp@elementMetadata$testingBarcode@metadata$design
+NKnp@elementMetadata$testingBarcode@metadata$contrasts
+NKnp@elementMetadata$testingBarcode@metadata$contrastGroups
+
+NKnp@elementMetadata$testingBarcode$tendencyTo %>% table()
+# flag_sigNK <- NKnp@elementMetadata$testingBarcode$tendencyTo != "n.s."
+NKnp_fig <- NKnp
+```
+
+```{r}
+BC_kinetic <- NKnp_fig@elementMetadata$testingBarcode$tendencyTo
+
+pch_fun <- ifelse(NKnp_fig@elementMetadata$testingBarcode$direction != 0, "*", NA)
+
+kinetic_ha <- rowAnnotation(
+  Kinetic = anno_simple(
+    BC_kinetic,
+    col = NKnp_fig@metadata$factorColors$testingBarcode,
+    pch = pch_fun
+    ),
+  show_annotation_name = TRUE,
+  annotation_name_side = "top",
+  annotation_name_rot = 45
+)
+
+HP_anno_kinetic <- Heatmap(
+  asin(sqrt(NKnp_fig@assays@data$proportion)), name = "asin-sqrt prop.",
+  show_row_names = FALSE, column_labels = NKnp_fig$sampleMetadata$Months,
+  column_title = "Months", column_names_side = "top", column_names_rot = 45,
+  row_title = "Barcodes", row_km = 4,
+  width = unit(4, "cm"), height = unit(12, "cm"),
+  column_order = order(NKnp_fig$sampleMetadata$Months),
+  # col = colorRamp2(c(0, -2, -4.602), c("red", "white", "blue")),
+  # left_annotation = row_ha,
+  right_annotation = kinetic_ha
+)
+
+lgd_sig = Legend(pch = "*", type = "points", labels = "signif.")
+
+lgd_kinetic = Legend(labels = c("up", "down", "n.s."), title = "Kinetic", 
+             legend_gp = gpar(fill = c("#FF5959", "#33AAFF", "#FFC000"))
+             )
+
+f4j <- draw(HP_anno_kinetic, annotation_legend_list = list(lgd_kinetic, lgd_sig),
+            annotation_legend_side = "bottom") %>%
+  grid.grabExpr() %>% list() %>% wrap_plots()
+
+f4j
+```
+
+# Figure 4
+
+```{r, fig.width=16, fig.height=24}
+layout = "
+AAAAAAAAAAAAAA##
+AAAAAAAAAAAAAA##
+AAAAAAAAAAAAAA##
+BBBBBBCCCCEEEEEE
+BBBBBBCCCCEEEEEE
+BBBBBB####EEEEEE
+DDDDDDDDDDEEEEEE
+DDDDDDDDDDEEEEEE
+FFFFFFFFFFFGGG##
+FFFFFFFFFFFGGG##
+FFFFFFFFFFFJJJJJ
+HHHHHHHHHHHJJJJJ
+HHHHHHHHHHHJJJJJ
+HHHHHHHHHHHJJJJJ
+IIIIIIIIIIIJJJJJ
+IIIIIIIIIIIJJJJJ
+IIIIIIIIIIIJJJJJ
+"
+f4 <- (wrap_elements(full = f4a) + 
+    wrap_elements(f4b + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(f4c + theme(plot.margin = unit(c(2,2,2,2), "cm"))) +
+    wrap_elements(f4d + theme(plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_plots(list(f4e %>% draw() %>% grid.grabExpr())) +
+    wrap_elements(f4f + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(f4g + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(f4h + theme(plot.margin = unit(c(0,0,0,0), "cm"))) +
+    wrap_elements(f4i + theme(plot.margin = unit(rep(0,4), "cm"))) +
+    # wrap_elements(f4j + theme(plot.margin = unit(rep(0,4), "cm")))
+  wrap_plots(list(HP_anno_kinetic %>% 
+          draw(annotation_legend_list = list(lgd_kinetic, lgd_sig), 
+               annotation_legend_side = "bottom") %>% 
+            grid.grabExpr()))
+    )+ 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c("A","B","C", "D", "E","F","G","H", "I", "J"))) &
+  theme(
+    plot.tag = element_text(size = 24, face = "bold", family = "arial"),
+    axis.title = element_text(size = 20),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+f4
+
+```
+
+```{r}
+ggsave(
+  filename = "output/f4.png",
+  plot = f4,
+  width = 16,
+  height = 24,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )
+```
+
+Saving this figure in [f4](../output/f4.png)
+
+
 

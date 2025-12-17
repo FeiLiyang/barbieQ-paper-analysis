@@ -1,0 +1,89 @@
+.scroll-plot {
+  width: 1000px;
+  height: 600px;
+  overflow-y: scroll;
+  overflow-x: scroll;
+}
+
+/* Override Bootstrap .nav-pills style for tabset-pills */
+.tabset-pills .nav-pills > li > a {
+  border: 1px solid #ddd;     /* border for unselected tabs */
+  background-color: #f9f9ff;  /* your background color */
+  color: #333;             /* your text color */
+  border-radius: 10px;        /* rounded corners */
+}
+
+/* Inactive tab on hover (not active) */
+.tabset-pills .nav-pills > li:not(.active) > a:hover {
+  background-color: #e0e0f0;  /* hover background */
+  color: #000;             /* hover text */
+}
+
+/* Active tab */
+.tabset-pills .nav-pills > li.active > a,
+.tabset-pills .nav-pills > li.active > a:focus,
+.tabset-pills .nav-pills > li.active > a:hover {
+  background-color: #e94196;  /* active tab background */
+  color: #ffffff;             /* active tab text */
+}
+
+/* Change TOC background */
+#TOC {
+  background-color: #f9f9ff !important;
+  border: 1px solid #ddd !important;
+  border-radius: 12px !important;
+  padding: 10px !important;
+}
+
+/* TOC headings */
+#TOC .tocify-header {
+  color: #e0e0f0 !important;
+  font-weight: bold;
+}
+
+/* TOC items */
+#TOC .tocify-item {
+  color: #333 !important;
+}
+
+/* TOC items on hover */
+#TOC .tocify-item:hover {
+  background-color: #e0e0f0 !important;
+  color: #000 !important;
+}
+
+/* Active TOC item */
+#TOC .tocify-item.active {
+  background-color: #e94196 !important;
+  color: #fff !important;
+}
+
+/* Navbar background color and remove border */
+.navbar.navbar-default {
+  background-color: #black !important;
+  border: none !important;
+  border-radius: 0px !important;
+}
+
+/* Apply border-radius to each navbar item (li > a) */
+.navbar .navbar-nav > li > a {
+  border-radius: 0px;  /* adjust value as needed */
+}
+
+/* Navbar text color */
+.navbar.navbar-default .navbar-nav > li > a,
+.navbar.navbar-default .navbar-brand {
+  color: #e0e0f0 !important;
+}
+
+/* Navbar link hover and active */
+.navbar.navbar-default .navbar-nav > li > a:hover,
+.navbar.navbar-default .navbar-nav > li.active > a {
+  background-color: #e94196 !important;
+  color: #ffffff !important;
+}
+
+/* Brand hover color */
+.navbar.navbar-default .navbar-brand:hover {
+  color: #e94196 !important;
+}

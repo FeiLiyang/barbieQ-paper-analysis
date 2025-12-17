@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Liyang Fei" />
+
+
+<title>barbieQ_paper_Figure2: Preprocessing Monkey HSPC dataset</title>
+
+<script src="site_libs/header-attrs-2.30/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="styles.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">public_barcode_count</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">barbieQ_paper_Figure2: Preprocessing
+<code>Monkey HSPC dataset</code></h1>
+<h4 class="author">Liyang Fei</h4>
+<h4 class="date"><p>Initiated: 2025-09-07<br />
+Rendered: 2025-10-16</p></h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2025-10-16
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 5
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 2
+</p>
+<p>
+<strong>Knit directory:</strong> <code>public_barcode_count/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
+changes </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguncommittedchanges"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The R Markdown file has unstaged changes. To know which version of
+the R Markdown file created these results, you’ll want to first commit
+it to the Git repo. If you’re still working on the analysis, you can
+ignore this warning. When you’re finished, you can run
+<code>wflow_publish</code> to commit the R Markdown file and build the
+HTML.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongobjectspresent">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>Environment:</strong> objects present
+</a>
+</p>
+</div>
+<div id="strongEnvironmentstrongobjectspresent"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+The global environment had objects present when the code in the R
+Markdown file was run. These objects can affect the analysis in your R
+Markdown file in unknown ways. For reproduciblity it’s best to always
+run the code in an empty environment. Use <code>wflow_publish</code> or
+<code>wflow_build</code> to ensure that the code is always run in an
+empty environment.
+</p>
+<p>
+The following objects were defined in the global environment when these
+results were created:
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+Name
+</th>
+<th style="text-align:left;">
+Class
+</th>
+<th style="text-align:left;">
+Size
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+module
+</td>
+<td style="text-align:left;">
+function
+</td>
+<td style="text-align:left;">
+5.6 Kb
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250112code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250112)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250112code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250112)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttreec2766f9b7a09fffefaf196fa15aebcd868f12214targetblankc2766f9a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/c2766f9b7a09fffefaf196fa15aebcd868f12214" target="_blank">c2766f9</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttreec2766f9b7a09fffefaf196fa15aebcd868f12214targetblankc2766f9a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/c2766f9b7a09fffefaf196fa15aebcd868f12214" target="_blank">c2766f9</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    output/f2.png
+    Ignored:    public_barcode_count.Rproj
+
+Untracked files:
+    Untracked:  analysis/styles.css
+    Untracked:  output/f4a_schematic.jpeg
+    Untracked:  output/monkeyHSPC_barbieQ.rda
+
+Unstaged changes:
+    Modified:   analysis/_site.yml
+    Modified:   analysis/barbieQ_paper_Figure2.Rmd
+    Modified:   analysis/barbieQ_paper_Figure4.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/barbieQ_paper_Figure2.Rmd</code>)
+and HTML (<code>docs/barbieQ_paper_Figure2.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c2766f9b7a09fffefaf196fa15aebcd868f12214/analysis/barbieQ_paper_Figure2.Rmd" target="_blank">c2766f9</a>
+</td>
+<td>
+Liyang Fei
+</td>
+<td>
+2025-10-07
+</td>
+<td>
+remake figures
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p>Linked to Preprocessing analyses of all datasets in the barbieQ
+paper:</p>
+<ul>
+<li><p><a href="">Monkey HSPC</a></p></li>
+<li><p><a href="">AML data</a></p></li>
+<li><p><a href="">Mouse HSPC</a></p></li>
+<li><p><a href="">Mixture data</a></p></li>
+</ul>
+<div id="load-dependencies" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load Dependencies</h1>
+<pre class="r"><code>library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(data.table) # for data.table()
+library(SummarizedExperiment)
+library(S4Vectors)
+library(ggplot2)
+library(ggbreak)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)</code></pre>
+</div>
+<div id="install-barbieq" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Install
+<code>barbieQ</code></h1>
+<p>Installing the latest devel version of <code>barbieQ</code> from
+GitHub.</p>
+<pre class="r"><code>if (!requireNamespace(&quot;barbieQ&quot;, quietly = TRUE)) {
+  remotes::install_github(&quot;Oshlack/barbieQ&quot;)
+}</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::first&#39; by &#39;dplyr::first&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::last&#39; by &#39;dplyr::last&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::between&#39; by &#39;dplyr::between&#39;
+when loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::as_data_frame&#39; by
+&#39;igraph::as_data_frame&#39; when loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::groups&#39; by &#39;igraph::groups&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::union&#39; by &#39;igraph::union&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre class="r"><code>library(barbieQ)</code></pre>
+<p>Check the version of <code>barbieQ</code>.</p>
+<pre class="r"><code>packageVersion(&quot;barbieQ&quot;)</code></pre>
+<pre><code>[1] &#39;1.1.3&#39;</code></pre>
+</div>
+<div id="set-seeds" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Set seeds</h1>
+<pre class="r"><code>set.seed(2025)
+getwd()</code></pre>
+<pre><code>[1] &quot;/home/lfei/public_barcode_count&quot;</code></pre>
+</div>
+<div id="clean-up-datasets"
+class="section level1 tabset tabset-fade tabset-pills" number="4">
+<h1 class="tabset tabset-fade tabset-pills"><span
+class="header-section-number">4</span> Clean up datasets</h1>
+<p>The data was downloaded from <a
+href="https://github.com/dunbarlabNIH/barcodetrackRData">barcodetrackRData</a>
+repository on GitHub. The experiment was described in <a
+href="http://dx.doi.org/10.1126/sciimmunol.aat9781">Wu, Chuanfeng, et
+al. “Clonal expansion and compartmentalized maintenance of rhesus
+macaque NK cell subsets.” Science Immunology (2018)</a>.</p>
+<p>Load barcode count matrix. Check barcode sequence: pass.</p>
+<pre class="r"><code>## data is separated by &quot;\t&quot;. so we use `read.table()` for loading data.
+count &lt;- read.table(&quot;data/WuC/monkey_ZG66.txt&quot;, header = TRUE, sep = &quot;\t&quot;, row.names = 1)
+
+## rownames are barcode sequence, basically consist of ATGCs: &quot;^[ATGC]+$&quot;
+## check patterns of rownames
+lapply(rownames(count), function(x) grepl(&quot;^[ATGC]+$&quot;, x)) %&gt;% unlist() %&gt;% table()</code></pre>
+<pre><code>.
+FALSE  TRUE 
+    6 16597 </code></pre>
+<pre class="r"><code>## print untypical rownamse
+rownames(count)[!lapply(rownames(count), function(x) grepl(&quot;^[ATGC]+$&quot;, x)) %&gt;% unlist()]</code></pre>
+<pre><code>[1] &quot;GTAGCCACGTTTACGTATCGTTCTAATAGCTGGTGCCTTGGAGATCGGAN&quot;
+[2] &quot;GTAGCCGTCGGCACTTTGTTTATAAAGTCTTGCGTCTTCGTAGATCGGAN&quot;
+[3] &quot;GTAGCCTCGCGCCGTTAGCTTATGGGATAAACTCAATATGAAGATCGGAN&quot;
+[4] &quot;GTAGCCTGCGAGTGGAGCCCGTTTTAGGGATAGTGACGTGTAGATCGGAN&quot;
+[5] &quot;GTAGCCTTTATTGTCTCGATCTAAGCAGCTCAGTAGCAAAGAGATCGGAN&quot;
+[6] &quot;GTAGCCTTTGGCTTGCCGGGGGTTGGGGTCTTGTTCTGTCGAGATCGGAN&quot;</code></pre>
+<pre class="r"><code>## allow &quot;N&quot; in rowname patterns: &quot;^[ATGCN]+$&quot;
+lapply(rownames(count), function(x) grepl(&quot;^[ATGCN]+$&quot;, x)) %&gt;% unlist() %&gt;% table()</code></pre>
+<pre><code>.
+ TRUE 
+16603 </code></pre>
+<p>Load sample meta information. Clean up experimental conditions.</p>
+<pre class="r"><code>metadata &lt;- read.table(&quot;data/WuC/monkey_ZG66_metadata.txt&quot;, header = 1, row.names = 1)
+
+## update the variable names using the camelCase style.
+colnames(metadata)[grepl(&quot;Cell_type&quot;, colnames(metadata))] &lt;- &quot;Celltype&quot;
+print(colnames(metadata))</code></pre>
+<pre><code>[1] &quot;Monkey&quot;    &quot;Timepoint&quot; &quot;Months&quot;    &quot;Celltype&quot; </code></pre>
+<pre class="r"><code>## `Timepoint` and `Months` variables in the `metadata` are repetition, delete `Timepoint`.
+identical(gsub(&quot;m$&quot;, &quot;&quot;, metadata$Timepoint) %&gt;%  as.numeric(), metadata$Months)</code></pre>
+<pre><code>[1] TRUE</code></pre>
+<pre class="r"><code>metadata$Timepoint &lt;- NULL
+print(colnames(metadata))</code></pre>
+<pre><code>[1] &quot;Monkey&quot;   &quot;Months&quot;   &quot;Celltype&quot;</code></pre>
+<pre class="r"><code>## all samples are from the &quot;ZG66&quot;. delete `Monkey` variable.
+metadata$Monkey %&gt;% table()</code></pre>
+<pre><code>.
+ZG66 
+  62 </code></pre>
+<pre class="r"><code>metadata$Monkey &lt;- NULL
+print(colnames(metadata))</code></pre>
+<pre><code>[1] &quot;Months&quot;   &quot;Celltype&quot;</code></pre>
+<pre class="r"><code>## categorize `Months` by `Phase`
+## replace &quot;Gr_1&quot; and &quot;Gr_2&quot; by &quot;Gr&quot; - I don&#39;t know what exactly happened in the experiment regarding the unmatched cell type names.
+metadata$Months</code></pre>
+<pre><code> [1]  6.5 12.0 17.0 27.0 36.0 42.0  6.5 12.0 17.0 27.0 36.0 42.0  6.5 12.0 17.0
+[16] 27.0 36.0 42.0  6.5 12.0 17.0 27.0 36.0 42.0  6.5 12.0 17.0 27.0 36.0 42.0
+[31]  1.0  2.0  3.0  4.5  9.5 14.5 22.0 24.0  1.0  2.0  3.0  4.5  5.0  7.0  9.5
+[46] 18.5 22.0 24.0 36.0  4.5 14.5  4.5 14.5 55.5 55.5 55.5 58.0 58.0 58.0 68.0
+[61] 68.0 68.0</code></pre>
+<pre class="r"><code>metadata$Celltype %&gt;% table()</code></pre>
+<pre><code>.
+                        B                        Gr                      Gr_1 
+                        6                        15                         1 
+                     Gr_2            NK_CD56n_CD16p            NK_CD56p_CD16n 
+                        1                         8                         8 
+          NK_NKG2Ap_CD16p NK_NKG2Ap_CD16p_KIR3DL01n NK_NKG2Ap_CD16p_KIR3DL01p 
+                        3                         3                         3 
+                        T 
+                       14 </code></pre>
+<pre class="r"><code>metadata &lt;- metadata %&gt;% 
+  as.data.frame() %&gt;% 
+  select(Celltype, Months) %&gt;% 
+  mutate(Celltype = gsub(&quot;(Gr).*&quot;, &quot;\\1&quot;, Celltype)) %&gt;% 
+  ## to repeat the analyses in the original paper, we select same set of samples, which is the first 30 samples, basically collected from those time points
+  mutate(inOriginalPaper = Months %in% c(6.5, 12, 17, 27, 36, 42))
+
+## turn `Celltype` into factors and set up levels.
+metadata$Celltype &lt;- factor(metadata$Celltype, levels = c(&quot;T&quot;, &quot;B&quot;, &quot;Gr&quot;, &quot;NK_CD56p_CD16n&quot;, &quot;NK_CD56n_CD16p&quot;, &quot;NK_NKG2Ap_CD16p&quot;, &quot;NK_NKG2Ap_CD16p_KIR3DL01n&quot;, &quot;NK_NKG2Ap_CD16p_KIR3DL01p&quot;))
+
+data.table(metadata)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["Celltype"],"name":[1],"type":["fct"],"align":["left"]},{"label":["Months"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["inOriginalPaper"],"name":[3],"type":["lgl"],"align":["right"]}],"data":[{"1":"T","2":"6.5","3":"TRUE"},{"1":"T","2":"12.0","3":"TRUE"},{"1":"T","2":"17.0","3":"TRUE"},{"1":"T","2":"27.0","3":"TRUE"},{"1":"T","2":"36.0","3":"TRUE"},{"1":"T","2":"42.0","3":"TRUE"},{"1":"B","2":"6.5","3":"TRUE"},{"1":"B","2":"12.0","3":"TRUE"},{"1":"B","2":"17.0","3":"TRUE"},{"1":"B","2":"27.0","3":"TRUE"},{"1":"B","2":"36.0","3":"TRUE"},{"1":"B","2":"42.0","3":"TRUE"},{"1":"Gr","2":"6.5","3":"TRUE"},{"1":"Gr","2":"12.0","3":"TRUE"},{"1":"Gr","2":"17.0","3":"TRUE"},{"1":"Gr","2":"27.0","3":"TRUE"},{"1":"Gr","2":"36.0","3":"TRUE"},{"1":"Gr","2":"42.0","3":"TRUE"},{"1":"NK_CD56p_CD16n","2":"6.5","3":"TRUE"},{"1":"NK_CD56p_CD16n","2":"12.0","3":"TRUE"},{"1":"NK_CD56p_CD16n","2":"17.0","3":"TRUE"},{"1":"NK_CD56p_CD16n","2":"27.0","3":"TRUE"},{"1":"NK_CD56p_CD16n","2":"36.0","3":"TRUE"},{"1":"NK_CD56p_CD16n","2":"42.0","3":"TRUE"},{"1":"NK_CD56n_CD16p","2":"6.5","3":"TRUE"},{"1":"NK_CD56n_CD16p","2":"12.0","3":"TRUE"},{"1":"NK_CD56n_CD16p","2":"17.0","3":"TRUE"},{"1":"NK_CD56n_CD16p","2":"27.0","3":"TRUE"},{"1":"NK_CD56n_CD16p","2":"36.0","3":"TRUE"},{"1":"NK_CD56n_CD16p","2":"42.0","3":"TRUE"},{"1":"T","2":"1.0","3":"FALSE"},{"1":"T","2":"2.0","3":"FALSE"},{"1":"T","2":"3.0","3":"FALSE"},{"1":"T","2":"4.5","3":"FALSE"},{"1":"T","2":"9.5","3":"FALSE"},{"1":"T","2":"14.5","3":"FALSE"},{"1":"T","2":"22.0","3":"FALSE"},{"1":"T","2":"24.0","3":"FALSE"},{"1":"Gr","2":"1.0","3":"FALSE"},{"1":"Gr","2":"2.0","3":"FALSE"},{"1":"Gr","2":"3.0","3":"FALSE"},{"1":"Gr","2":"4.5","3":"FALSE"},{"1":"Gr","2":"5.0","3":"FALSE"},{"1":"Gr","2":"7.0","3":"FALSE"},{"1":"Gr","2":"9.5","3":"FALSE"},{"1":"Gr","2":"18.5","3":"FALSE"},{"1":"Gr","2":"22.0","3":"FALSE"},{"1":"Gr","2":"24.0","3":"FALSE"},{"1":"Gr","2":"36.0","3":"TRUE"},{"1":"NK_CD56n_CD16p","2":"4.5","3":"FALSE"},{"1":"NK_CD56n_CD16p","2":"14.5","3":"FALSE"},{"1":"NK_CD56p_CD16n","2":"4.5","3":"FALSE"},{"1":"NK_CD56p_CD16n","2":"14.5","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p","2":"55.5","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p_KIR3DL01n","2":"55.5","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p_KIR3DL01p","2":"55.5","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p","2":"58.0","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p_KIR3DL01n","2":"58.0","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p_KIR3DL01p","2":"58.0","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p","2":"68.0","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p_KIR3DL01n","2":"68.0","3":"FALSE"},{"1":"NK_NKG2Ap_CD16p_KIR3DL01p","2":"68.0","3":"FALSE"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+<div id="create-barbieq-object" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Create
+<code>barbieQ</code> object</h1>
+<p>Store count matrix and sample metadata into a <code>barbieQ</code>
+object.</p>
+<pre class="r"><code>## set up the color mapping for the conditions
+conditionColor &lt;- list(
+  Celltype = setNames(
+    c(&quot;yellowgreen&quot;, &quot;darkolivegreen&quot;, &quot;goldenrod&quot;, &quot;steelblue1&quot;, &quot;slateblue1&quot;, &quot;orchid&quot;, &quot;lightpink&quot;, &quot;violetred&quot;), 
+    c(&quot;T&quot;, &quot;B&quot;, &quot;Gr&quot;, &quot;NK_CD56p_CD16n&quot;, &quot;NK_CD56n_CD16p&quot;, &quot;NK_NKG2Ap_CD16p&quot;, &quot;NK_NKG2Ap_CD16p_KIR3DL01n&quot;, &quot;NK_NKG2Ap_CD16p_KIR3DL01p&quot;)),
+  Months = circlize::colorRamp2(
+    breaks = c(6.5, 12, 17, 37, 36, 42, 68),
+    colors = c(&quot;#CFCFFF&quot;, &quot;#B2B2FF&quot;, &quot;#8282FF&quot;, &quot;#4D4FFF&quot;, &quot;#1D1DFF&quot;, &quot;#0000B2&quot;, &quot;#00006A&quot;))
+)
+
+## for this specific subset of samples - removing conditions not existing
+conditionColor &lt;- list(
+    Celltype = setNames(c(&quot;yellowgreen&quot;, &quot;darkolivegreen&quot;, &quot;goldenrod&quot;, &quot;steelblue1&quot;, &quot;slateblue1&quot;), 
+                        c(&quot;T&quot;, &quot;B&quot;, &quot;Gr&quot;, &quot;NK_CD56p_CD16n&quot;, &quot;NK_CD56n_CD16p&quot;)),
+    Months = circlize::colorRamp2(
+      breaks = c(6.5, 12, 17, 37, 36, 42),
+      colors = c(&quot;#CFCFFF&quot;, &quot;#B2B2FF&quot;, &quot;#8282FF&quot;, &quot;#4D4FFF&quot;, &quot;#1D1DFF&quot;, &quot;#0000B2&quot;))
+)</code></pre>
+<pre class="r"><code>## create an object to store the barcode count matrix and sample metadata.
+## only passing Celltype and Months to sample metadata
+## to repeat the analyses in the original paper, we select same set of samples, which is the first 30 samples, basically samples of Months %in% c(6.5, 12, 17, 27, 36, 42)
+monkeyHSPC &lt;- barbieQ::createBarbieQ(
+  object = count[,1:30], 
+  sampleMetadata = metadata[1:30, c(&quot;Celltype&quot;, &quot;Months&quot;)], 
+  factorColors = conditionColor)
+
+## add monkey ID to object metadata.
+monkeyHSPC@metadata$Monkey &lt;- list(&quot;Monkey&quot; = &quot;ZG66&quot;)</code></pre>
+</div>
+<div id="cluster-correlating-barcodes"
+class="section level1 tabset tabset-fade tabset-pills" number="6">
+<h1 class="tabset tabset-fade tabset-pills"><span
+class="header-section-number">6</span> Cluster correlating barcodes</h1>
+<p>Select “top” barcodes in advance to save the time &amp; space for
+running <code>plotBarcodePairCorrelation</code>.</p>
+<pre class="r"><code>## check min group size as `nSampleThreshold` in `tagTopBarcodes`
+table(monkeyHSPC$sampleMetadata$Celltype)</code></pre>
+<pre><code>
+                        T                         B                        Gr 
+                        6                         6                         6 
+           NK_CD56p_CD16n            NK_CD56n_CD16p           NK_NKG2Ap_CD16p 
+                        6                         6                         0 
+NK_NKG2Ap_CD16p_KIR3DL01n NK_NKG2Ap_CD16p_KIR3DL01p 
+                        0                         0 </code></pre>
+<pre class="r"><code>## select top barcodes
+monkeyHSPC &lt;- barbieQ::tagTopBarcodes(monkeyHSPC, nSampleThreshold = 6)
+## print number of unselected / selected barcodes
+monkeyHSPC@elementMetadata$isTopBarcode %&gt;% table()</code></pre>
+<pre><code>isTop
+FALSE  TRUE 
+15463  1140 </code></pre>
+<p>Compute barcode pair-wise correlation. Default to Pearson
+correlation.</p>
+<pre class="r"><code>p_monkey_pair_cor &lt;- plotBarcodePairCorrelation(barbieQ = monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])</code></pre>
+<pre><code>processing Barcode pairwise pearson correlation on propotion (asin-sqrt transformation).</code></pre>
+<pre class="r"><code>f2a &lt;- p_monkey_pair_cor + theme(legend.position = &quot;top&quot;)
+f2a</code></pre>
+<pre><code>Warning: The dot-dot notation (`..y..`) was deprecated in ggplot2 3.4.0.
+ℹ Please use `after_stat(y)` instead.
+ℹ The deprecated feature was likely used in the barbieQ package.
+  Please report the issue at &lt;https://github.com/Oshlack/barbieQ&gt;.
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+generated.</code></pre>
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure2.Rmd/unnamed-chunk-8-1.png" width="480" style="display: block; margin: auto;" /></p>
+<p>Cluster barcodes by correlation.</p>
+<pre class="r"><code>monkeyHSPC_top &lt;- barbieQ::clusterCorrelatingBarcodes(barbieQ = monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])</code></pre>
+<pre><code>processing Barcode pairwise pearson correlation on propotion (asin-sqrt transformation).</code></pre>
+<pre><code>identified 4 clusters, including 9 Barcodes.</code></pre>
+<p>Inspect barcode clusters.</p>
+<pre class="r"><code>p_cluster_list &lt;- barbieQ::inspectCorrelatingBarcodes(monkeyHSPC_top)</code></pre>
+<p><code>p_cluster</code> is not a classical ggplot object, instead,
+it’s converted from a base R plot generated by <code>igraph</code>.
+Here’s how to change the <code>geom_node_text</code> size for it.</p>
+<pre class="r"><code>## update the geom_node_text for `p_cluster`
+## find the geom_node_text layer
+layer_index &lt;- which(sapply(p_cluster_list$p_cluster$layers, function(x) inherits(x$geom, &quot;GeomTextRepel&quot;)))
+## update the size for that layer
+p_cluster_list$p_cluster$layers[[layer_index]]$aes_params$size &lt;- 1  # new size
+f2b &lt;- p_cluster_list$p_cluster + theme(legend.position = &quot;none&quot;)
+
+f2b</code></pre>
+<p><img src="figure/barbieQ_paper_Figure2.Rmd/unnamed-chunk-11-1.png" width="384" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>f2c</code></pre>
+<p><img src="figure/barbieQ_paper_Figure2.Rmd/unnamed-chunk-13-1.png" width="384" style="display: block; margin: auto;" /></p>
+</div>
+<div id="merge-correlating-barcodes" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Merge correlating
+barcodes</h1>
+<p>Use the barcode correlation information saved in
+<code>monkeyHSPC_top</code> to merge barcodes in the initial data
+<code>monkeyHSPC</code>.</p>
+<p>Barcode proportion, CPM, rank, … are re-calculated based on the
+selected barcodes in the new barbieQ object.</p>
+<pre class="r"><code>monkeyHSPC_merged &lt;- barbieQ::mergeCorrelatingBarcodes(barbieQ_clustered = monkeyHSPC_top, barbieQ_toMerge = monkeyHSPC)</code></pre>
+<pre><code>[1] &quot;printing removed barcodes: GTAGCCAACTTCCTGGGCGGTGGTGGATGTGACTATTAAGTAGATCGGAA&quot;
+[2] &quot;printing removed barcodes: GTAGCCACCACTCGTGTGCTGCGGGACTCTTAGTTACTTTTAGATCGGAA&quot;
+[3] &quot;printing removed barcodes: GTAGCCGACTGCGGAGAACCATCCCTAGTAATCGATATTGCAGATCGGAA&quot;
+[4] &quot;printing removed barcodes: GTAGCCTGTCATGTGGCCTCCGAGGTAGTTCCCTTCCACCTAGATCGGAA&quot;
+[5] &quot;printing removed barcodes: GTAGCCTCATCTTTTGTAGGTTGTGGGGGCGTGTCATCGAGAGATCGGAA&quot;</code></pre>
+<pre><code>!! re-computing barcode proportion, CPM, rank... from the selected barcodes.</code></pre>
+<pre class="r"><code>dim(monkeyHSPC_merged)</code></pre>
+<pre><code>[1] 16598    30</code></pre>
+<pre class="r"><code>monkeyHSPC_merged@metadata$predicted_barcode_clusters</code></pre>
+<pre><code>IGRAPH fe5c979 UN-- 9 6 -- 
++ attr: name (v/c)
++ edges from fe5c979 (vertex names):
+[1] GTAGCCAACTTCCTGGGCGGTGGTGGATGTGACTATTAAGTAGATCGGAA--GTAGCCAATGACTGGTGTACTGTCCTCTAAGACTGGCGTCGAGATCGGAA
+[2] GTAGCCCACAATACGCGACTGTAGTTAAAATGCACTTGTTCAGATCGGAA--GTAGCCGACTGCGGAGAACCATCCCTAGTAATCGATATTGCAGATCGGAA
+[3] GTAGCCACCACTCGTGTGCTGCGGGACTCTTAGTTACTTTTAGATCGGAA--GTAGCCCGGATCTGGTGACGTTTATGGCGAGGAGGATGGATAGATCGGAA
+[4] GTAGCCACCACTCGTGTGCTGCGGGACTCTTAGTTACTTTTAGATCGGAA--GTAGCCTGTCATGTGGCCTCCGAGGTAGTTCCCTTCCACCTAGATCGGAA
+[5] GTAGCCCGGATCTGGTGACGTTTATGGCGAGGAGGATGGATAGATCGGAA--GTAGCCTGTCATGTGGCCTCCGAGGTAGTTCCCTTCCACCTAGATCGGAA
++ ... omitted several edges</code></pre>
+<pre class="r"><code>monkeyHSPC_merged@metadata$removed_barcodes</code></pre>
+<pre><code>[1] &quot;GTAGCCAACTTCCTGGGCGGTGGTGGATGTGACTATTAAGTAGATCGGAA&quot;
+[2] &quot;GTAGCCACCACTCGTGTGCTGCGGGACTCTTAGTTACTTTTAGATCGGAA&quot;
+[3] &quot;GTAGCCGACTGCGGAGAACCATCCCTAGTAATCGATATTGCAGATCGGAA&quot;
+[4] &quot;GTAGCCTGTCATGTGGCCTCCGAGGTAGTTCCCTTCCACCTAGATCGGAA&quot;
+[5] &quot;GTAGCCTCATCTTTTGTAGGTTGTGGGGGCGTGTCATCGAGAGATCGGAA&quot;</code></pre>
+</div>
+<div id="filter-low-count-barcodes"
+class="section level1 tabset tabset-fade tabset-pills" number="8">
+<h1 class="tabset tabset-fade tabset-pills"><span
+class="header-section-number">8</span> Filter low-count barcodes</h1>
+<p>Tag top barcodes.</p>
+<pre class="r"><code>## check min group size as `nSampleThreshold` in `tagTopBarcodes`
+table(monkeyHSPC_merged$sampleMetadata$Celltype)</code></pre>
+<pre><code>
+                        T                         B                        Gr 
+                        6                         6                         6 
+           NK_CD56p_CD16n            NK_CD56n_CD16p           NK_NKG2Ap_CD16p 
+                        6                         6                         0 
+NK_NKG2Ap_CD16p_KIR3DL01n NK_NKG2Ap_CD16p_KIR3DL01p 
+                        0                         0 </code></pre>
+<pre class="r"><code>## select top barcodes
+monkeyHSPC_merged &lt;- barbieQ::tagTopBarcodes(monkeyHSPC_merged, nSampleThreshold = 6)
+## print number of unselected / selected barcodes
+monkeyHSPC_merged@elementMetadata$isTopBarcode %&gt;% table()</code></pre>
+<pre><code>isTop
+FALSE  TRUE 
+15458  1140 </code></pre>
+<p>Visualize barcodes by “top” and “bottom”.</p>
+<pre class="r"><code>f2d &lt;- barbieQ::plotBarcodePareto(barbieQ = monkeyHSPC_merged) +
+  ylim(-8, 7) + 
+  annotate(&quot;text&quot;, x = c(pi * 0.05), y = c(7), label = c(&quot;Relative proportion %&quot;), color = &quot;#999966&quot;, size = 3, angle = 0, fontface = &quot;bold&quot;, hjust = 1)</code></pre>
+<pre><code>Scale for y is already present.
+Adding another scale for y, which will replace the existing scale.</code></pre>
+<pre class="r"><code>f2e &lt;- barbieQ::plotBarcodeSankey(barbieQ = monkeyHSPC_merged)
+
+f2d</code></pre>
+<pre><code>Warning: Removed 10 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+<pre><code>Warning: Removed 4 rows containing missing values or values outside the scale range
+(`geom_text()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure2.Rmd/unnamed-chunk-16-1.png" width="480" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>f2e</code></pre>
+<p><img src="figure/barbieQ_paper_Figure2.Rmd/unnamed-chunk-16-2.png" width="480" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>## subset barcodes by top barcodes.
+monkeyHSPC_merged_top &lt;- monkeyHSPC_merged[monkeyHSPC_merged@elementMetadata$isTopBarcode$isTop,]
+dim(monkeyHSPC_merged_top)</code></pre>
+<pre><code>[1] 1140   30</code></pre>
+<p>Visualize barcode heatmaps by pre- and post- filtering.</p>
+<pre class="r"><code>p_ht_all &lt;- barbieQ::plotBarcodeHeatmap(monkeyHSPC_merged)</code></pre>
+<pre><code>setting Celltype as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>The automatically generated colors map from the 1^st and 99^th of the
+values in the matrix. There are outliers in the matrix whose patterns
+might be hidden by this color mapping. You can manually set the color
+to `col` argument.
+
+Use `suppressMessages()` to turn off this message.</code></pre>
+<pre><code>`use_raster` is automatically set to TRUE for a matrix with more than
+2000 rows. You can control `use_raster` argument by explicitly setting
+TRUE/FALSE to it.
+
+Set `ht_opt$message = FALSE` to turn off this message.</code></pre>
+<pre><code>&#39;magick&#39; package is suggested to install to give better rasterization.
+
+Set `ht_opt$message = FALSE` to turn off this message.</code></pre>
+<pre><code>The automatically generated colors map from the 1^st and 99^th of the
+values in the matrix. There are outliers in the matrix whose patterns
+might be hidden by this color mapping. You can manually set the color
+to `col` argument.
+
+Use `suppressMessages()` to turn off this message.</code></pre>
+<pre><code>`use_raster` is automatically set to TRUE for a matrix with more than
+2000 rows. You can control `use_raster` argument by explicitly setting
+TRUE/FALSE to it.
+
+Set `ht_opt$message = FALSE` to turn off this message.</code></pre>
+<p><img src="figure/barbieQ_paper_Figure2.Rmd/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>matrix color is mapped to `asin-sqrt proportion` but labeled by raw proportion.</code></pre>
+<pre class="r"><code>## setting heatmap matrix size with accessors
+p_ht_all@matrix_param$width &lt;- grid::unit(7, &quot;cm&quot;)
+p_ht_all@matrix_param$height &lt;- grid::unit(7, &quot;cm&quot;)</code></pre>
+<pre class="r"><code>p_ht_top &lt;- barbieQ::plotBarcodeHeatmap(monkeyHSPC_merged_top)</code></pre>
+<pre><code>setting Celltype as the primary factor in `sampleMetadata`.</code></pre>
+<pre><code>The automatically generated colors map from the 1^st and 99^th of the
+values in the matrix. There are outliers in the matrix whose patterns
+might be hidden by this color mapping. You can manually set the color
+to `col` argument.
+
+Use `suppressMessages()` to turn off this message.
+The automatically generated colors map from the 1^st and 99^th of the
+values in the matrix. There are outliers in the matrix whose patterns
+might be hidden by this color mapping. You can manually set the color
+to `col` argument.
+
+Use `suppressMessages()` to turn off this message.</code></pre>
+<p><img src="figure/barbieQ_paper_Figure2.Rmd/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>matrix color is mapped to `asin-sqrt proportion` but labeled by raw proportion.</code></pre>
+<pre class="r"><code>p_ht_top@matrix_param$width &lt;- grid::unit(7, &quot;cm&quot;)
+p_ht_top@matrix_param$height &lt;- grid::unit(7, &quot;cm&quot;)
+
+# barbieQ::plotBarcodeHeatmap(monkeyHSPC_merged_top, colorMapTo = &quot;proportion&quot;)
+# barbieQ::plotBarcodeHeatmap(monkeyHSPC_merged_top, colorMapTo = &quot;logit proportion&quot;)</code></pre>
+</div>
+<div id="figure2" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Figure2</h1>
+<pre class="r"><code>layout = &quot;
+AAAAABBBBCCCC
+AAAAABBBBCCCC
+DDDDDEEEECCCC
+DDDDDEEEECCCC
+FFFFFGGGGGG##
+FFFFFGGGGGG##
+&quot;
+f2 &lt;- (wrap_elements(f2a + theme(plot.margin = unit(c(0,0.6,0,0.6), &quot;line&quot;))) + 
+    wrap_elements(f2b + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;))) + 
+    wrap_elements(f2c + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;))) + 
+    wrap_elements(f2d + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;))) + 
+    wrap_elements(f2e + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;), legend.position = &quot;top&quot;)) + 
+    wrap_plots(list(p_ht_all %&gt;% draw(heatmap_legend_side = &quot;left&quot;, show_annotation_legend = FALSE) %&gt;% grid.grabExpr())) +
+    wrap_plots(list(p_ht_top %&gt;% draw(heatmap_legend_side = &quot;left&quot;) %&gt;% grid.grabExpr())) 
+  ) + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;, &quot;D&quot;, &quot;E&quot;, &quot;F&quot;, &quot;&quot;))) &amp;
+  theme(
+    plot.tag = element_text(size = 24, face = &quot;bold&quot;, family = &quot;arial&quot;),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+f2</code></pre>
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 10 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+<pre><code>Warning: Removed 4 rows containing missing values or values outside the scale range
+(`geom_text()`).</code></pre>
+<p><img src="figure/barbieQ_paper_Figure2.Rmd/unnamed-chunk-20-1.png" width="1248" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggsave(
+  filename = &quot;output/f2.png&quot;,
+  plot = f2,
+  width = 13,
+  height = 12,
+  units = &quot;in&quot;, # for Rmd r chunk fig size, unit default to inch
+  dpi = 300
+  )</code></pre>
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 10 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+<pre><code>Warning: Removed 4 rows containing missing values or values outside the scale range
+(`geom_text()`).</code></pre>
+<p>Saving this figure in <a href="../output/f2.png">f2</a></p>
+</div>
+<div id="save-preprocessed-barbieq-objects-in-.rda"
+class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Save preprocessed
+<code>barbieQ</code> objects in .rda</h1>
+<pre class="r"><code>save(monkeyHSPC_merged, monkeyHSPC_merged_top, file = &quot;output/monkeyHSPC_barbieQ.rda&quot;)</code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.5.0 (2025-04-11)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.6 (Plow)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] grid      stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] barbieQ_1.1.3               ComplexHeatmap_2.24.1      
+ [3] ggVennDiagram_1.5.4         scales_1.4.0               
+ [5] patchwork_1.3.2             ggbreak_0.1.6              
+ [7] ggplot2_4.0.0               SummarizedExperiment_1.38.1
+ [9] Biobase_2.68.0              GenomicRanges_1.60.0       
+[11] GenomeInfoDb_1.44.3         IRanges_2.42.0             
+[13] S4Vectors_0.46.0            BiocGenerics_0.54.0        
+[15] generics_0.1.4              MatrixGenerics_1.20.0      
+[17] matrixStats_1.5.0           data.table_1.17.8          
+[19] knitr_1.50                  tibble_3.3.0               
+[21] tidyr_1.3.1                 dplyr_1.1.4                
+[23] magrittr_2.0.4              readxl_1.4.5               
+[25] workflowr_1.7.2            
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3      rstudioapi_0.17.1       jsonlite_2.0.0         
+  [4] shape_1.4.6.1           magick_2.9.0            jomo_2.7-6             
+  [7] nloptr_2.2.1            farver_2.1.2            logistf_1.26.1         
+ [10] rmarkdown_2.30          ragg_1.5.0              GlobalOptions_0.1.2    
+ [13] fs_1.6.6                vctrs_0.6.5             minqa_1.2.8            
+ [16] memoise_2.0.1           htmltools_0.5.8.1       S4Arrays_1.8.1         
+ [19] broom_1.0.10            cellranger_1.1.0        SparseArray_1.8.1      
+ [22] gridGraphics_0.5-1      mitml_0.4-5             sass_0.4.10            
+ [25] bslib_0.9.0             cachem_1.1.0            whisker_0.4.1          
+ [28] igraph_2.1.4            lifecycle_1.0.4         iterators_1.0.14       
+ [31] pkgconfig_2.0.3         Matrix_1.7-3            R6_2.6.1               
+ [34] fastmap_1.2.0           rbibutils_2.3           GenomeInfoDbData_1.2.14
+ [37] clue_0.3-66             digest_0.6.37           aplot_0.2.9            
+ [40] colorspace_2.1-2        ps_1.9.1                rprojroot_2.1.1        
+ [43] textshaping_1.0.3       labeling_0.4.3          httr_1.4.7             
+ [46] polyclip_1.10-7         abind_1.4-8             mgcv_1.9-1             
+ [49] compiler_4.5.0          withr_3.0.2             doParallel_1.0.17      
+ [52] S7_0.2.0                backports_1.5.0         viridis_0.6.5          
+ [55] ggforce_0.5.0           pan_1.9                 MASS_7.3-65            
+ [58] rappdirs_0.3.3          DelayedArray_0.34.1     rjson_0.2.23           
+ [61] tools_4.5.0             httpuv_1.6.16           nnet_7.3-20            
+ [64] glue_1.8.0              callr_3.7.6             nlme_3.1-168           
+ [67] promises_1.3.3          getPass_0.2-4           cluster_2.1.8.1        
+ [70] operator.tools_1.6.3    gtable_0.3.6            formula.tools_1.7.1    
+ [73] tidygraph_1.3.1         XVector_0.48.0          ggrepel_0.9.6          
+ [76] foreach_1.5.2           pillar_1.11.1           stringr_1.5.2          
+ [79] yulab.utils_0.2.1       limma_3.64.3            later_1.4.4            
+ [82] circlize_0.4.16         splines_4.5.0           tweenr_2.0.3           
+ [85] lattice_0.22-6          survival_3.8-3          tidyselect_1.2.1       
+ [88] git2r_0.36.2            reformulas_0.4.1        gridExtra_2.3          
+ [91] xfun_0.53               graphlayouts_1.2.2      statmod_1.5.0          
+ [94] stringi_1.8.7           UCSC.utils_1.4.0        boot_1.3-31            
+ [97] ggfun_0.2.0             yaml_2.3.10             evaluate_1.0.5         
+[100] codetools_0.2-20        ggraph_2.2.2            ggplotify_0.1.3        
+[103] cli_3.6.5               rpart_4.1.24            systemfonts_1.3.1      
+[106] Rdpack_2.6.4            processx_3.8.6          jquerylib_0.1.4        
+[109] Rcpp_1.1.0              png_0.1-8               parallel_4.5.0         
+[112] lme4_1.1-37             glmnet_4.1-10           viridisLite_0.4.2      
+[115] purrr_1.1.0             crayon_1.5.3            GetoptLong_1.0.5       
+[118] rlang_1.1.6             mice_3.18.0            </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
