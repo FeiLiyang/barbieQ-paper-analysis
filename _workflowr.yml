@@ -6,3 +6,16 @@ seed: 20250112
 # The working directory to build the R Markdown files. The path is relative to
 # _workflowr.yml. See ?rmarkdown::render for details.
 knit_root_dir: "."
+
+output:
+  workflowr::wflow_html:
+    theme: cosmo
+    highlight: textmate
+    toc: yes
+    toc_float:
+        collapsed: false
+        smooth_scroll: false
+        float: true
+    number_sections: true
+    df_print: paged
+    css: analysis/styles.css
