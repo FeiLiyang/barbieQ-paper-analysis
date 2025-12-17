@@ -6,6 +6,5 @@
 *.Rapp.history
 *.DS_Store
 **/analysis/*_cache
-*.png
 **/docs/site_libs/
 .Rproj.user
