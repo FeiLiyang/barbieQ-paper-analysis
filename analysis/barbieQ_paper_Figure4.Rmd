@@ -39,6 +39,7 @@ library(edgeR)
 
 source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
 source("analysis/F4_validation.R") ## functions for Figure4 validations
+source("analysis/ggplot_theme.R") ## setting ggplot theme
 ```
 
 # Install `barbieQ`
@@ -74,7 +75,7 @@ load("output/monkeyHSPC_barbieQ.rda")
 # load("output/monkeyHSPC_raw_barbieQ.rda")
 ```
 
-# Experimental schematic
+# F4A: Experimental schematic
 
 ```{r}
 schematic <- image_read("output/f4a_schematic.jpeg")
@@ -82,7 +83,7 @@ f4a <- rasterGrob(schematic, interpolate = FALSE)
 wrap_elements(full = f4a)
 ```
 
-# Plot barcode proportion and sample annotation
+# F4B: Plot barcode proportion and sample annotation
 
 `plotBarcodeHistogram` is customized from the `bartools` package.
 
@@ -124,7 +125,7 @@ f4b
 
 # Compare filtering
 
-## top10each vs. barbieQ filter
+## F4D: top10each vs. barbieQ filter
 
 The original paper filter barcodes by tagging top 10 barcodes from each sample, and collectively keeping the tagged barcodes across all samples.
 Here we compare this "top10each" (and "top20each") strategy with `barbieQ` filtering.
@@ -171,13 +172,13 @@ f4d <- p_sankey_barbieQ +
   theme(legend.position = "none", plot.title = element_text(hjust = 0.5, vjust = 1),
         strip.text.x = element_blank(), strip.text.y = element_blank()) + labs(title = "top10each") + 
   p_sankey_top20 + 
-  theme(legend.position = "none", plot.title = element_text(hjust = 0.5, vjust = 1),
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5, vjust = 1),
         strip.text.x = element_blank(), strip.text.y = element_blank()) + labs(title = "top20each")
 
 f4d
 ```
 
-## overlap
+## F4C: overlap
 
 ```{r, fig.width=6, fig.height=4}
 list_top_BC <- list(
@@ -186,17 +187,61 @@ list_top_BC <- list(
   top20each = rownames(monkeyHSPC_merged)[colTagVec2]
   )
 
-venn_filter <- eulerr::euler(list_top_BC) %>% 
-  plot(fills = c("pink", "skyblue", "steelblue"), 
-       alpha = 0.5, labels = list(font = 4, cex = 1), quantities = list(font = 1, cex = 1)) 
+## plot Euler
+# venn_filter <- eulerr::euler(list_top_BC) %>% 
+#   plot(fills = c("pink", "skyblue", "steelblue"), 
+#        alpha = 0.5, labels = list(font = 4, cex = 1), quantities = list(font = 1, cex = 1)) 
+# 
+# venn_filter %>% plot() %>% grid.grabExpr() %>% wrap_plots()
 
-f4c <- venn_filter %>% plot() %>% grid.grabExpr() %>% wrap_plots()
-f4c
-
+## plot ggVenn
 # ggVennDiagram(list_top_BC, label = "count") + scale_fill_gradient(low="white", high = "skyblue")
+
+## plot UpSet plot
+f4c <- list_top_BC %>% 
+  Venn() %>% 
+  plot_upset(top.bar.numbers.size = 4, relative_width = 0.0) ## limit space for left bar plot
+
+## getting theme settings from an example ggplot using barbieQ theme
+tester <- ggplot(data.frame(X = 1:3, Y = 4:6)) +
+  geom_point(aes(x = X, y = Y)) +
+  theme_barbieQ_size()
+
+tester_col <- ggplot(data.frame(X = 1:3, Y = 4:6)) +
+  geom_col(aes(x = X, y = Y), width = 0.2)
+tester_col@layers$geom_col$aes_params$width
+
+mytittle <- tester@theme$axis.title
+mytext <- tester@theme$axis.text
+
+## modifying components in UpSet plots: three gplot objects
+f4c[["plotlist"]][[1]]@theme$axis.title <- mytittle
+f4c[["plotlist"]][[1]]@theme$axis.text <- mytext
+
+f4c[["plotlist"]][[2]]@theme$axis.title <- mytittle
+f4c[["plotlist"]][[2]]@theme$axis.text <- mytext
+
+f4c[["plotlist"]][[2]]@layers$geom_col$aes_params$width <- 0.4
+
+f4c[["plotlist"]][[3]]@theme$axis.title <- mytittle
+f4c[["plotlist"]][[3]]@theme$axis.text <- mytext
+
+f4c[["plotlist"]][[3]]@theme$axis.text@size <- 11
+f4c[["plotlist"]][[3]]@theme$axis.text@angle <- 15
+
+## removing the left bar plot
+f4c[["plotlist"]][[3]] <- f4c[["plotlist"]][[3]] + theme(
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank()
+  )
+
+## plot 4c
+f4c
 ```
 
-## inspect two sets: heatmap
+## F4E: inspect two sets: heatmap
 
 ```{r fig.width=7, fig.height=9}
 barcodeArray <- monkeyHSPC_merged@elementMetadata$isTopBarcode$isTop | colTagVec
@@ -246,35 +291,6 @@ f4e <- Heatmap(
 f4e
 ```
 
-# Figure 4 upper
-
-```{r eval=FALSE, fig.height=12, fig.width=16, include=FALSE}
-layout = "
-AAAAAAA##
-AAAAAAA##
-BBBCCEEEE
-BBBCCEEEE
-DDDDDEEEE
-DDDDDEEEE
-"
-f4 <- (wrap_elements(f4a + theme(plot.margin = unit(rep(0,4), "cm")), full = grob) + 
-    wrap_elements(f4b + theme(plot.margin = unit(rep(0,4), "cm"))) + 
-    wrap_elements(f4c + theme(plot.margin = unit(c(1,0,1,0), "cm"))) +
-    wrap_elements(f4d + theme(plot.margin = unit(rep(0,4), "cm"))) +
-    wrap_elements(f4e + theme(plot.margin = unit(rep(0,4), "cm")))
-    )+ 
-  plot_layout(design = layout) +
-  plot_annotation(tag_levels = list(c("A","B","C", "D", "E"))) &
-  theme(
-    plot.tag = element_text(size = 24, face = "bold", family = "arial"),
-    axis.title = element_text(size = 17),
-    axis.text = element_text(size = 12),
-    legend.title = element_text(size = 13),
-    legend.text = element_text(size = 11))
-
-f4
-```
-
 # Compare difference identification on top10each filtering approach
 
 ## barbieQ filter + barbieQ test
@@ -317,23 +333,61 @@ venn_top10each_LFC <- eulerr::euler(list_BC_top10each_LFC)
 plot(venn_top10each_LFC, fills = c("white"), alpha = 0.5, labels = T, quantities = T)
 ```
 
-## overlap
+## F4G: overlap
 
 ```{r}
 list_top10each_feature <- list(
     barbieQ = rownames(monkeyHSPC_top10each_79)[monkeyHSPC_top10each_79@elementMetadata$testingBarcode$tendencyTo == "CelltypeNK_CD56n_CD16p"],
     heuristics = union_LFC_top10each)
 
-venn_top10each_feature <- eulerr::euler(list_top10each_feature) %>% 
-  plot(fills = c("pink","slateblue"),
-       alpha = 0.5, labels = list(font = 4, cex = 1), quantities = list(font = 1, cex = 1)) 
+## plot Euler
+# venn_top10each_feature <- eulerr::euler(list_top10each_feature) %>% 
+#   plot(fills = c("pink","slateblue"),
+#        alpha = 0.5, labels = list(font = 4, cex = 1), quantities = list(font = 1, cex = 1)) 
+# 
+# venn_top10each_feature %>% plot() %>% grid.grabExpr() %>% wrap_plots()
 
-f4g <- venn_top10each_feature %>% plot() %>% grid.grabExpr() %>% wrap_plots()
+## plot UpSet plot
+f4g <- list_top10each_feature %>% 
+  Venn() %>% 
+  plot_upset(top.bar.numbers.size = 4, relative_width = 0.0) ## limit left bar plot
 
+## getting theme settings from an example ggplot using barbieQ theme
+tester <- ggplot(data.frame(X = 1:3, Y = 4:6)) +
+  geom_point(aes(x = X, y = Y)) +
+  theme_barbieQ_size()
+
+mytittle <- tester@theme$axis.title
+mytext <- tester@theme$axis.text
+
+## modifying components in UpSet plots: three gplot objects
+f4g[["plotlist"]][[1]]@theme$axis.title <- mytittle
+f4g[["plotlist"]][[1]]@theme$axis.text <- mytext
+
+f4g[["plotlist"]][[2]]@theme$axis.title <- mytittle
+f4g[["plotlist"]][[2]]@theme$axis.text <- mytext
+
+f4g[["plotlist"]][[2]]@layers$geom_col$aes_params$width <- 0.4
+
+f4g[["plotlist"]][[3]]@theme$axis.title <- mytittle
+f4g[["plotlist"]][[3]]@theme$axis.text <- mytext
+
+f4g[["plotlist"]][[3]]@theme$axis.text@size <- 11
+f4g[["plotlist"]][[3]]@theme$axis.text@angle <- 15
+
+## removing the left bar plot
+f4g[["plotlist"]][[3]] <- f4g[["plotlist"]][[3]] + theme(
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank()
+  )
+
+## plot 4g
 f4g
 ```
 
-## inspect two sets: boxplot
+## F4F: inspect two sets: boxplot
 
 - Box plot to visualize the LFC of sets of selected barcodes.
 
@@ -395,7 +449,8 @@ p_box_coef <- ggplot(long_FC_top10each, aes(x = factor(Barcode, levels = barcode
   theme(axis.text.x = element_blank(), legend.position = "right", axis.title = element_text(size = 14)) +
   geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "snow4") +
   labs(x = "",
-       y = "Log2(FC) per month") +
+       y = "LFC",
+       title = "Barocdes selected by top10each filtration") +
   scale_color_manual(
     values = c("both" = "slateblue", "barbieQ only" = "hotpink", "heuristics only" = "steelblue1", "neither" = "slategray"),
     drop = FALSE)
@@ -405,8 +460,8 @@ p_box_coef_2 <- ggplot(long_FC_top10each, aes(x = factor(Barcode, levels = barco
   theme_classic() +
   theme(axis.text.x = element_blank(), legend.position = "none", axis.title = element_text(size = 14)) +
   geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "snow4") +
-  labs(x = "Barocdes ordered by barbieQ-estimated coefficient for the contrast",
-       y = "Contrast coefficient") +
+  labs(x = "Barocdes ordered by barbieQ-estimated size effect",
+       y = "Size effect") +
   scale_color_manual(values = c("both" = "slateblue", "barbieQ only" = "hotpink", "heuristics only" = "steelblue1", "neither" = "slategray"))
 
 f4f <- p_box_coef / p_box_coef_2 + plot_layout(heights = c(3, 1))
@@ -433,7 +488,7 @@ monkeyHSPC_merged_top@elementMetadata$testingBarcode@metadata$contrasts
 monkeyHSPC_merged_top@elementMetadata$testingBarcode@metadata$design %>% data.table(keep.rownames = T)
 ```
 
-## stacked proportion
+## F4H: stacked proportion
 
 `plot_validation` sourced from "F4_validation.R"
 
@@ -468,7 +523,7 @@ venn_filter_signif  %>% plot() %>% grid.grabExpr() %>% wrap_plots()
 
 ```
 
-## inspect two sets: boxplot
+## F4I: inspect two sets: boxplot
 
 - box plot on two sets of significant barcodes based on two filtering appraoches
 
@@ -541,8 +596,8 @@ p_AMean_0 <- ggplot()+
              inherit.aes = FALSE) +
   theme_classic() +
   theme(axis.text.x = element_blank(), legend.position = "none", axis.title = element_text(size = 14)) +
-  labs(x = "Barocdes ordered by mean proportion across cell types across time (Amean)",
-       y = "Log10 (Amean)") +
+  labs(x = "Barocdes ordered by mean proportion across cell types across time",
+       y = "Log10 prop.") +
   scale_color_manual(values = c("both" = "slateblue", "barbieQ" = "hotpink", "top10each" = "steelblue1"))
 
 
@@ -552,14 +607,15 @@ p_box_0 <- ggplot(long_FC_filter_sig, aes(x = factor(Barcode, levels = barcode_o
   theme(axis.text.x = element_blank(), legend.position = "right", axis.title = element_text(size = 14)) +
   geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "grey") +
   labs(x = "",
-       y = "Log2(FC) per month") +
+       y = "LFC",
+       title = "Barcodes significant in barbieQ test, from the union cohort selected by barbieQ and top10each filtration") +
   scale_color_manual(values = c("both" = "slateblue", "barbieQ" = "hotpink", "top10each" = "steelblue1"))
 
 f4i <- p_box_0 / p_AMean_0 + plot_layout(heights = c(3, 1))
 f4i
 ```
 
-# Example difference over time
+# F4J: Example difference over time
 
 ```{r eval=FALSE, include=FALSE}
 flag_NK <- monkeyHSPC_raw$sampleMetadata$Celltype == "NK_CD56n_CD16p"
@@ -620,7 +676,7 @@ NKnp@elementMetadata$testingBarcode$tendencyTo %>% table()
 NKnp_fig <- NKnp
 ```
 
-```{r}
+```{r, fig.width=5, fig.height=9}
 BC_kinetic <- NKnp_fig@elementMetadata$testingBarcode$tendencyTo
 
 pch_fun <- ifelse(NKnp_fig@elementMetadata$testingBarcode$direction != 0, "*", NA)
@@ -653,9 +709,10 @@ lgd_sig = Legend(pch = "*", type = "points", labels = "signif.")
 lgd_kinetic = Legend(labels = c("up", "down", "n.s."), title = "Kinetic", 
              legend_gp = gpar(fill = c("#FF5959", "#33AAFF", "#FFC000"))
              )
+## heatmap_legend_side = "top", annotation_legend_side = "top"
 
 f4j <- draw(HP_anno_kinetic, annotation_legend_list = list(lgd_kinetic, lgd_sig),
-            annotation_legend_side = "bottom") %>%
+            annotation_legend_side = "bottom", heatmap_legend_side = "bottom") %>%
   grid.grabExpr() %>% list() %>% wrap_plots()
 
 f4j
@@ -663,39 +720,40 @@ f4j
 
 # Figure 4
 
-```{r, fig.width=16, fig.height=24}
+```{r, fig.width=15, fig.height=21}
 layout = "
-AAAAAAAAAAAAAA##
-AAAAAAAAAAAAAA##
-AAAAAAAAAAAAAA##
-BBBBBBCCCCEEEEEE
-BBBBBBCCCCEEEEEE
-BBBBBB####EEEEEE
-DDDDDDDDDDEEEEEE
-DDDDDDDDDDEEEEEE
-FFFFFFFFFFFGGG##
-FFFFFFFFFFFGGG##
-FFFFFFFFFFFJJJJJ
-HHHHHHHHHHHJJJJJ
-HHHHHHHHHHHJJJJJ
-HHHHHHHHHHHJJJJJ
-IIIIIIIIIIIJJJJJ
-IIIIIIIIIIIJJJJJ
-IIIIIIIIIIIJJJJJ
+AAAAAAAAAAAAA##
+AAAAAAAAAAAAA##
+BBBBBBCCCCEEEEE
+BBBBBBCCCCEEEEE
+BBBBBBCCCCEEEEE
+DDDDDDDDDDEEEEE
+DDDDDDDDDDEEEEE
+DDDDDDDDDDEEEEE
+FFFFFFFFFFGGGG#
+FFFFFFFFFFGGGG#
+FFFFFFFFFFGGGG#
+HHHHHHHHHHJJJJ#
+HHHHHHHHHHJJJJ#
+HHHHHHHHHHJJJJ#
+HHHHHHHHHHJJJJ#
+IIIIIIIIIIJJJJ#
+IIIIIIIIIIJJJJ#
+IIIIIIIIIIJJJJ#
 "
 f4 <- (wrap_elements(full = f4a) + 
     wrap_elements(f4b + theme(plot.margin = unit(rep(0,4), "cm"))) + 
-    wrap_elements(f4c + theme(plot.margin = unit(c(2,2,2,2), "cm"))) +
+    wrap_elements(grid.grabExpr(print(f4c))) +
     wrap_elements(f4d + theme(plot.margin = unit(rep(0,4), "cm"))) +
     wrap_plots(list(f4e %>% draw() %>% grid.grabExpr())) +
     wrap_elements(f4f + theme(plot.margin = unit(rep(0,4), "cm"))) + 
-    wrap_elements(f4g + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(grid.grabExpr(print(f4g))) + 
     wrap_elements(f4h + theme(plot.margin = unit(c(0,0,0,0), "cm"))) +
     wrap_elements(f4i + theme(plot.margin = unit(rep(0,4), "cm"))) +
     # wrap_elements(f4j + theme(plot.margin = unit(rep(0,4), "cm")))
   wrap_plots(list(HP_anno_kinetic %>% 
           draw(annotation_legend_list = list(lgd_kinetic, lgd_sig), 
-               annotation_legend_side = "bottom") %>% 
+               annotation_legend_side = "top",heatmap_legend_side = "top") %>% 
             grid.grabExpr()))
     )+ 
   plot_layout(design = layout) +
@@ -715,8 +773,8 @@ f4
 ggsave(
   filename = "output/f4.png",
   plot = f4,
-  width = 16,
-  height = 24,
+  width = 15,
+  height = 21,
   units = "in", # for Rmd r chunk fig size, unit default to inch
   dpi = 350
   )

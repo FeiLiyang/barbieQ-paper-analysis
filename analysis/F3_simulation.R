@@ -563,7 +563,7 @@ format_math <- function(x) {
   bquote(.(formatC(base, digits = 2, format = "f")) %*% 10^.(exp))
 }
 
-get_mixted_by_filter <- function(barbieQ, filter_level = 0.95) {
+get_mixted_by_filter <- function(barbieQ, filter_level = 0.95, update_prop = TRUE) {
   ## tag top BC from raw barbieQ
   barbieQ <- tagTopBarcodes(barbieQ, nSampleThreshold = 8, proportionThreshold = filter_level)
   ## select top BC from barbieQ_plus1
@@ -572,7 +572,9 @@ get_mixted_by_filter <- function(barbieQ, filter_level = 0.95) {
   mixed <- barbieQ_top[, barbieQ_top$sampleMetadata$Subset %in% c("null", "perturb")]
   
   ## re-calculate proportions
-  mixed@assays@data$proportion <- ((mixed@assays@data$proportion %>% t()) / colSums(mixed@assays@data$proportion)) %>% t()
+  if(update_prop) {
+    mixed@assays@data$proportion <- ((mixed@assays@data$proportion %>% t()) / colSums(mixed@assays@data$proportion)) %>% t()
+  }
   
   mixed_target <- mixed$sampleMetadata %>% as.data.frame()
   mixed_target$Perturbation <- as.factor(mixed_target$Perturbation)

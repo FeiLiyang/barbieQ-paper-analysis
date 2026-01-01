@@ -1,5 +1,5 @@
 ---
-title: "barbieQ_paper_Figure3_FigureS4"
+title: "barbieQ_paper_Figure3_FigureS3"
 author: "Liyang Fei"
 date: |
   Initiated: 2025-09-07  
@@ -39,6 +39,7 @@ library(edgeR)
 
 source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
 source("analysis/F3_simulation.R") ## for negative simulation
+source("analysis/ggplot_theme.R") ## setting ggplot theme
 ```
 
 # Install `barbieQ`
@@ -65,44 +66,6 @@ packageVersion("barbieQ")
 set.seed(2025)
 ```
 
-# Set ggplot theme
-
-```{r}
-## ggplot theme
-strip_zeros <- function(x) {
-  x <- format(x, scientific = FALSE)
-  x <- sub("0+$", "", x)
-  sub("\\.$", "", x)
-}
-## ggplot theme
-theme_barbieQ <- theme_barbie <- function(base_size = 12, base_family = "") {
-  theme_linedraw(base_size = base_size, base_family = base_family) +
-    theme(
-      # panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      axis.title = element_text(size = base_size * 1.1),
-      axis.text  = element_text(size = base_size),
-      legend.title = element_text(size = base_size),
-      legend.text  = element_text(size = base_size * 0.9),
-      legend.key = element_blank(),
-      plot.title = element_text(size = base_size * 1.1),
-      plot.subtitle = element_text(size = base_size)
-    )
-}
-
-theme_barbieQ_size <- theme_barbie <- function(base_size = 12) {
-    theme(
-      axis.title = element_text(size = base_size * 1.1),
-      axis.text  = element_text(size = base_size),
-      legend.title = element_text(size = base_size),
-      legend.text  = element_text(size = base_size * 0.9),
-      plot.title = element_text(size = base_size * 1.1),
-      plot.subtitle = element_text(size = base_size)
-    )
-}
-```
-
-
 # Load data
 
 ```{r}
@@ -121,7 +84,7 @@ wrap_elements(full = f3a)
 
 `plotBarcodeHistogram`, sourced from "plotBarcodeHistogram.R", is customized from the `bartools` package.
 
-```{r, fig.width=6, fig.height=4}
+```{r, fig.width=7, fig.height=4}
 ## pull out sample designs
 design_mixed <- mixture_plus1_top$sampleMetadata %>% as.data.frame()
 design_mixed$sample <- colnames(mixture_plus1_top)
@@ -129,8 +92,6 @@ str(design_mixed)
 
 design_mixed$y = 1.05
 color_mapping <- mixture_plus1_top@metadata$factorColors
-
-design_mixed$Subset <- factor(design_mixed$Subset, levels = c("null", "perturb"), labels = c("baseline", "perturbed"))
 
 ## order samples
 order_sample <- design_mixed %>% with(order(Subset, Perturbation, BarcodeSize))
@@ -146,7 +107,7 @@ p_mixed_illus <- p_mixed +
   ## label subset
   ggnewscale::new_scale_fill() +
   geom_tile(data = design_mixed, aes(x = sample,y = y, fill = Subset), height = 0.04, inherit.aes = FALSE, color = "white") +
-  scale_fill_manual(values = color_mapping$Subset) +
+  scale_fill_manual(values = color_mapping$Subset, labels = c(null = "baseline", perturb = "perturbed")) +
   labs(fill = "Subset") + 
   guides(fill = guide_legend(ncol = 2)) + 
   ## label perturbations
@@ -269,7 +230,7 @@ P_FPR_add1_prop <- ggplot(
   labs(
        y = "Fraction of P-Value < 0.05",
        x = "Number of samples per group",
-       title = "Type I Erroe Rate",
+       title = "Type I error rate",
        subtitle = "Differential proportion test") +
   # facet_wrap(~Method, scales = "free_y") +
   theme_classic() +
@@ -289,23 +250,17 @@ P_FPR_occ <- ggplot(
   labs(
        y = "Fraction of P-Value < 0.05",
        x = "Number of samples per group",
+       titlte = "",
        subtitle = "Differential occurrence test") +
   theme_classic() +
   theme(legend.position = "top")
 
 ```
 
-```{r, fig.width=9, fig.height=5}
-f3c <- P_FPR_add1_prop + theme(
-  plot.subtitle = element_text(size = 13),
-  legend.title = element_text(size = 12), legend.text = element_text(size = 11), 
-  axis.title = element_text(size = 13), axis.text = element_text(size = 12)
-  ) + 
-  P_FPR_occ + theme(
-    plot.subtitle = element_text(size = 13),
-    legend.title = element_text(size = 12), legend.text = element_text(size = 11),
-    axis.title = element_text(size = 13), axis.text = element_text(size = 12)
-    )
+```{r, fig.width=8, fig.height=5}
+f3c <- (P_FPR_add1_prop + theme_barbieQ_size() + theme(legend.position = "top")) + 
+  (P_FPR_occ + theme_barbieQ_size())
+
 f3c
 ```
 
@@ -418,17 +373,21 @@ colSums(BC_set_by_filter)
 
 mean_prop <- rowMeans(mixture_plus1[mixture_plus1@elementMetadata$isTopBarcode$isTop,mixture_plus1$sampleMetadata$Subset=="null"]@assays@data$proportion)
 
-df_P.Val_0.95 <- stats_barcodes_all_levels %>% filter(filter_level==0.95)
-
+## testing results obtained from raw proportin in stats_barcodes
 df_P.Val_filter_tag <- cbind(
-  df_P.Val_0.95,  
+  stats_barcodes,  # testing results obtained from raw proportin
   mean_prop,
-  BC_set_by_filter[rep(seq_len(nrow(BC_set_by_filter)),length.out = nrow(df_P.Val_0.95)), ])
+  BC_set_by_filter[
+    rep(
+      seq_len(nrow(BC_set_by_filter)),
+      length.out = nrow(stats_barcodes)
+      ),
+    ]
+  )
 ```
 
 ```{r}
 FPR_box_raw <- df_P.Val_filter_tag %>%
-  select(-N_BC) %>% 
     pivot_longer(
       cols = c(Prop_asin, Prop_logit, Prop_noTrans),
       names_to = "method",
@@ -479,10 +438,12 @@ rbind(
   facet_grid(prop_type~1, switch = "y") +
   theme_bw()+
   theme_barbieQ_size() +
-  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = "top",
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 0.5), 
+        legend.position = "top",
         strip.placement = "outside", strip.text.y = element_text(size = 12),
         strip.text.x = element_blank(), strip.background.x = element_blank()) +
   scale_y_continuous(limits = c(0,0.2)) -> f3g1
+  ## scale_x_discrete(limits = rev) ## reverse x axis
 
 f3g1
   
@@ -565,7 +526,8 @@ rbind(
   labs(color = "Num. BC", x = "Barcode Proportion", y = "Density", title = "Barcode distribution in datasets") +
   theme_bw() +
   theme_barbieQ_size() +
-  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = "top", legend.key.size = unit(0.3, "cm"),
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 0.5), 
+        legend.position = "top", legend.key.size = unit(0.3, "cm"),
         legend.title = element_text(size = 11), legend.text  = element_text(size = 10), 
         strip.placement = "outside", strip.text.y = element_text(size = 12),
         strip.text.x = element_blank(), strip.background.x = element_blank()) ->  ## disable column label
@@ -732,7 +694,7 @@ es_de_df <- rbind(es_de_none_df, es_de_asin_df, es_de_logit_df)
 
 ```
 
-## FS4A: Validate estimates
+## fs3a: Validate estimates
 
 ```{r}
 regression_stats_none <- es_de_none_df %>%
@@ -825,13 +787,13 @@ p_es_de_logit <- ggplot(es_de_logit_df, aes(x = diff, y = (meanDiff))) +
 ```
 
 ```{r, fig.width=9, fig.height=8}
-fs4a <- (p_es_de_asin + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
+fs3a <- (p_es_de_asin + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
         axis.title = element_text(size = 13), axis.text = element_text(size = 12)) ) / 
   (p_es_de_logit + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
         axis.title = element_text(size = 13), axis.text = element_text(size = 12))) /
   (p_es_de_none + theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11),
         axis.title = element_text(size = 13), axis.text = element_text(size = 12))) 
-fs4a
+fs3a
 ```
 ## F3G_right: TPR as a function to N_BC
 
@@ -892,10 +854,19 @@ ggplot(test_TPR, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, linet
 ### Raw proportion
 
 ```{r}
+## test on raw proportion
+test_0.95_raw <- get_mixted_by_filter(barbieQ = mixture_plus1, filter_level = 0.95, update_prop = FALSE)
+
 test_all_levels_raw <- cbind(
-  test_all_levels %>% filter(filter_level == 0.95),  
+  test_0.95_raw,  
   mean_prop,
-  BC_set_by_filter[rep(seq_len(nrow(BC_set_by_filter)),length.out = nrow(test_all_levels %>% filter(filter_level == 0.95))), ])
+  BC_set_by_filter[
+    rep(
+      seq_len(nrow(BC_set_by_filter)),
+      length.out = nrow(test_0.95_raw)
+      ), 
+    ]
+  )
 
 test_TPR_raw <- test_all_levels_raw %>%
    select(-N_BC) %>% 
@@ -947,7 +918,8 @@ rbind(
   facet_grid(prop_type~1, switch = "y") +
   theme_bw()+
   theme_barbieQ_size() +
-  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15), legend.position = "top",
+  theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 0.5), 
+        legend.position = "top",
         strip.placement = "outside", strip.text.y = element_text(size = 12),
         strip.text.x = element_blank(), strip.background.x = element_blank()) + guides(color = "none") -> f3g2
 
@@ -970,11 +942,11 @@ f3g2
 
 plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.95), num_quantiles = 10) +
   theme_barbieQ() +
-  labs(title = "Power (true positive rate) in quanties") -> f3e2
+  labs(title = "True positive rate in quanties") -> f3e2
 ```
 
 
-## FS4B: Residules
+## fs3b: Residules
 
 ```{r}
 resi_none <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = "none"))
@@ -1008,7 +980,7 @@ p_resid_qq_35 <- ggplot(resi_df %>% filter(Contrast == "0.35 - 0"),
 ```
 
 ```{r, fig.width=8, fig.height=9}
-fs4b <- (p_resid_distr_35 + 
+fs3b <- (p_resid_distr_35 + 
   theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), strip.text = element_text(size = 12),
         axis.title = element_text(size = 13), axis.text = element_text(size = 10))
   ) +
@@ -1016,7 +988,7 @@ fs4b <- (p_resid_distr_35 +
   theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), 
         axis.title = element_text(size = 13), axis.text = element_text(size = 10)))
 
-fs4b
+fs3b
 ```
 
 ```{r}
@@ -1098,10 +1070,10 @@ layout = "
 AAAAAAAAAAAAA##
 AAAAAAAAAAAAA##
 AAAAAAAAAAAAA##
-BBBBBBCCCCCCCCC
-BBBBBBCCCCCCCCC
-BBBBBBCCCCCCCCC
-BBBBBBCCCCCCCCC
+BBBBBBBCCCCCCCC
+BBBBBBBCCCCCCCC
+BBBBBBBCCCCCCCC
+BBBBBBBCCCCCCCC
 DDDDEEEEEFFFFFF
 DDDDEEEEEFFFFFF
 DDDDEEEEEFFFFFF
@@ -1147,7 +1119,7 @@ ggsave(
 
 Saving this figure in [f3](../output/f3.png)
 
-# Figure S4
+# Figure S3
 
 ```{r, fig.width=15, fig.height=8}
 layoutS4 = "
@@ -1155,22 +1127,22 @@ AAABB
 AAABB
 AAABB
 "
-fs4 <- (
-    wrap_elements(fs4a + theme(plot.margin = unit(rep(0,4), "cm"))) + 
-    wrap_elements(fs4b + theme(plot.margin = unit(c(0,0,0,0), "cm")))
+fs3 <- (
+    wrap_elements(fs3a + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(fs3b + theme(plot.margin = unit(c(0,0,0,0), "cm")))
     )+ 
   plot_layout(design = layoutS4) +
   ## space is okay but must be unique
   plot_annotation(tag_levels = list(c("A", "B"))) &
   theme(plot.tag = element_text(size = 24, face = "bold", family = "arial"))
 
-fs4
+fs3
 ```
 
 ```{r}
 ggsave(
-  filename = "output/fs4.png",
-  plot = fs4,
+  filename = "output/fs3.png",
+  plot = fs3,
   width = 15,
   height = 8,
   units = "in", # for Rmd r chunk fig size, unit default to inch
@@ -1178,4 +1150,4 @@ ggsave(
   )
 ```
 
-Saving this figure in [fs4](../output/fs4.png)
+Saving this figure in [fs3](../output/fs3.png)

@@ -12,15 +12,25 @@ editor_options:
 
 This project collects public barcode count datasets and analyses them using the  [barbieQ](https://github.com/Oshlack/barbieQ) package. - Liyang, Jan 2025
 
+# Analyses in the barbieQ paper
+
+|**Figure**|**Content** |**Source** |
+|---|---|---|
+|Figure 1 |Package flowchart |*./output/barbieQ_figure1.drawio.png* |
+|[Figure 2](barbieQ_paper_Figure2.html) |Example of preprocessing | |
+|[Figure 3 and Figure S3](barbieQ_paper_Figure3.html) |Statistical tests (Type I and II error rate) | |
+|[Figure 4](barbieQ_paper_Figure4.html) |Case study | |
+| | | |
+
 # Datasets
 
-### BelderbosME [README](../data/BelderbosME/README.md)
+## BelderbosME [README](../data/BelderbosME/README.md)
  
-### bartools_dose_escalation [README](../data/bartools_dose_escalation/README.md)
+## bartools_dose_escalation [README](../data/bartools_dose_escalation/README.md)
  
-### DEBRA (README file not ready yet)
+## DEBRA (README file not ready yet)
  
-### WuC (README file not ready yet)
+## WuC (README file not ready yet)
 
  - Explore filtering strategies by comparing filtered and unfiltered data regarding statistical test results on barcode differential proportion. [filtering_explore_alter](WuC/filtering_explore_alter.html)
 
