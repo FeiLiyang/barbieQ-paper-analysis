@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Liyang Fei" />
+
+
+<title>barbieQ_paper Supplementary 1: Preprocessing Mixture data</title>
+
+<script src="site_libs/header-attrs-2.30/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="styles.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">public_barcode_count</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">barbieQ_paper Supplementary 1:
+Preprocessing <code>Mixture data</code></h1>
+<h4 class="author">Liyang Fei</h4>
+<h4 class="date"><p>Initiate: 2025-09-07</p>
+<p>Last update: 2026-01-07</p></h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-01-07
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>public_barcode_count/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongobjectspresent">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>Environment:</strong> objects present
+</a>
+</p>
+</div>
+<div id="strongEnvironmentstrongobjectspresent"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+The global environment had objects present when the code in the R
+Markdown file was run. These objects can affect the analysis in your R
+Markdown file in unknown ways. For reproduciblity it’s best to always
+run the code in an empty environment. Use <code>wflow_publish</code> or
+<code>wflow_build</code> to ensure that the code is always run in an
+empty environment.
+</p>
+<p>
+The following objects were defined in the global environment when these
+results were created:
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+Name
+</th>
+<th style="text-align:left;">
+Class
+</th>
+<th style="text-align:left;">
+Size
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+module
+</td>
+<td style="text-align:left;">
+function
+</td>
+<td style="text-align:left;">
+5.6 Kb
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250112code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250112)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250112code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250112)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttreef48add2cc6523ba366f7129b01aa4f45514adfc7targetblankf48add2a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/f48add2cc6523ba366f7129b01aa4f45514adfc7" target="_blank">f48add2</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttreef48add2cc6523ba366f7129b01aa4f45514adfc7targetblankf48add2a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/f48add2cc6523ba366f7129b01aa4f45514adfc7" target="_blank">f48add2</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    public_barcode_count.Rproj
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/barbieQ_paper_FigureS1_Mixture.Rmd</code>) and HTML
+(<code>docs/barbieQ_paper_FigureS1_Mixture.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/f48add2cc6523ba366f7129b01aa4f45514adfc7/analysis/barbieQ_paper_FigureS1_Mixture.Rmd" target="_blank">f48add2</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2026-01-07
+</td>
+<td>
+supple analyses
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p>Links to preprocessing other datasets in the barbieQ paper:</p>
+<ul>
+<li><p><a href="barbieQ_paper_Figure2.html">Monkey HSPC</a></p></li>
+<li><p><a href="barbieQ_paper_FigureS1_AML.html">AML data</a></p></li>
+<li><p><a href="barbieQ_paper_FigureS1_xenoHSPC.html">HSPC xenograft
+data</a></p></li>
+<li><p><a href="">Mixture data</a></p></li>
+</ul>
+<div id="load-dependencies" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load Dependencies</h1>
+<pre class="r"><code>library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(data.table) # for data.table()
+library(SummarizedExperiment)
+library(S4Vectors)
+library(grid)
+library(ggplot2)
+library(ggbreak)
+library(ggnewscale) # ggnewscale::new_scale_fill() 
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(magick) # image_read()
+library(eulerr)
+library(edgeR)
+
+source(&quot;analysis/plotBarcodeHistogram.R&quot;) ## accommodated from bartools::plotBarcodehistogram
+source(&quot;analysis/ggplot_theme.R&quot;) ## setting ggplot theme</code></pre>
+</div>
+<div id="install-barbieq" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Install
+<code>barbieQ</code></h1>
+<p>Installing the latest devel version of <code>barbieQ</code> from
+GitHub.</p>
+<pre class="r"><code>if (!requireNamespace(&quot;barbieQ&quot;, quietly = TRUE)) {
+  remotes::install_github(&quot;Oshlack/barbieQ&quot;)
+}</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::first&#39; by &#39;dplyr::first&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::last&#39; by &#39;dplyr::last&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::between&#39; by &#39;dplyr::between&#39;
+when loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::as_data_frame&#39; by
+&#39;igraph::as_data_frame&#39; when loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::groups&#39; by &#39;igraph::groups&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::union&#39; by &#39;igraph::union&#39; when
+loading &#39;barbieQ&#39;</code></pre>
+<pre class="r"><code>library(barbieQ)</code></pre>
+<p>Check the version of <code>barbieQ</code>.</p>
+<pre class="r"><code>packageVersion(&quot;barbieQ&quot;)</code></pre>
+<pre><code>[1] &#39;1.1.3&#39;</code></pre>
+</div>
+<div id="set-seeds" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Set seeds</h1>
+<pre class="r"><code>set.seed(2025)</code></pre>
+</div>
+<div id="clean-up-data" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Clean up data</h1>
+<pre class="r"><code>EV1 &lt;- read.csv(&quot;data/DEBRA/msb199195-sup-0004-datasetev1.csv&quot;, row.names = 1)</code></pre>
+<p>Here, TechRep 1 and 2 only means two replicates under the same
+condition. They don’t match between conditions.</p>
+<p>The actual “block” should be
+<code>paste0(Subset, BarcodeSize, Perturbation)</code>.</p>
+<pre class="r"><code>sampleName &lt;- colnames(EV1)
+
+## extract P1P2, nulls and perturbs
+Subset &lt;- gsub(&quot;m_null_.*&quot;, &quot;perturb&quot;, sampleName)
+Subset &lt;- gsub(&quot;null.*&quot;, &quot;null&quot;, Subset)
+Subset[Subset==&quot;P1&quot;] &lt;- &quot;premix1&quot;
+Subset[Subset==&quot;P2&quot;] &lt;- &quot;premix2&quot;
+
+## extract cell size (Barcode size, i.e. total number of Barcodes in each sample)
+BarcodeSize &lt;- gsub(&quot;.*null_(\\d+)\\..*&quot;, &quot;\\1&quot;, sampleName)
+BarcodeSize &lt;- gsub(&quot;(P\\d)&quot;, &quot;&quot;, BarcodeSize)
+
+## extract perturbation level in the perturb samples
+Perturbation &lt;- gsub(&quot;.*p(\\d+).*&quot;, &quot;\\1&quot;, sampleName)
+Perturbation &lt;- gsub(&quot;null.*&quot;, &quot;0&quot;, Perturbation)
+Perturbation &lt;- gsub(&quot;[A-Za-z]+.*&quot;, &quot;&quot;, Perturbation)
+
+## extract technical rep
+TechRep &lt;- gsub(&quot;.*\\.(\\d)&quot;, &quot;\\1&quot;, sampleName)
+TechRep &lt;- gsub(&quot;P\\d&quot;, &quot;1&quot;, TechRep)
+
+## combine these into a data.frame
+Design &lt;- data.frame(
+  Subset = factor(Subset, levels = c(&quot;premix1&quot;, &quot;premix2&quot;, &quot;null&quot;, &quot;perturb&quot;)),
+  BarcodeSize = as.numeric(BarcodeSize) * 1000,
+  Perturbation = as.numeric(Perturbation) / 100,
+  TechRep = factor(TechRep)
+)
+
+lapply(Design, table)</code></pre>
+<pre><code>$Subset
+
+premix1 premix2    null perturb 
+      1       1      12      24 
+
+$BarcodeSize
+
+ 20000  40000  80000 160000 330000 660000 
+     8      8      8      8      2      2 
+
+$Perturbation
+
+   0 0.18 0.27 0.35 
+  12    8    8    8 
+
+$TechRep
+
+ 1  2 
+20 18 </code></pre>
+<p>color mapping.</p>
+<pre class="r"><code>color_mapping &lt;- list(
+  Subset = setNames(
+    c(&quot;#FF5959&quot;, &quot;#33AAFF&quot;, &quot;yellowgreen&quot;, &quot;slateblue&quot;), 
+    c(&quot;premix1&quot;, &quot;premix2&quot;, &quot;null&quot;, &quot;perturb&quot;)), 
+  BarcodeSize = setNames(
+    c(&quot;#CFCFFF&quot;, &quot;#B2B2FF&quot;, &quot;#8282FF&quot;, &quot;#4D4FFF&quot;, &quot;#1D1DFF&quot;, &quot;#0000B2&quot;),
+    c(20000, 40000, 80000, 160000, 330000, 660000)),
+  Perturbation = setNames(
+    c(&quot;#C3FF85&quot;, &quot;#DBB8FF&quot;, &quot;#A951FF&quot;, &quot;#7500EA&quot;),
+    c(0, 0.18, 0.27, 0.35)),
+  TechRep = setNames(c(&quot;grey25&quot;, &quot;grey75&quot;), c(1, 2))
+)</code></pre>
+</div>
+<div id="save-to-barbieq" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Save to barbieQ</h1>
+<ul>
+<li><p>Save count to a barbieQ object</p></li>
+<li><p>Save (count+1) to a barbieQ object to address the drop-out
+issue.</p></li>
+</ul>
+<pre class="r"><code>mixture &lt;- createBarbieQ(object = EV1, sampleMetadata = Design, factorColors = color_mapping)</code></pre>
+<pre><code>sample names set up in line with `object`</code></pre>
+<pre class="r"><code>mixture_plus1 &lt;- createBarbieQ(object = EV1+1, sampleMetadata = Design, factorColors = color_mapping)</code></pre>
+<pre><code>sample names set up in line with `object`</code></pre>
+</div>
+<div id="tag-top-barcodes" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Tag top barcodes</h1>
+<p>Getting minimum group size for filtering parameter.</p>
+<ul>
+<li>Set <code>nSampleThreshold = 8</code> for subsequent filtering.</li>
+</ul>
+<pre class="r"><code>## check min group size
+mixture$sampleMetadata %&gt;% as.data.frame() %&gt;% with(paste0(Subset, Perturbation, BarcodeSize)) %&gt;% table()</code></pre>
+<pre><code>.
+      null0160000        null020000       null0330000        null040000 
+                2                 2                 2                 2 
+      null0660000        null080000 perturb0.18160000  perturb0.1820000 
+                2                 2                 2                 2 
+ perturb0.1840000  perturb0.1880000 perturb0.27160000  perturb0.2720000 
+                2                 2                 2                 2 
+ perturb0.2740000  perturb0.2780000 perturb0.35160000  perturb0.3520000 
+                2                 2                 2                 2 
+ perturb0.3540000  perturb0.3580000       premix1NANA       premix2NANA 
+                2                 2                 1                 1 </code></pre>
+<pre class="r"><code>mixture$sampleMetadata %&gt;% as.data.frame() %&gt;% with(paste0(Subset, Perturbation)) %&gt;% table()</code></pre>
+<pre><code>.
+      null0 perturb0.18 perturb0.27 perturb0.35   premix1NA   premix2NA 
+         12           8           8           8           1           1 </code></pre>
+<p>Find appropriate <code>proportionThreshold</code>.</p>
+<ul>
+<li><p>In the two premix samples, solid barcodes should be only detected
+once.</p></li>
+<li><p>Minimize the number of barcodes being tagged as “top” in twice,
+which are considered “noisy barcodes” based on the experimental design,
+that barcodes shouldn’t overlap between the two premix samples.</p></li>
+</ul>
+<pre class="r"><code>## tag top barcodes, `proportionThreshold` defaults to 0.99
+mixture &lt;- tagTopBarcodes(mixture, nSampleThreshold = 8)
+mixture_plus1 &lt;- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8)
+
+## flag the two premix samples
+flag_premix &lt;- mixture$sampleMetadata$Subset %in% c(&quot;premix1&quot;, &quot;premix2&quot;) ## two in total
+## frequency of being tagged top for each barcode
+mixture@assays@data$isTopAssay[,flag_premix] %&gt;% rowSums() %&gt;% table()</code></pre>
+<pre><code>.
+   0    1    2 
+1555 2382   61 </code></pre>
+<pre class="r"><code>## if going ahead with the current `proportionThreshold` to select &quot;top&quot; barcodes
+## frequency of being tagged top for each &quot;selected&quot; barcode
+mixture@assays@data$isTopAssay[mixture@elementMetadata$isTopBarcode$isTop,flag_premix] %&gt;% rowSums() %&gt;% table()</code></pre>
+<pre><code>.
+   0    1    2 
+  47 2116   61 </code></pre>
+<pre class="r"><code>## same applied to mixture_plus1
+mixture_plus1@assays@data$isTopAssay[,flag_premix] %&gt;% rowSums() %&gt;% table()</code></pre>
+<pre><code>.
+   0    1    2 
+ 699 3211   88 </code></pre>
+<pre class="r"><code>mixture_plus1@assays@data$isTopAssay[mixture_plus1@elementMetadata$isTopBarcode$isTop,flag_premix] %&gt;% rowSums() %&gt;% table()</code></pre>
+<pre><code>.
+   0    1    2 
+ 113 2632   88 </code></pre>
+<ul>
+<li><p>Default <code>proportionThreshold=0.99</code> keeps too many
+noisy barcodes.</p></li>
+<li><p>Setting <code>proportionThreshold=0.95</code> keeps small amount
+of noisy barcodes, and gets close sets of selected barcodes between
+<code>mxiture</code> and <code>mixture_plus1</code> data.</p></li>
+<li><p>Set <code>proportionThreshold=0.95</code> for subsequent
+filtering.</p></li>
+</ul>
+<pre class="r"><code>## tag top barcodes, `proportionThreshold` set to 0.97
+mixture &lt;- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = 0.95)
+mixture_plus1 &lt;- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = 0.95)
+
+## flag the two premix samples
+flag_premix &lt;- mixture$sampleMetadata$Subset %in% c(&quot;premix1&quot;, &quot;premix2&quot;) ## two in total
+## frequency of being tagged top for each barcode
+mixture@assays@data$isTopAssay[,flag_premix] %&gt;% rowSums() %&gt;% table()</code></pre>
+<pre><code>.
+   0    1    2 
+2673 1323    2 </code></pre>
+<pre class="r"><code>## if going ahead with the current `proportionThreshold` to select &quot;top&quot; barcodes
+## frequency of being tagged top for each &quot;selected&quot; barcode
+mixture@assays@data$isTopAssay[mixture@elementMetadata$isTopBarcode$isTop,flag_premix] %&gt;% rowSums() %&gt;% table()</code></pre>
+<pre><code>.
+   0    1    2 
+  99 1282    2 </code></pre>
+<pre class="r"><code>## same applied to mixture_plus1
+mixture_plus1@assays@data$isTopAssay[,flag_premix] %&gt;% rowSums() %&gt;% table()</code></pre>
+<pre><code>.
+   0    1    2 
+2550 1445    3 </code></pre>
+<pre class="r"><code>mixture_plus1@assays@data$isTopAssay[mixture_plus1@elementMetadata$isTopBarcode$isTop,flag_premix] %&gt;% rowSums() %&gt;% table()</code></pre>
+<pre><code>.
+   0    1    2 
+ 128 1422    3 </code></pre>
+</div>
+<div id="determine-barcode-occurrence" class="section level1"
+number="7">
+<h1><span class="header-section-number">7</span> Determine barcode
+occurrence</h1>
+<p>Zeros per BC.</p>
+<ul>
+<li><p>Total cell number for the “null” samples is known as
+<code>mixture_plus1$sampleMetadata$BarcodeSize</code>; for the
+“perturbed” samples, total cell number should be
+<code>(mixture_plus1$sampleMetadata$BarcodeSize)*(1+mixture_plus1$sampleMetadata$Perturbation)</code>.
+The “perturbation” for the null samples is 0.</p></li>
+<li><p>Raw counts bigger than (total barcode count / total cell number)
+are considered “present”, otherwise “absent”. Note that we’ve added 1 to
+the raw counts before.</p></li>
+</ul>
+<pre class="r"><code>detection_level &lt;- colSums(assay(mixture_plus1)) / ((mixture_plus1$sampleMetadata$BarcodeSize)*(1+mixture_plus1$sampleMetadata$Perturbation))
+
+detection &lt;- sweep(assay(mixture_plus1), 2, detection_level, FUN = &quot;-&quot;)
+
+## plot the number of absence for each barcode.
+ggplot(data.frame(N_zero = rowSums(detection &lt;= 0, na.rm = T))) +
+  geom_freqpoly(aes(x = N_zero))</code></pre>
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value `binwidth`.</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>## plot the number of absence for each selected barcode by filtering.
+ggplot(data.frame(N_zero = rowSums(detection[mixture_plus1@elementMetadata$isTopBarcode$isTop,] &lt;= 0, na.rm = T))) +
+  geom_freqpoly(aes(x = N_zero))</code></pre>
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value `binwidth`.</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-7-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>## update the &quot;occurrence&quot; assay based on the detection here.
+mixture_plus1@assays@data$occurrence &lt;- detection &lt;= 0</code></pre>
+<p>Barcode detection in the two premix samples.</p>
+</div>
+<div id="detect-correlating-barcodes" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Detect correlating
+barcodes</h1>
+<div id="fs1d-pairwise-correlation" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> FS1D: pairwise
+correlation</h2>
+<p>No correlating barcodes detected.Actually,</p>
+<pre class="r"><code>plotBarcodePairCorrelation(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = &quot;none&quot;) + 
+  theme(legend.position = &quot;top&quot;) + 
+  labs(title = &quot;Mixture data&quot;) -&gt; fs1d</code></pre>
+<pre><code>processing Barcode pairwise pearson correlation on propotion (none transformation).</code></pre>
+<pre class="r"><code>fs1d </code></pre>
+<pre><code>Warning: The dot-dot notation (`..y..`) was deprecated in ggplot2 3.4.0.
+ℹ Please use `after_stat(y)` instead.
+ℹ The deprecated feature was likely used in the barbieQ package.
+  Please report the issue at &lt;https://github.com/Oshlack/barbieQ&gt;.
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+generated.</code></pre>
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-8-1.png" width="384" style="display: block; margin: auto;" /></p>
+<ul>
+<li>looking weird if using “asin-sqrt” transformation here.</li>
+</ul>
+<pre class="r"><code>clusterCorrelatingBarcodes(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = &quot;asin-sqrt&quot;) %&gt;% 
+  inspectCorrelatingBarcodes()</code></pre>
+<pre><code>processing Barcode pairwise pearson correlation on propotion (asin-sqrt transformation).</code></pre>
+<pre><code>identified 3 clusters, including 32 Barcodes.</code></pre>
+<pre><code>$p_cluster</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+$p_cluster_size</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+$p_cluster_prop</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-3.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="filter-top-barcodes" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Filter top
+barcodes</h1>
+<div id="fs1il-inspect-topbottom" class="section level2" number="9.1">
+<h2><span class="header-section-number">9.1</span> FS1I,L: inspect
+top/bottom</h2>
+<pre class="r"><code>plotBarcodePareto(mixture_plus1) +
+  ylim(-8, 7) + 
+  annotate(&quot;text&quot;, x = c(pi * 0.05), y = c(7), 
+           label = c(&quot;Relative proportion %&quot;), color = &quot;#999966&quot;, 
+           size = 3, angle = 0, fontface = &quot;bold&quot;, hjust = 1) -&gt; fs1i</code></pre>
+<pre><code>Scale for y is already present.
+Adding another scale for y, which will replace the existing scale.</code></pre>
+<pre class="r"><code>fs1i</code></pre>
+<pre><code>Warning: Removed 10 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+<pre><code>Warning: Removed 4 rows containing missing values or values outside the scale range
+(`geom_text()`).</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-10-1.png" width="480" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>plotBarcodeSankey(mixture_plus1) + 
+  theme(legend.position = &quot;top&quot;) -&gt; fs1l
+
+fs1l</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-11-1.png" width="288" style="display: block; margin: auto;" /></p>
+</div>
+<div id="filter-top-barcodes-1" class="section level2" number="9.2">
+<h2><span class="header-section-number">9.2</span> Filter “top”
+barcodes</h2>
+<pre class="r"><code>mixture_plus1_top &lt;- mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,]</code></pre>
+</div>
+<div id="heatmap" class="section level2" number="9.3">
+<h2><span class="header-section-number">9.3</span> Heatmap</h2>
+<pre class="r"><code>## pre-filtering
+Heatmap(name = &quot;asin-sqrt prop.&quot;,
+  matrix = asin(sqrt(assays(mixture_plus1)$proportion)), 
+  row_title = paste0(nrow(mixture_plus1), &quot; Barcodes&quot;), 
+  show_row_names = FALSE, show_column_names = FALSE)</code></pre>
+<pre><code>The automatically generated colors map from the 1^st and 99^th of the
+values in the matrix. There are outliers in the matrix whose patterns
+might be hidden by this color mapping. You can manually set the color
+to `col` argument.
+
+Use `suppressMessages()` to turn off this message.</code></pre>
+<pre><code>`use_raster` is automatically set to TRUE for a matrix with more than
+2000 rows. You can control `use_raster` argument by explicitly setting
+TRUE/FALSE to it.
+
+Set `ht_opt$message = FALSE` to turn off this message.</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>## post-filtering
+Heatmap(name = &quot;asin-sqrt prop.&quot;,
+  matrix = asin(sqrt(assays(mixture_plus1_top)$proportion)), 
+  row_title = paste0(nrow(mixture_plus1_top), &quot; Barcodes&quot;), 
+  show_row_names = FALSE, show_column_names = FALSE)</code></pre>
+<pre><code>The automatically generated colors map from the 1^st and 99^th of the
+values in the matrix. There are outliers in the matrix whose patterns
+might be hidden by this color mapping. You can manually set the color
+to `col` argument.
+
+Use `suppressMessages()` to turn off this message.</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/hp-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="save-to-rda" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Save to rda</h1>
+<pre class="r"><code>save(mixture_plus1, mixture_plus1_top, file = &quot;output/mixture_barbieQ.rda&quot;)</code></pre>
+</div>
+<div id="figures1-mixture" class="section level1" number="11">
+<h1><span class="header-section-number">11</span> FigureS1-Mixture</h1>
+<pre class="r"><code>layout = &quot;
+DDDD
+####
+IIII
+LLLL
+&quot;
+fs1_mixture &lt;- (
+  wrap_elements(fs1d + theme(plot.margin = unit(c(0,0,0,0), &quot;line&quot;))) + 
+    wrap_elements(fs1i + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;))) + 
+    wrap_elements(fs1l + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;)))
+  ) + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c(&quot;D&quot;,&quot; &quot;, &quot;I&quot;,&quot;L&quot;))) &amp;
+  theme(
+    plot.tag = element_text(size = 20, face = &quot;bold&quot;, family = &quot;arial&quot;),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+fs1_mixture</code></pre>
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 10 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+<pre><code>Warning: Removed 4 rows containing missing values or values outside the scale range
+(`geom_text()`).</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-15-1.png" width="384" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggsave(
+  filename = &quot;output/fs1_mixture.png&quot;,
+  plot = fs1_mixture,
+  width = 4,
+  height = 16,
+  units = &quot;in&quot;, # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )</code></pre>
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 10 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).
+Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+<pre><code>Warning: Removed 4 rows containing missing values or values outside the scale range
+(`geom_text()`).</code></pre>
+<p>Saving this figure in <a
+href="../output/fs1_mixture.png">fs1_mixture</a></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.5.0 (2025-04-11)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.6 (Plow)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] grid      stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] barbieQ_1.1.3               edgeR_4.6.3                
+ [3] limma_3.64.3                eulerr_7.0.4               
+ [5] magick_2.9.0                ComplexHeatmap_2.24.1      
+ [7] ggVennDiagram_1.5.4         scales_1.4.0               
+ [9] patchwork_1.3.2             ggnewscale_0.5.2           
+[11] ggbreak_0.1.6               ggplot2_4.0.0              
+[13] SummarizedExperiment_1.38.1 Biobase_2.68.0             
+[15] GenomicRanges_1.60.0        GenomeInfoDb_1.44.3        
+[17] IRanges_2.42.0              S4Vectors_0.48.0           
+[19] BiocGenerics_0.54.0         generics_0.1.4             
+[21] MatrixGenerics_1.20.0       matrixStats_1.5.0          
+[23] data.table_1.17.8           knitr_1.50                 
+[25] tibble_3.3.0                tidyr_1.3.1                
+[27] dplyr_1.1.4                 magrittr_2.0.4             
+[29] readxl_1.4.5                workflowr_1.7.2            
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3      rstudioapi_0.17.1       jsonlite_2.0.0         
+  [4] shape_1.4.6.1           jomo_2.7-6              nloptr_2.2.1           
+  [7] farver_2.1.2            logistf_1.26.1          rmarkdown_2.30         
+ [10] ragg_1.5.0              GlobalOptions_0.1.2     fs_1.6.6               
+ [13] vctrs_0.6.5             minqa_1.2.8             memoise_2.0.1          
+ [16] htmltools_0.5.8.1       S4Arrays_1.8.1          broom_1.0.10           
+ [19] cellranger_1.1.0        SparseArray_1.8.1       gridGraphics_0.5-1     
+ [22] mitml_0.4-5             sass_0.4.10             bslib_0.9.0            
+ [25] cachem_1.1.0            whisker_0.4.1           igraph_2.1.4           
+ [28] lifecycle_1.0.4         iterators_1.0.14        pkgconfig_2.0.3        
+ [31] Matrix_1.7-3            R6_2.6.1                fastmap_1.2.0          
+ [34] rbibutils_2.3           GenomeInfoDbData_1.2.14 clue_0.3-66            
+ [37] digest_0.6.37           aplot_0.2.9             colorspace_2.1-2       
+ [40] ps_1.9.1                rprojroot_2.1.1         textshaping_1.0.3      
+ [43] labeling_0.4.3          httr_1.4.7              polyclip_1.10-7        
+ [46] abind_1.4-8             mgcv_1.9-1              compiler_4.5.0         
+ [49] withr_3.0.2             doParallel_1.0.17       backports_1.5.0        
+ [52] S7_0.2.0                viridis_0.6.5           ggforce_0.5.0          
+ [55] pan_1.9                 MASS_7.3-65             rappdirs_0.3.3         
+ [58] DelayedArray_0.34.1     rjson_0.2.23            tools_4.5.0            
+ [61] httpuv_1.6.16           nnet_7.3-20             glue_1.8.0             
+ [64] callr_3.7.6             nlme_3.1-168            promises_1.3.3         
+ [67] getPass_0.2-4           cluster_2.1.8.1         operator.tools_1.6.3   
+ [70] gtable_0.3.6            formula.tools_1.7.1     tidygraph_1.3.1        
+ [73] XVector_0.48.0          ggrepel_0.9.6           foreach_1.5.2          
+ [76] pillar_1.11.1           stringr_1.5.2           yulab.utils_0.2.1      
+ [79] later_1.4.4             circlize_0.4.16         splines_4.5.0          
+ [82] tweenr_2.0.3            lattice_0.22-6          survival_3.8-3         
+ [85] tidyselect_1.2.1        locfit_1.5-9.12         git2r_0.36.2           
+ [88] reformulas_0.4.1        gridExtra_2.3           xfun_0.53              
+ [91] graphlayouts_1.2.2      statmod_1.5.0           stringi_1.8.7          
+ [94] UCSC.utils_1.4.0        boot_1.3-31             ggfun_0.2.0            
+ [97] yaml_2.3.10             evaluate_1.0.5          codetools_0.2-20       
+[100] ggraph_2.2.2            ggplotify_0.1.3         cli_3.6.5              
+[103] rpart_4.1.24            systemfonts_1.3.1       Rdpack_2.6.4           
+[106] processx_3.8.6          jquerylib_0.1.4         Rcpp_1.1.0             
+[109] png_0.1-8               parallel_4.5.0          lme4_1.1-37            
+[112] glmnet_4.1-10           viridisLite_0.4.2       purrr_1.1.0            
+[115] crayon_1.5.3            GetoptLong_1.0.5        rlang_1.1.6            
+[118] mice_3.18.0            </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
