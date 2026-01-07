@@ -10,6 +10,8 @@ Files in the `*filtered` branch are in line with the analyses in the barbieQ pap
 
 # Links
 
+Rendered HTML analysis pages are hosted here: http://oshlacklab.com/barbieQ-paper-analysis/
+
 [barbieQ R package on GitHub](https://github.com/Oshlack/barbieQ)
 
 [barbieQ R package on Bioconductor](https://www.bioconductor.org/packages/release/bioc/html/barbieQ.html)
