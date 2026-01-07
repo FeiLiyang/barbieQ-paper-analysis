@@ -1,5 +1,5 @@
 ---
-title: "barbieQ_paper_Figure3_FigureS3"
+title: "barbieQ_paper_Figure3_FigureS3: Type I error rate and power using `Mixture` data"
 author: "Liyang Fei"
 date: |
   Initiate: 2025-09-07
