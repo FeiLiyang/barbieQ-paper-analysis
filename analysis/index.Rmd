@@ -25,7 +25,7 @@ This project gathered several public barcode count datasets and analyzed them us
 
 [barbieQ R package on Bioconductor](https://www.bioconductor.org/packages/release/bioc/html/barbieQ.html)
 
-|**Figure**|**Content** |**Source** |
+|**Figure**|**Content** |
 |---|------|
 |[Figure 1](../output/barbieQ_figure1.drawio.png) |Package flowchart |
 |[Figure 2](barbieQ_paper_Figure2.html) |Preprocessing Monkey HSPC data |
