@@ -1,47 +1,32 @@
-# public_barcode_count
+# barbieQ-paper-analysis
 
-A [workflowr][] project.
+Author: "Liyang Fei"
 
-[workflowr]: https://github.com/workflowr/workflowr
+Last update: 2026 Jan.
 
-Liyang's analysis on the public datasets of barcode count. 
+This repository saves the analysis of several public barcode count datasets using the barbieQ package.
 
-The repository is structured using workflowr. 
+Files in the `*filtered` branch are in line with the analyses in the barbieQ paper.
 
-Each dataset corresponds to a subdirectory under ./data, ./analysis, ./docs, ./output.
+# Links
 
-*How to knit the Rmd's?*
+[barbieQ R package on GitHub](https://github.com/Oshlack/barbieQ)
 
-The default `wflow::build()` is sabotaged by the unconventional set-up of subdirectories.
+[barbieQ R package on Bioconductor](https://www.bioconductor.org/packages/release/bioc/html/barbieQ.html)
 
-Use `rmarkdown::render()` to render the Rmd's into html's.
+[barbieQ preprint on bioRxiv](https://www.biorxiv.org/content/10.1101/2025.09.11.675529v1)
 
-Example command in console where the root directory is always the project `"."`:
+# Content
 
-`rmarkdown::render("analysis/index.Rmd", output_dir = "docs")`
-
-`rmarkdown::render("analysis/WuC/filtering_explore_alter.Rmd", output_dir = "docs/WuC")`
-
-*How to load the datasets?*
-
-We load datasets in an Rmd file, and the working directory is the directory of the current Rmd file.
-
-This is diffrent from that in console.
-
-(../../ moves two levels up; ../ moves one level up; ./ refers to current directory)
-
-Example of load a data in `"analysis/WuC/filtering_explore_alter.Rmd"`:
-
-`load("../../output/WuC/tagged_bq.rda")`
-
-*How to dispatch custom html setting?*
-
-The `scroll-plot` style and the `.color-tabs` style are saved in `"header.html"`.
-
-These styles are configured by each `"_site.yml"` under each subdirectory of `"analysis/"`.
-
-Example when dispatching in `"analysis/WuC/testscroll.Rmd"`:
-
- - flanking the r code trunk by ::: scroll-plot \n :::
- 
- - adding {.color-tabs .tabset .tabset-fade .tabset-pills} following the title / subtitle
+|**Figure**|**Content** |**Source** |
+|---|------|----|
+|Figure 1 |Package flowchart |output/barbieQ_figure1.drawio.png |
+|Figure 2 |Preprocessing Monkey HSPC data |docs/barbieQ_paper_Figure2.html |
+|Figure S1 AML |Preprocessing AML data |docs/barbieQ_paper_FigureS1_AML.html|
+|Figure S1 HSPC xeno |Preprocessing HSPC xenograft data |docs/barbieQ_paper_FigureS1_xenoHSPC.html |
+|Figure S1 Mixture |Preprocessing Mixture data |docs/barbieQ_paper_FigureS1_Mixture.html |
+|Figure 3 and Figure S3 |Assessing Type I error rate and power of statistical tests using Mixture data |docs/barbieQ_paper_Figure3.html |
+|Figure S2 AML |Assessing Type I error rate using AML data |docs/barbieQ_paper_FigureS2_AML.html |
+|Figure S2 HSPC xenograft |Assessing Type I error rate using HSPC xenograft data |docs/barbieQ_paper_FigureS2_xenoHSPC.html |
+|Figure 4 |Case study using Monkey HSPC data |docs/barbieQ_paper_Figure4.html |
+| | | |
