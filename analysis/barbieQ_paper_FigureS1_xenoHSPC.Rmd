@@ -1,0 +1,1085 @@
+---
+title: "barbieQ_paper Supplementary 1: Preprocessing `HSPC xenograft data`"
+author: "Liyang Fei"
+date: |
+  Initiate: 2025-04-03 
+  
+  Last update: `r format(Sys.Date(), '%Y-%m-%d')`
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Links to preprocessing other datasets in the barbieQ paper: 
+ 
+ - [Monkey HSPC](barbieQ_paper_Figure2.html)
+ 
+ - [AML data](barbieQ_paper_FigureS1_AML.html)
+ 
+ - [HSPC xenograft data]()
+ 
+ - [Mixture data](barbieQ_paper_FigureS1_Mixture.html)
+
+# Load Dependencies
+
+```{r load library, message=FALSE, warning=TRUE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+library(edgeR)
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+
+source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
+source("analysis/ggplot_theme.R") ## setting ggplot theme
+```
+
+# Install `barbieQ`
+
+Installing the latest devel version of `barbieQ` from GitHub.
+
+```{r load barbieQ}
+if (!requireNamespace("barbieQ", quietly = TRUE)) {
+  remotes::install_github("Oshlack/barbieQ")
+}
+
+library(barbieQ)
+```
+
+Check the version of `barbieQ`.
+
+```{r}
+packageVersion("barbieQ")
+```
+
+# Set seeds
+
+```{r}
+set.seed(2025)
+```
+
+# Read data
+
+Read every sheet in the excel.
+
+8 mice: "C1"  "C2"  "C3"  "C10" "C15" "C22" "C21" "C23"
+
+overlapping barcodes: hundreds
+
+mouse-specific barcodes: 1-2k.
+
+According to the original publication, 'library' in columns may refer to lentiviral level barcode library - before integrated into cell genome.
+
+```{r read xl}
+sheets <- readxl::excel_sheets("data/BelderbosME/mmc2.xlsx")
+
+data_list <- purrr::map(sheets, ~readxl::read_excel("data/BelderbosME/mmc2.xlsx", sheet = .x))
+
+# bind sheets
+# library(dplyr)
+# combined_data <- bind_rows(data_list, .id = "sheet_name")
+
+names(data_list) <- sheets
+
+C1_bar <- data_list$C1$ID
+C2_bar <- data_list$C2$`['ID'`
+C3_bar <- data_list$C3$`['ID'`
+C10_bar <- data_list$C10$ID
+C15_bar <- data_list$C15$...1
+C22_bar <- data_list$C22$ID
+C21_bar <- data_list$C21$ID
+C23_bar <- data_list$C23$ID
+
+bar_list <- list(
+  C1 = C1_bar,
+  C2 = C2_bar,
+  C3 = C3_bar,
+  C10 = C10_bar,
+  C15 = C15_bar,
+  C22 = C22_bar,
+  C21 = C21_bar,
+  C23 = C23_bar
+)
+
+ggVennDiagram::ggVennDiagram(x = bar_list)
+
+```
+
+# Clean up data
+
+## C1
+
+```{r clean up C1}
+class(data_list$C1)
+
+data_list$C1
+data_list$C1 <- as.data.frame(data_list$C1)
+class(data_list$C1)
+
+# Subset the dataframe to exclude rows where the first column (barcodeID) is NA
+any(is.na(data_list$C1[, 1]))
+data_list$C1 <- data_list$C1[!is.na(data_list$C1[, 1]), ]
+dim(data_list$C1)
+
+# set up the first column of each mat as rownames (barcode ID)
+rownames(data_list$C1) <- data_list$C1[,1]
+data_list$C1 <- data_list$C1[,-1]
+
+# delete empty or processed columns
+del <- c("...39", "...40", "Present", "Total", "Log_total")
+data_list$C1 <- data_list$C1[, !colnames(data_list$C1) %in% del]
+
+# delete processed "sum" columns
+data_list$C1 <- data_list$C1[, !grepl("_Sum", colnames(data_list$C1))] 
+data_list$C1 <- data_list$C1[, !grepl("_sum", colnames(data_list$C1))] 
+
+# delete processed "shannon" rows
+rownames(data_list$C1) [!grepl("^[ATGC]+$", rownames(data_list$C1))]
+rownames(data_list$C1) [!grepl("^[ATGC\\\"]+$", rownames(data_list$C1))]
+data_list$C1 <- data_list$C1[grepl("^[ATGC\\\"]+$", rownames(data_list$C1)),]
+
+dim(data_list$C1)
+
+# Convert NA values to 0 in the matrix
+data_list$C1[is.na(data_list$C1)] <- 0
+!any(is.na(data_list$C1))
+
+# Convert character data to numeric
+C1_count_numeric <- apply(data_list$C1, 2, as.numeric)
+rownames(C1_count_numeric) <- rownames(data_list$C1)
+
+data_list$C1 <- C1_count_numeric
+
+# extract condition from colnames. I don;t know what GK / L means.
+xCondition <- gsub("(.*)\\_.*", "\\1", colnames(data_list$C1))
+xCondition <- gsub("(.*)\\_.*", "\\1", xCondition)
+xCondition
+
+# extract time from colnames
+Time <- gsub(".*\\_(wk[0-9]{1,}).*", "\\1", colnames(data_list$C1))
+Time[grepl("\\_", Time)] <- "sac"
+Time
+
+# extract tissue from colnames
+Tissue <- gsub(".*\\_(BM)\\_.*", "\\1", colnames(data_list$C1))
+Tissue <- gsub(".*\\_(Blood)\\_.*", "\\1", Tissue)
+Tissue[grepl("\\_", Tissue)] <- "Blood"
+Tissue
+
+# extract celltype from colnames
+Celltype <- gsub(".*\\_.*\\_([A-Z])", "\\1", colnames(data_list$C1))
+Celltype[grepl("\\_", Celltype)] <- "Unsorted"
+Celltype[grepl("T", Celltype)] <- "Tcell"
+Celltype[grepl("B", Celltype)] <- "Bcell"
+Celltype[grepl("G", Celltype)] <- "Grn"
+
+
+colnames(data_list$C1)
+
+C1_meta <- data.frame(
+  Sample = colnames(data_list$C1),
+  Donor = rep("C1", ncol(data_list$C1)),
+  xCondition = xCondition,
+  Time = Time,
+  Tissue = Tissue,
+  Celltype = Celltype
+)
+
+# View(data_list$C1)
+
+```
+
+## C2
+
+```{r clean up C2}
+# data_list$C2 %>% View
+data_list$C2 <- as.data.frame(data_list$C2)
+
+# Subset the dataframe to exclude rows where the first column (barcodeID) is NA
+any(is.na(data_list$C2[, 1]))
+data_list$C2 <- data_list$C2[!is.na(data_list$C2[, 1]), ]
+dim(data_list$C2)
+
+# set up the first column of each mat as rownames (barcode ID)
+rownames(data_list$C2) <- data_list$C2[,1]
+data_list$C2 <- data_list$C2[,-1]
+
+colnames(data_list$C2)
+
+# delete empty or processed columns
+del <- c("...39", "...40", "Present", "Total", "Log_total")
+data_list$C2 <- data_list$C2[, !colnames(data_list$C2) %in% del]
+
+# delete processed "sum" columns
+data_list$C2 <- data_list$C2[, !grepl("Sum", colnames(data_list$C2))] 
+data_list$C2 <- data_list$C2[, !grepl("sum", colnames(data_list$C2))] 
+
+# delete processed "shannon" rows
+rownames(data_list$C2) [!grepl("^[ATGC]+$", rownames(data_list$C2))]
+rownames(data_list$C2) [!grepl("^[ATGC\\\"]+$", rownames(data_list$C2))]
+data_list$C2 <- data_list$C2[grepl("^[ATGC\\\"]+$", rownames(data_list$C2)),]
+
+dim(data_list$C2)
+
+# Convert NA values to 0 in the matrix
+data_list$C2[is.na(data_list$C2)] <- 0
+!any(is.na(data_list$C2))
+
+# Convert character data to numeric
+C2_count_numeric <- apply(data_list$C2, 2, as.numeric)
+rownames(C2_count_numeric) <- rownames(data_list$C2)
+
+data_list$C2 <- C2_count_numeric
+
+# View sample names
+colnames(data_list$C2)
+
+# fix "library" clean any character that is not a letter, digit, or underscore with an empty string, effectively removing unwanted symbols.
+colnames(data_list$C2) <- gsub("[^a-zA-Z0-9_]", "", colnames(data_list$C2))
+
+# extract condition from colnames. I don;t know what GK / L means.
+xCondition <- gsub("(.*)\\_.*", "\\1", colnames(data_list$C2))
+xCondition <- gsub("(.*)\\_.*", "\\1", xCondition)
+xCondition
+
+# extract time from colnames
+Time <- gsub(".*\\_(wk[0-9]{1,}).*", "\\1", colnames(data_list$C2))
+Time[grepl("\\_", Time)] <- "sac"
+Time
+
+# extract tissue from colnames
+Tissue <- gsub(".*\\_(BM).*", "\\1", colnames(data_list$C2))
+Tissue <- gsub(".*\\_(Liver).*", "\\1", Tissue)
+Tissue <- gsub(".*\\_(Spleen).*", "\\1", Tissue)
+Tissue <- gsub(".*\\_(Blood).*", "\\1", Tissue)
+Tissue[grepl("\\_", Tissue)] <- "Blood"
+Tissue
+
+# extract position, like BMLeft, BMSpine
+Position <- vector("character", length(Tissue))
+Position[grepl("Left", colnames(data_list$C2))] <- "Left"
+Position[grepl("Front", colnames(data_list$C2))] <- "Front"
+Position[grepl("Right", colnames(data_list$C2))] <- "Right"
+Position[grepl("Spine", colnames(data_list$C2))] <- "Spine"
+
+# extract celltype from colnames
+Celltype <- gsub(".*\\_.*\\_([A-Z])", "\\1", colnames(data_list$C2))
+Celltype[grepl("Tcell", Celltype)] <- "Tcell"
+Celltype[grepl("Bcell", Celltype)] <- "Bcell"
+Celltype[grepl("Grn", Celltype)] <- "Grn"
+Celltype[grepl("Other", Celltype)] <- "Other"
+Celltype[grepl("\\_", Celltype)] <- "Unsorted"
+Celltype
+
+colnames(data_list$C2)
+
+C2_meta <- data.frame(
+  Sample = colnames(data_list$C2),
+  Donor = rep("C2", ncol(data_list$C2)),
+  xCondition = xCondition,
+  Time = Time,
+  Tissue = Tissue,
+  Position = Position,
+  Celltype = Celltype
+)
+
+# View(data_list$C2)
+```
+
+## C3
+
+There are two GK_BM_T. One might be typo, originally GK_BM_G.
+
+```{r clean up C3}
+# data_list$C3 %>% View
+data_list$C3 <- as.data.frame(data_list$C3)
+
+# Subset the dataframe to exclude rows where the first column (barcodeID) is NA
+any(is.na(data_list$C3[, 1]))
+data_list$C3 <- data_list$C3[!is.na(data_list$C3[, 1]), ]
+dim(data_list$C3)
+
+# set up the first column of each mat as rownames (barcode ID)
+rownames(data_list$C3) <- data_list$C3[,1]
+data_list$C3 <- data_list$C3[,-1]
+
+colnames(data_list$C3)
+
+# delete empty or processed columns
+del <- c("...39", "...40", "Present", "Total", "Log_total")
+data_list$C3 <- data_list$C3[, !colnames(data_list$C3) %in% del]
+
+# delete processed "sum" columns
+data_list$C3 <- data_list$C3[, !grepl("Sum", colnames(data_list$C3))] 
+data_list$C3 <- data_list$C3[, !grepl("sum", colnames(data_list$C3))] 
+
+# delete processed "shannon" rows
+rownames(data_list$C3) [!grepl("^[ATGC]+$", rownames(data_list$C3))]
+rownames(data_list$C3) [!grepl("^[ATGC\\\"]+$", rownames(data_list$C3))]
+data_list$C3 <- data_list$C3[grepl("^[ATGC\\\"]+$", rownames(data_list$C3)),]
+
+dim(data_list$C3)
+
+# Convert NA values to 0 in the matrix
+data_list$C3[is.na(data_list$C3)] <- 0
+!any(is.na(data_list$C3))
+
+# Convert character data to numeric
+C3_count_numeric <- apply(data_list$C3, 2, as.numeric)
+rownames(C3_count_numeric) <- rownames(data_list$C3)
+
+data_list$C3 <- C3_count_numeric
+
+# View sample names
+colnames(data_list$C3)
+
+# fix "library" clean any character that is not a letter, digit, or underscore with an empty string, effectively removing unwanted symbols.
+colnames(data_list$C3) <- gsub("[^a-zA-Z0-9_]", "", colnames(data_list$C3))
+
+# extract condition from colnames. I don;t know what GK / L means.
+xCondition <- gsub("(.*)\\_.*", "\\1", colnames(data_list$C3))
+xCondition <- gsub("(.*)\\_.*", "\\1", xCondition)
+xCondition[grepl("TK3BMCellsbeforetransplant", xCondition)] <- "time0"
+xCondition
+
+# extract time from colnames
+Time <- gsub(".*\\_(wk[0-9]{1,}).*", "\\1", colnames(data_list$C3))
+Time[grepl("\\_", Time)] <- "sac"
+Time[grepl("TK3BMCellsbeforetransplant", Time)] <- "time0"
+Time
+
+# extract tissue from colnames
+Tissue <- gsub(".*\\_(BM).*", "\\1", colnames(data_list$C3))
+Tissue <- gsub(".*\\_(Liver).*", "\\1", Tissue)
+Tissue <- gsub(".*\\_(Spleen).*", "\\1", Tissue)
+Tissue <- gsub(".*\\_(Blood).*", "\\1", Tissue)
+Tissue[grepl("\\_", Tissue)] <- "Blood"
+Tissue[grepl("TK3BMCellsbeforetransplant", Tissue)] <- "time0"
+Tissue
+
+# extract celltype from colnames
+Celltype <- gsub(".*\\_.*\\_([A-Z])", "\\1", colnames(data_list$C3))
+Celltype[grepl("TK3BMCellsbeforetransplant", Celltype)] <- "time0"
+Celltype[grepl("T", Celltype)] <- "Tcell"
+Celltype[grepl("B", Celltype)] <- "Bcell"
+Celltype[grepl("G", Celltype)] <- "Grn"
+Celltype[grepl("\\_", Celltype)] <- "Unsorted"
+Celltype
+
+colnames(data_list$C3)
+
+C3_meta <- data.frame(
+  Sample = colnames(data_list$C3),
+  Donor = rep("C3", ncol(data_list$C3)),
+  xCondition = xCondition,
+  Time = Time,
+  Tissue = Tissue,
+  Celltype = Celltype
+)
+
+# View(data_list$C3)
+```
+
+## C10
+
+```{r clean up C10}
+# data_list$C10 %>% View
+data_list$C10 <- as.data.frame(data_list$C10)
+
+# Subset the dataframe to exclude rows where the first column (barcodeID) is NA
+any(is.na(data_list$C10[, 1]))
+data_list$C10 <- data_list$C10[!is.na(data_list$C10[, 1]), ]
+dim(data_list$C10)
+
+# set up the first column of each mat as rownames (barcode ID)
+rownames(data_list$C10) <- data_list$C10[,1]
+data_list$C10 <- data_list$C10[,-1]
+
+colnames(data_list$C10)
+
+# delete empty or processed columns
+del <- c("...39", "...40", "Present", "Total", "Log_total")
+data_list$C10 <- data_list$C10[, !colnames(data_list$C10) %in% del]
+
+# delete processed "sum" columns
+data_list$C10 <- data_list$C10[, !grepl("Sum", colnames(data_list$C10))] 
+data_list$C10 <- data_list$C10[, !grepl("sum", colnames(data_list$C10))] 
+
+# delete processed "shannon" rows
+rownames(data_list$C10) [!grepl("^[ATGC]+$", rownames(data_list$C10))]
+rownames(data_list$C10) [!grepl("^[ATGC\\\"]+$", rownames(data_list$C10))]
+data_list$C10 <- data_list$C10[grepl("^[ATGC\\\"]+$", rownames(data_list$C10)),]
+
+dim(data_list$C10)
+
+# Convert NA values to 0 in the matrix
+data_list$C10[is.na(data_list$C10)] <- 0
+!any(is.na(data_list$C10))
+
+# Convert character data to numeric
+C10_count_numeric <- apply(data_list$C10, 2, as.numeric)
+rownames(C10_count_numeric) <- rownames(data_list$C10)
+
+data_list$C10 <- C10_count_numeric
+
+# View sample names
+colnames(data_list$C10)
+
+# clean any character that is not a letter, digit, or underscore with an empty string, effectively removing unwanted symbols.
+colnames(data_list$C10) <- gsub("[^a-zA-Z0-9_]", "", colnames(data_list$C10))
+
+# extract condition from colnames. I don;t know what GK / L means.
+xCondition <- gsub(".*\\_.*\\_.*\\_(.*)", "\\1", colnames(data_list$C10))
+xCondition
+
+# extract time from colnames
+Time <- gsub(".*\\_(wk\\_[0-9]{1,}).*", "\\1", colnames(data_list$C10))
+Time <- gsub("\\_", "", Time)
+Time
+
+# extract tissue from colnames
+Tissue <- gsub("(.*)\\_.*\\_.*\\_.*", "\\1", colnames(data_list$C10))
+Tissue[grepl("Blood", Tissue)] <- "Blood"
+Tissue[grepl("BM", Tissue)] <- "BM"
+Tissue[grepl("Liver", Tissue)] <- "Liver"
+Tissue[grepl("Spleen", Tissue)] <- "Spleen"
+Tissue
+
+# extract position
+mix <- gsub("(.*)\\_.*\\_.*\\_.*", "\\1", colnames(data_list$C10))
+Position <- vector("character", length(mix))
+Position[grepl("BM", mix)] <- gsub("(.*)BM.*", "\\1", mix)[grepl("BM", mix)]
+Position
+
+# extract celltype from colnames
+mix <- gsub("(.*)\\_.*\\_.*\\_.*", "\\1", colnames(data_list$C10))
+Celltype <- vector("character", length(mix))
+Celltype[grepl("Blood", mix)] <- gsub(".*Blood(.*)", "\\1", mix)[grepl("Blood", mix)]
+Celltype[grepl("BM", mix)] <- gsub(".*BM(.*)", "\\1", mix)[grepl("BM", mix)]
+Celltype[Celltype == ""] <- "Unsorted"
+Celltype[Celltype == "B"] <- "Bcell"
+Celltype[Celltype == "T"] <- "Tcell"
+Celltype[Celltype == "G"] <- "Grn"
+Celltype
+
+colnames(data_list$C10)
+
+C10_meta <- data.frame(
+  Sample = colnames(data_list$C10),
+  Donor = rep("C10", ncol(data_list$C10)),
+  xCondition = xCondition,
+  Time = Time,
+  Tissue = Tissue,
+  Position = Position,
+  Celltype = Celltype
+)
+
+# View(data_list$C10)
+```
+
+## C15
+
+```{r clean up C15}
+# data_list$C15 %>% View
+data_list$C15 <- as.data.frame(data_list$C15)
+
+# Subset the dataframe to exclude rows where the first column (barcodeID) is NA
+any(is.na(data_list$C15[, 1]))
+data_list$C15 <- data_list$C15[!is.na(data_list$C15[, 1]), ]
+dim(data_list$C15)
+
+# set up the first column of each mat as rownames (barcode ID)
+rownames(data_list$C15) <- data_list$C15[,1]
+data_list$C15 <- data_list$C15[,-1]
+
+colnames(data_list$C15)
+
+# delete empty or processed columns
+del <- c("...39", "...40", "Present", "Total", "Log_total")
+data_list$C15 <- data_list$C15[, !colnames(data_list$C15) %in% del]
+
+# delete processed "sum" columns
+data_list$C15 <- data_list$C15[, !grepl("Sum", colnames(data_list$C15))] 
+data_list$C15 <- data_list$C15[, !grepl("sum", colnames(data_list$C15))] 
+
+# delete processed "shannon" rows
+rownames(data_list$C15) [!grepl("^[ATGC]+$", rownames(data_list$C15))]
+rownames(data_list$C15) [!grepl("^[ATGC\\\"]+$", rownames(data_list$C15))]
+data_list$C15 <- data_list$C15[grepl("^[ATGC\\\"]+$", rownames(data_list$C15)),]
+
+dim(data_list$C15)
+
+# Convert NA values to 0 in the matrix
+data_list$C15[is.na(data_list$C15)] <- 0
+!any(is.na(data_list$C15))
+
+# Convert character data to numeric
+C15_count_numeric <- apply(data_list$C15, 2, as.numeric)
+rownames(C15_count_numeric) <- rownames(data_list$C15)
+
+data_list$C15 <- C15_count_numeric
+
+# View sample names
+colnames(data_list$C15)
+
+# clean any character that is not a letter, digit, or underscore with an empty string, effectively removing unwanted symbols.
+colnames(data_list$C15) <- gsub("[^a-zA-Z0-9_]", "", colnames(data_list$C15))
+
+# extract time from colnames
+Time <- gsub(".*(wk[0-9]{1,}).*", "\\1", colnames(data_list$C15))
+Time[grepl("\\_", Time)] <- "sac"
+Time
+
+# extract tissue from colnames
+Tissue <- vector("character", ncol(data_list$C15))
+Tissue[grepl("BM", colnames(data_list$C15))] <- "BM"
+Tissue[Tissue == ""] <- "Blood"
+Tissue
+
+# extract position
+mix <- gsub("(.*)\\_.*", "\\1", colnames(data_list$C15))
+Position <- vector("character", ncol(data_list$C15))
+Position[grepl("BM", mix)] <- gsub("BM(.*)", "\\1", mix)[grepl("BM", mix)]
+Position
+
+# extract celltype from colnames
+Celltype <- vector("character", ncol(data_list$C15))
+Celltype[grepl("\\_",colnames(data_list$C15))] <- gsub(".*\\_(.*)", "\\1", colnames(data_list$C15))[grepl("\\_",colnames(data_list$C15))]
+
+Celltype[Celltype == ""] <- "Unsorted"
+Celltype[Celltype == "B"] <- "Bcell"
+Celltype[Celltype == "T"] <- "Tcell"
+Celltype[Celltype == "G"] <- "Grn"
+Celltype[Celltype == "O"] <- "Other"
+Celltype
+
+colnames(data_list$C15)
+
+C15_meta <- data.frame(
+  Sample = colnames(data_list$C15),
+  Donor = rep("C15", ncol(data_list$C15)),
+  Time = Time,
+  Tissue = Tissue,
+  Position = Position,
+  Celltype = Celltype
+)
+
+# View(data_list$C15)
+```
+
+## C21
+
+```{r clean up C21}
+# data_list$C21 %>% View
+data_list$C21 <- as.data.frame(data_list$C21)
+
+# Subset the dataframe to exclude rows where the first column (barcodeID) is NA
+any(is.na(data_list$C21[, 1]))
+data_list$C21 <- data_list$C21[!is.na(data_list$C21[, 1]), ]
+dim(data_list$C21)
+
+# set up the first column of each mat as rownames (barcode ID)
+rownames(data_list$C21) <- data_list$C21[,1]
+data_list$C21 <- data_list$C21[,-1]
+
+colnames(data_list$C21)
+
+# delete empty or processed columns
+del <- c("...39", "...40", "Present", "Total", "Log_total")
+data_list$C21 <- data_list$C21[, !colnames(data_list$C21) %in% del]
+
+# delete processed "sum" columns
+data_list$C21 <- data_list$C21[, !grepl("Sum", colnames(data_list$C21))] 
+data_list$C21 <- data_list$C21[, !grepl("sum", colnames(data_list$C21))] 
+
+# delete processed "shannon" rows
+rownames(data_list$C21) [!grepl("^[ATGC]+$", rownames(data_list$C21))]
+rownames(data_list$C21) [!grepl("^[ATGC\\\"]+$", rownames(data_list$C21))]
+data_list$C21 <- data_list$C21[grepl("^[ATGC\\\"]+$", rownames(data_list$C21)),]
+
+dim(data_list$C21)
+
+# Convert NA values to 0 in the matrix
+data_list$C21[is.na(data_list$C21)] <- 0
+!any(is.na(data_list$C21))
+
+# Convert character data to numeric
+C21_count_numeric <- apply(data_list$C21, 2, as.numeric)
+rownames(C21_count_numeric) <- rownames(data_list$C21)
+
+data_list$C21 <- C21_count_numeric
+
+# View sample names
+colnames(data_list$C21)
+
+# clean any character that is not a letter, digit, or underscore with an empty string, effectively removing unwanted symbols.
+colnames(data_list$C21) <- gsub("[^a-zA-Z0-9_]", "", colnames(data_list$C21))
+
+# extract time from colnames
+Time <- gsub("(wk[0-9]{1,}).*", "\\1", colnames(data_list$C21))
+Time[grepl("BM|Spleen|Liver", Time)] <- "sac"
+Time
+
+# extract tissue from colnames
+Tissue <- gsub("(BM|Spleen|Liver).*", "\\1", colnames(data_list$C21))
+Tissue[grepl("wk", Tissue)] <- "Blood"
+Tissue
+
+# extract position
+Position <- vector("character", ncol(data_list$C21))
+Position[grepl("BM", colnames(data_list$C21))] <- gsub("BM(.*)\\_.*", "\\1", colnames(data_list$C21))[grepl("BM", colnames(data_list$C21))]
+Position
+
+# extract celltype from colnames
+Celltype <- vector("character", ncol(data_list$C21))
+Celltype[grepl("\\_", colnames(data_list$C21))] <- gsub(".*\\_(.*)", "\\1", colnames(data_list$C21))[grepl("\\_", colnames(data_list$C21))]
+Celltype[Celltype == ""] <- "Unsorted"
+Celltype[Celltype == "unsorted"] <- "Unsorted"
+Celltype[Celltype == "B"] <- "Bcell"
+Celltype[Celltype == "T"] <- "Tcell"
+Celltype[Celltype == "G"] <- "Grn"
+Celltype[Celltype == "O"] <- "Other"
+Celltype
+
+colnames(data_list$C21)
+
+C21_meta <- data.frame(
+  Sample = colnames(data_list$C21),
+  Donor = rep("C21", ncol(data_list$C21)),
+  Time = Time,
+  Tissue = Tissue,
+  Position = Position,
+  Celltype = Celltype
+)
+
+# View(data_list$C21)
+```
+
+## C22
+
+```{r clean up C22}
+# data_list$C22 %>% View
+data_list$C22 <- as.data.frame(data_list$C22)
+
+# Subset the dataframe to exclude rows where the first column (barcodeID) is NA
+any(is.na(data_list$C22[, 1]))
+data_list$C22 <- data_list$C22[!is.na(data_list$C22[, 1]), ]
+dim(data_list$C22)
+
+# set up the first column of each mat as rownames (barcode ID)
+rownames(data_list$C22) <- data_list$C22[,1]
+data_list$C22 <- data_list$C22[,-1]
+
+colnames(data_list$C22)
+
+# delete empty or processed columns
+del <- c("...39", "...40", "Present", "Total", "Log_total")
+data_list$C22 <- data_list$C22[, !colnames(data_list$C22) %in% del]
+
+# delete processed "sum" columns
+data_list$C22 <- data_list$C22[, !grepl("Sum", colnames(data_list$C22))] 
+data_list$C22 <- data_list$C22[, !grepl("sum", colnames(data_list$C22))] 
+
+# delete processed "shannon" rows
+rownames(data_list$C22) [!grepl("^[ATGC]+$", rownames(data_list$C22))]
+rownames(data_list$C22) [!grepl("^[ATGC\\\"]+$", rownames(data_list$C22))]
+data_list$C22 <- data_list$C22[grepl("^[ATGC\\\"]+$", rownames(data_list$C22)),]
+
+dim(data_list$C22)
+
+# Convert NA values to 0 in the matrix
+data_list$C22[is.na(data_list$C22)] <- 0
+!any(is.na(data_list$C22))
+
+# Convert character data to numeric
+C22_count_numeric <- apply(data_list$C22, 2, as.numeric)
+rownames(C22_count_numeric) <- rownames(data_list$C22)
+
+data_list$C22 <- C22_count_numeric
+
+# View sample names
+colnames(data_list$C22)
+
+# clean any character that is not a letter, digit, or underscore with an empty string, effectively removing unwanted symbols.
+colnames(data_list$C22) <- gsub("[^a-zA-Z0-9_]", "", colnames(data_list$C22))
+
+# extract time from colnames
+Time <- gsub(".*\\_(wk\\_[0-9]{1,}).*", "\\1", colnames(data_list$C22))
+Time[grepl("\\_", Time)] <- "sac"
+Time[Time == "Spleen"] <- "sac"
+Time
+
+# extract tissue from colnames
+Tissue <- gsub("(.*)\\_.*\\_.*", "\\1", colnames(data_list$C22))
+Tissue <- gsub("(.*)\\_.*", "\\1", Tissue)
+Tissue[grepl("wk", Tissue)] <- "Blood"
+Tissue
+
+# extract position
+Position <- vector("character", ncol(data_list$C22))
+Position[grepl("BM", colnames(data_list$C22))] <- gsub("BM\\_(.*)\\_.*", "\\1", colnames(data_list$C22))[grepl("BM", colnames(data_list$C22))]
+Position[grepl("BM", Position)] <- gsub("BM\\_(.*)", "\\1", Position)[grepl("BM", Position)]
+Position
+
+# extract celltype from colnames
+Celltype <- vector("character", ncol(data_list$C22))
+Celltype[grepl("BM\\_.*\\_.*", colnames(data_list$C22))] <- gsub("BM\\_.*\\_(.*)", "\\1", colnames(data_list$C22))[grepl("BM\\_.*\\_.*", colnames(data_list$C22))]
+Celltype[Celltype == ""] <- "Unsorted"
+Celltype[Celltype == "unsorted"] <- "Unsorted"
+Celltype[Celltype == "B"] <- "Bcell"
+Celltype[Celltype == "T"] <- "Tcell"
+Celltype[Celltype == "G"] <- "Grn"
+Celltype[Celltype == "O"] <- "Other"
+Celltype
+
+colnames(data_list$C22)
+
+C22_meta <- data.frame(
+  Sample = colnames(data_list$C22),
+  Donor = rep("C22", ncol(data_list$C22)),
+  Time = Time,
+  Tissue = Tissue,
+  Position = Position,
+  Celltype = Celltype
+)
+
+# View(data_list$C22)
+```
+
+## C23
+
+```{r clean up C23}
+# data_list$C23 %>% View
+data_list$C23 <- as.data.frame(data_list$C23)
+
+# Subset the dataframe to exclude rows where the first column (barcodeID) is NA
+any(is.na(data_list$C23[, 1]))
+data_list$C23 <- data_list$C23[!is.na(data_list$C23[, 1]), ]
+dim(data_list$C23)
+
+# set up the first column of each mat as rownames (barcode ID)
+rownames(data_list$C23) <- data_list$C23[,1]
+data_list$C23 <- data_list$C23[,-1]
+
+colnames(data_list$C23)
+
+# delete empty or processed columns
+del <- c("...39", "...40", "Present", "Total", "Log_total")
+data_list$C23 <- data_list$C23[, !colnames(data_list$C23) %in% del]
+
+# delete processed "sum" columns
+data_list$C23 <- data_list$C23[, !grepl("Sum", colnames(data_list$C23))] 
+data_list$C23 <- data_list$C23[, !grepl("sum", colnames(data_list$C23))] 
+
+# delete processed "shannon" rows
+rownames(data_list$C23) [!grepl("^[ATGC]+$", rownames(data_list$C23))]
+rownames(data_list$C23) [!grepl("^[ATGC\\\"]+$", rownames(data_list$C23))]
+data_list$C23 <- data_list$C23[grepl("^[ATGC\\\"]+$", rownames(data_list$C23)),]
+
+dim(data_list$C23)
+
+# Convert NA values to 0 in the matrix
+data_list$C23[is.na(data_list$C23)] <- 0
+!any(is.na(data_list$C23))
+
+# Convert character data to numeric
+C23_count_numeric <- apply(data_list$C23, 2, as.numeric)
+rownames(C23_count_numeric) <- rownames(data_list$C23)
+
+data_list$C23 <- C23_count_numeric
+
+# View sample names
+colnames(data_list$C23)
+
+# clean any character that is not a letter, digit, or underscore with an empty string, effectively removing unwanted symbols.
+colnames(data_list$C23) <- gsub("[^a-zA-Z0-9_]", "", colnames(data_list$C23))
+
+# extract time from colnames
+Time <- gsub("(wk[0-9]{1,}).*", "\\1", colnames(data_list$C23))
+Time[grepl("BM|Spleen|Liver|Sac", Time)] <- "sac"
+Time
+
+# extract tissue from colnames
+Tissue <- gsub("(BM|Spleen|Liver).*", "\\1", colnames(data_list$C23))
+Tissue[grepl("wk", Tissue)] <- "Blood"
+Tissue[grepl("Sac", Tissue)] <- "sac"
+Tissue
+
+# extract position
+Position <- vector("character", ncol(data_list$C23))
+Position[grepl("BM\\_.*\\_.*", colnames(data_list$C23))] <- gsub("BM\\_(.*)\\_.*", "\\1", colnames(data_list$C23))[grepl("BM\\_.*\\_.*", colnames(data_list$C23))]
+Position
+
+# extract celltype from colnames
+Celltype <- vector("character", ncol(data_list$C23))
+Celltype[grepl("\\_", colnames(data_list$C23))] <- gsub(".*\\_(.*)", "\\1", colnames(data_list$C23))[grepl("\\_", colnames(data_list$C23))]
+Celltype[Celltype == ""] <- "Unsorted"
+Celltype[Celltype == "unsorted"] <- "Unsorted"
+Celltype[Celltype == "B"] <- "Bcell"
+Celltype[Celltype == "T"] <- "Tcell"
+Celltype[Celltype == "G"] <- "Grn"
+Celltype[Celltype == "O"] <- "Other"
+Celltype
+
+colnames(data_list$C23)
+
+C23_meta <- data.frame(
+  Sample = colnames(data_list$C23),
+  Donor = rep("C23", ncol(data_list$C23)),
+  Time = Time,
+  Tissue = Tissue,
+  Position = Position,
+  Celltype = Celltype
+)
+
+# View(data_list$C23)
+```
+
+## Combine donors
+
+```{r combine}
+Metadata <- dplyr::bind_rows(C1_meta, C2_meta, C3_meta, C10_meta, C15_meta, C22_meta, C21_meta, C23_meta)
+Metadata[is.na(Metadata)] <- ""
+
+data_list <- lapply(data_list, function(mat)  as.data.frame(t(mat)))
+CountData <- dplyr::bind_rows(data_list)
+CountData <- t(CountData)
+```
+
+# Save to a barbieQ object
+
+**Note that clones (barcodes) between different donors don't match.** 
+
+**Clones from each donor were labelled separately, using the same barcode (lentiviral) library.**
+
+**Same barcode across donors doesn't refer to the same clone!**
+
+**For convenience, herein we combined samples from all donors together.**
+
+```{r save-to-barbieQ}
+## convert all NA into zero and continue
+CountData %>% is.na() %>% any()
+CountData[is.na(CountData)] <- 0
+CountData %>% is.na() %>% any()
+
+xenoHSPC <- createBarbieQ(object = CountData, sampleMetadata = Metadata)
+```
+
+# Tag top barcodes
+
+```{r tag top}
+dim(xenoHSPC)
+## find minimum group size
+targets <- as.data.frame(xenoHSPC$sampleMetadata) %>% 
+  mutate(Group = paste0(Donor, Celltype))
+targets$Group %>% table()
+
+## select sample to consider, exclude TP0 when tagging
+xenoHSPC <- barbieQ::tagTopBarcodes(barbieQ = xenoHSPC, 
+  # activeSamples = xenoHSPC$sampleMetadata$Sample != "library",
+  nSampleThreshold = 3
+  )
+
+rowData(xenoHSPC)$isTopBarcode$isTop %>% table()
+```
+
+According to the original paper, for each donor, barcode library contains around 800 unique barcodes.
+
+Check out filtered "top" barcodes.
+
+```{r}
+n_uni_BC <- xenoHSPC@assays@data$isTopAssay %>% colSums()
+
+n_uni_BC %>% sort(decreasing = T)
+```
+
+
+```{r vis tag}
+barbieQ::plotBarcodePareto(barbieQ = xenoHSPC)
+barbieQ::plotBarcodeSankey(barbieQ = xenoHSPC)
+```
+
+# Cluster barcodes
+
+## FS1C: pairwise correlation
+
+```{r bar cor, fig.width=4, fig.height=4}
+plotBarcodePairCorrelation(
+  barbieQ = xenoHSPC[rowData(xenoHSPC)$isTopBarcode$isTop,], 
+  propThresh = 0.005, transformation = "none") + 
+  theme(legend.position = "top") + 
+  labs(title = "HSPC xenograft data") -> fs1c
+
+fs1c
+```
+
+## FS1F: clusters barcodes
+
+```{r cluster barcodes}
+## cluster barcoes
+xenoHSPC_top0 <- barbieQ::clusterCorrelatingBarcodes(
+  barbieQ = xenoHSPC[rowData(xenoHSPC)$isTopBarcode$isTop,], 
+  transformation = "none", propThresh = 0.005)
+
+p_cluster_list <- barbieQ::inspectCorrelatingBarcodes(xenoHSPC_top0)
+
+p_cluster_list
+
+layer_index <- which(sapply(p_cluster_list$p_cluster$layers, function(x) inherits(x$geom, "GeomTextRepel")))
+## update the size for that layer
+p_cluster_list$p_cluster$layers[[layer_index]]$aes_params$size <- 1.4  # new size
+fs1f <- p_cluster_list$p_cluster + theme(legend.position = "none")
+
+fs1f
+```
+
+## merge clusters
+
+```{r}
+xenoHSPC_merged <- barbieQ::mergeCorrelatingBarcodes(barbieQ_clustered = xenoHSPC_top0, barbieQ_toMerge = xenoHSPC)
+dim(xenoHSPC_merged)
+
+xenoHSPC_merged@metadata$predicted_barcode_clusters
+xenoHSPC_merged@metadata$removed_barcodes
+```
+
+# Tag top barcode after collapsing
+
+## FS1H,K: inspect top/bottom
+
+```{r tag after cor, fig.width=5, fig.height=4}
+xenoHSPC_merged <- tagTopBarcodes(
+  barbieQ = xenoHSPC_merged,
+  # activeSamples = xenoHSPC$sampleMetadata$Sample != "library",
+  nSampleThreshold = 3)
+
+barbieQ::plotBarcodePareto(barbieQ = xenoHSPC_merged) +
+  ylim(-8, 12) + 
+  annotate("text", x = c(pi * 0.05), y = c(12), 
+           label = c("Relative proportion %"), color = "#999966", 
+           size = 3, angle = 0, fontface = "bold", hjust = 1) -> fs1h
+
+fs1h
+```
+
+```{r, fig.width=3, fig.height=4}
+barbieQ::plotBarcodeSankey(barbieQ = xenoHSPC_merged) +
+  theme(legend.position = "top")  -> fs1k
+
+fs1k
+```
+
+## Filter "top" barcodes
+
+```{r}
+xenoHSPC_top <- xenoHSPC_merged[rowData(xenoHSPC_merged)$isTopBarcode$isTop,]
+```
+
+## Heatmap
+
+```{r echo=TRUE}
+## pre-filtering
+Heatmap(name = "asin-sqrt prop.",
+  matrix = asin(sqrt(assays(xenoHSPC_merged)$proportion)), 
+  row_title = paste0(nrow(xenoHSPC_merged), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+```
+
+```{r hp}
+## post-filtering
+Heatmap(name = "asin-sqrt prop.",
+  matrix = asin(sqrt(assays(xenoHSPC_top)$proportion)), 
+  row_title = paste0(nrow(xenoHSPC_top), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+```
+
+# Save rds
+
+```{r save rds}
+save(xenoHSPC, xenoHSPC_merged, xenoHSPC_top, file = "output/xenoHSPC_barbieQ.rda")
+
+```
+
+# Top10
+
+```{r}
+tagTop10 <- function(col) {
+  ranks <- rank(-col)
+  # summary(ranks)
+  isTop <- ranks <= 10
+  # summary(isTop)
+  return(isTop)
+}
+
+tester <- tagTop10(assays(xenoHSPC_merged)$CPM[,1])
+summary(tester)
+
+colTags <- lapply(as.data.frame(assays(xenoHSPC_merged)$CPM), 
+                  function(col) tagTop10(col))
+colTagMat <- do.call(cbind, colTags)
+colTagVec <- rowSums(colTagMat[,xenoHSPC_merged$sampleMetadata$Sample != "library"]) >= 1
+summary(colTagVec)
+
+xenoHSPC_merged_top10 <- xenoHSPC_merged
+rowData(xenoHSPC_merged_top10)$isTopBarcode <- DataFrame(isTop = colTagVec)
+summary(rowData(xenoHSPC_merged_top10)$isTopBarcode$isTop)
+
+barbieQ::plotBarcodePareto(barbieQ = xenoHSPC_merged_top10)
+barbieQ::plotBarcodeSankey(barbieQ = xenoHSPC_merged_top10)
+```
+
+# FigureS1-HSPC xenograft
+
+```{r, fig.width=4, fig.height=16}
+layout = "
+C
+F
+H
+K
+"
+fs1_xeno <- (
+  wrap_elements(fs1c + theme(plot.margin = unit(c(0,0,0,0), "line"))) + 
+    wrap_elements(fs1f + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(fs1h + theme(plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_elements(fs1k + theme(plot.margin = unit(rep(0,4), "cm")))
+  ) + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c("C","F","H", "K"))) &
+  theme(
+    plot.tag = element_text(size = 20, face = "bold", family = "arial"),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+fs1_xeno
+```
+
+
+```{r}
+ggsave(
+  filename = "output/fs1_xeno.png",
+  plot = fs1_xeno,
+  width = 4,
+  height = 16,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )
+```
+
+Saving this figure in [fs1_xenoHSPC](../output/fs1_xeno.png)

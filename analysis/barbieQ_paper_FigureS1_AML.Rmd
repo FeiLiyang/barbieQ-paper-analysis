@@ -1,0 +1,294 @@
+---
+title: "barbieQ_paper Supplementary 1: Preprocessing `AML data`"
+author: "Liyang Fei"
+date: |
+  Initiate: 2025-04-03
+  
+  Last update: `r format(Sys.Date(), '%Y-%m-%d')`
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Links to preprocessing other datasets in the barbieQ paper: 
+ 
+ - [Monkey HSPC](barbieQ_paper_Figure2.html)
+ 
+ - [AML data]()
+ 
+ - [HSPC xenograft data](barbieQ_paper_FigureS1_xenoHSPC.html)
+ 
+ - [Mixture data](barbieQ_paper_FigureS1_Mixture.html)
+
+# Load Dependencies
+
+```{r load library, message=FALSE, warning=TRUE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+library(edgeR)
+library(SummarizedExperiment)
+library(SEtools) # for aggregate SE
+library(S4Vectors)
+library(devtools)
+
+source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
+source("analysis/ggplot_theme.R") ## setting ggplot theme
+```
+
+# Install `barbieQ`
+
+Installing the latest devel version of `barbieQ` from GitHub.
+
+```{r load barbieQ}
+if (!requireNamespace("barbieQ", quietly = TRUE)) {
+  remotes::install_github("Oshlack/barbieQ")
+}
+
+library(barbieQ)
+```
+
+Check the version of `barbieQ`.
+
+```{r}
+packageVersion("barbieQ")
+```
+
+# Set seeds
+
+```{r}
+set.seed(2025)
+```
+
+# Read data
+
+Sourced from: [(https://zenodo.org/badge/713176761.svg)](https://zenodo.org/doi/10.5281/zenodo.10896642)
+
+```{r read counts}
+dge <- readRDS("data/bartools_dose_escalation/dose2.rds")
+
+# simplify barcode labels
+rownames(dge) <- gsub("BFP_Barcode", "BC", rownames(dge))
+
+```
+
+# Save to a barbieQ obejct
+
+```{r review metadata}
+## check sample metadata
+# dge$samples$Treatment %>% table()
+# dge$samples %>% class()
+# lapply(dge$samples, function (j) {table(j)})
+```
+
+```{r create barbieQ}
+AML <- barbieQ::createBarbieQ(
+  object = dge$counts, 
+  sampleMetadata = dge$samples[, c("Treatment", "Strategy", "Technical_Replicate", "Dose", "Timepoint")])
+metadata(AML)<- list(
+  "Experiment" = "Dose_escalation_2",
+  "Celltype" = "MLL-AF9",
+  "Library" = "SPLINTR_BFP_V1"
+  )
+```
+
+# Tag top barcodes
+
+```{r tag top}
+dim(AML)
+colData(AML)$sampleMetadata
+## find minimum group size
+targets <- as.data.frame(AML$sampleMetadata) %>% 
+  mutate(Group = paste0(Treatment, Strategy, Dose))
+targets$Group %>% table()
+
+## select sample to consider, exclude TP0 when tagging
+AML <- barbieQ::tagTopBarcodes(
+  barbieQ = AML, 
+  activeSamples = AML$sampleMetadata$Treatment != "TP0", 
+  nSampleThreshold = 2
+  )
+
+rowData(AML)$isTopBarcode$isTop %>% table()
+```
+
+```{r vis tag}
+barbieQ::plotBarcodePareto(barbieQ = AML)
+barbieQ::plotBarcodeSankey(barbieQ = AML)
+```
+
+# Cluster barcodes
+
+## FS1B: pairwise correlation
+
+```{r barcode correlation, fig.width=4, fig.height=4}
+barbieQ::plotBarcodePairCorrelation(barbieQ = AML, propThresh = 0.005, transformation = "none") + 
+  theme(legend.position = "top") + 
+  labs(title = "AML data") -> fs1b
+
+fs1b
+```
+
+## FS1E: clusters barcodes
+
+```{r cluster barcodes}
+## cluster barcoes
+AML <- barbieQ::clusterCorrelatingBarcodes(barbieQ = AML, propThresh = 0.005, transformation = "none")
+
+p_cluster_list <- barbieQ::inspectCorrelatingBarcodes(AML)
+
+p_cluster_list
+
+layer_index <- which(sapply(p_cluster_list$p_cluster$layers, function(x) inherits(x$geom, "GeomTextRepel")))
+## update the size for that layer
+p_cluster_list$p_cluster$layers[[layer_index]]$aes_params$size <- 1.4  # new size
+fs1e <- p_cluster_list$p_cluster + theme(legend.position = "none")
+
+fs1e
+```
+
+## merge clusters
+
+```{r}
+AML_merged <- barbieQ::mergeCorrelatingBarcodes(barbieQ_clustered = AML)
+dim(AML_merged)
+
+AML_merged@metadata$predicted_barcode_clusters
+AML_merged@metadata$removed_barcodes
+```
+
+# Tag top barcode after collapsing
+
+## FS1G,J: inspect top/bottom
+
+```{r tag after cor, fig.width=5, fig.height=4}
+AML_merged <- tagTopBarcodes(
+  barbieQ = AML_merged,
+  activeSamples = AML_merged$sampleMetadata$Treatment != "TP0", 
+  nSampleThreshold = 2)
+
+barbieQ::plotBarcodePareto(barbieQ = AML_merged) +
+  ylim(-8, 17) + 
+  annotate("text", x = c(pi * 0.05), y = c(17), 
+           label = c("Relative proportion %"), color = "#999966", 
+           size = 3, angle = 0, fontface = "bold", hjust = 1) -> fs1g
+
+fs1g
+```
+
+```{r, fig.width=3, fig.height=4}
+barbieQ::plotBarcodeSankey(barbieQ = AML_merged) +
+  theme(legend.position = "top")  -> fs1j
+
+fs1j
+```
+
+## Filter "top" barcodes
+
+```{r}
+AML_top <- AML_merged[rowData(AML_merged)$isTopBarcode$isTop,]
+```
+
+## Heatmap
+
+```{r hp}
+## pre-filtering
+Heatmap(name = "asin-sqrt prop.",
+  matrix = asin(sqrt(assays(AML_merged)$proportion)), 
+  row_title = paste0(nrow(AML_merged), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+
+## post-filtering
+Heatmap(name = "asin-sqrt prop.",
+  matrix = asin(sqrt(assays(AML_top)$proportion)), 
+  row_title = paste0(nrow(AML_top), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+```
+
+# Save rds
+
+```{r save rds}
+save(AML, AML_merged, AML_top, file = "output/AML_barbieQ.rda")
+
+```
+
+# Top10
+
+```{r}
+tagTop10 <- function(col) {
+  ranks <- rank(-col)
+  # summary(ranks)
+  isTop <- ranks <= 10
+  # summary(isTop)
+  return(isTop)
+}
+
+tester <- tagTop10(assays(AML_merged)$CPM[,1])
+summary(tester)
+
+colTags <- lapply(as.data.frame(assays(AML_merged)$CPM), 
+                  function(col) tagTop10(col))
+colTagMat <- do.call(cbind, colTags)
+colTagVec <- rowSums(colTagMat) >= 1
+summary(colTagVec)
+
+AML_merged_top10 <- AML_merged
+rowData(AML_merged_top10)$isTopBarcode <- DataFrame(isTop = colTagVec)
+summary(rowData(AML_merged_top10)$isTopBarcode$isTop)
+
+barbieQ::plotBarcodePareto(barbieQ = AML_merged_top10)
+barbieQ::plotBarcodeSankey(barbieQ = AML_merged_top10)
+```
+
+# Save FigureS1-AML
+
+```{r, fig.width=4, fig.height=16}
+layout = "
+B
+E
+G
+J
+"
+fs1_aml <- (
+  wrap_elements(fs1b + theme(plot.margin = unit(c(0,0,0,0), "line"))) + 
+    wrap_elements(fs1e + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(fs1g + theme(plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_elements(fs1j + theme(plot.margin = unit(rep(0,4), "cm")))
+  ) + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c("B","E","G", "J"))) &
+  theme(
+    plot.tag = element_text(size = 20, face = "bold", family = "arial"),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+fs1_aml
+```
+
+```{r}
+ggsave(
+  filename = "output/fs1_aml.png",
+  plot = fs1_aml,
+  width = 4,
+  height = 16,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )
+```
+
+Saving this figure in [fs1_AML](../output/fs1_aml.png)

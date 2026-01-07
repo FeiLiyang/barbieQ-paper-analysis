@@ -1,0 +1,764 @@
+---
+title: "barbieQ_paper Supplementary 2: Type I error rate using `HSPC xenograft data`"
+author: "Liyang Fei"
+date: |
+  Initiate: 2025-04-11 
+  
+  Last update: `r format(Sys.Date(), '%Y-%m-%d')`
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Links to Type I error rate assessment using other datasets in the barbieQ paper: 
+ 
+ - [Mixture data](barbieQ_paper_Figure3.html)
+ 
+ - [AML data](barbieQ_paper_FigureS2_AML.html)
+ 
+ - [HSPC xenograft data]()
+ 
+# Load Dependencies
+
+```{r load library, message=FALSE, warning=TRUE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+library(edgeR)
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+# devtools::install_github("DaneVass/bartools", dependencies = TRUE, force = TRUE)
+# library(bartools)
+
+source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
+source("analysis/F3_simulation.R") ## for negative simulation
+source("analysis/ggplot_theme.R") ## setting ggplot theme
+```
+
+# Install `barbieQ`
+
+Installing the latest devel version of `barbieQ` from GitHub.
+
+```{r load barbieQ}
+if (!requireNamespace("barbieQ", quietly = TRUE)) {
+  remotes::install_github("Oshlack/barbieQ")
+}
+
+library(barbieQ)
+```
+
+Check the version of `barbieQ`.
+
+```{r}
+packageVersion("barbieQ")
+```
+
+# Set seeds
+
+```{r}
+set.seed(2025)
+```
+
+# Load preprocessed data 
+
+Links to [HSPC xenograft data preprocessing](barbieQ_paper_FigureS1_xenoHSPC.html)
+
+```{r save rds}
+load("output/xenoHSPC_barbieQ.rda")
+```
+
+# Samples level QC
+
+## PCA
+
+"library" samples and "time0" samples differ from recipient samples.
+
+```{r tsne}
+pca_results <- (assays(xenoHSPC_top)$proportion) %>% sqrt() %>% asin() %>% 
+  t() %>% 
+  prcomp( scale. = TRUE)
+
+var_pct <- pca_results$sdev^2 / sum(pca_results$sdev^2) * 100
+var_pct
+
+pca_df <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  xenoHSPC_top$sampleMetadata
+)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Tissue)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+```
+
+Delete "library" and "time0" samples in subsequent analysis.
+
+```{r}
+xenoHSPC_recipient <- xenoHSPC_top[,!xenoHSPC_top$sampleMetadata$Tissue %in% c("library", "time0")]
+
+dim(xenoHSPC_recipient)
+
+xenoHSPC_recipient$sampleMetadata$Time <- factor(
+  xenoHSPC_recipient$sampleMetadata$Time, 
+  levels =  c("wk4", "wk6", "wk7", "wk9", "wk10", "wk11", "wk12", "wk14", "wk16", "wk18", "wk19", "wk20", "wk22", "wk24", "wk25", "wk27", "wk30", "wk33", "wk36", "wk37", "wk42", "wk43", "wk47", "sac") 
+  )     
+
+wk <- gsub("wk(\\d+)", "\\1", xenoHSPC_recipient$sampleMetadata$Time)
+wk <- gsub("sac", 50, wk) ## assign "sac" pseudotime by wk50
+wk <- as.numeric(wk)
+
+xenoHSPC_recipient$sampleMetadata$Week <- wk
+``` 
+
+```{r}
+pca_results <- (assays(xenoHSPC_recipient)$proportion) %>% sqrt() %>% asin() %>% 
+  t() %>% 
+  prcomp()
+
+var_pct <- pca_results$sdev^2 / sum(pca_results$sdev^2) * 100
+var_pct
+
+pca_df <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  xenoHSPC_recipient$sampleMetadata
+)
+
+```
+
+ggplot PCA
+
+```{r}
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Donor)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Week)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Tissue)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+```
+
+
+```{r, fig.width=10, fig.height=10}
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Week)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_linedraw() +
+  facet_grid(Donor~Celltype)
+```
+
+
+## Plot propportion
+
+```{r bartools, fig.width=30, fig.height=10}
+## order samples
+order_sample <- xenoHSPC_recipient$sampleMetadata %>% with(order(Donor, Tissue, Celltype, Time))
+
+## assign unique names to samples
+ps.counts <- assay(xenoHSPC_recipient)
+colnames(ps.counts) <- make.unique(xenoHSPC_recipient$sampleMetadata$Donor)
+
+## create bartools object
+Donor_dge <- DGEList(
+  counts = ps.counts, 
+  group = xenoHSPC_recipient$sampleMetadata$Donor)
+
+## plot 
+plotBarcodeHistogram(Donor_dge, orderSamples = colnames(ps.counts)[order_sample])
+```
+
+## Heatmap
+
+```{r xenoHSPC, fig.width=8, fig.height=6}
+barbieQ::plotBarcodeHeatmap(
+  xenoHSPC_recipient, sampleMetadata = xenoHSPC_recipient$sampleMetadata[,c(2,5,6,7,8)], splitSamples = T, sampleGroup = "Donor")
+```
+
+# Subset samples of indivisual donors {.tabset}
+
+QC samples
+
+## Donor C21
+
+```{r C21}
+## subet C21 Donor samples
+C21 <- xenoHSPC_recipient[, xenoHSPC_recipient$sampleMetadata$Donor == "C21"]
+
+## flag C21 samples of extremely low libsize
+colSums(assay(C21)) %>% sort()
+flag_low_C21 <- colSums(assay(C21)) < 100
+## remove the low libsize samples
+C21 <- C21[, !flag_low_C21]
+colSums(assay(C21)) %>% sort()
+
+## tag top barcodes within C21
+C21$sampleMetadata %>% with(paste(Donor, Tissue, Celltype, Time)) %>% table()
+C21 <- tagTopBarcodes(C21, nSampleThreshold = 1)
+plotBarcodePareto(C21)
+plotBarcodeSankey(C21)
+## filter top barcodes
+C21 <- C21[C21@elementMetadata$isTopBarcode$isTop,]
+
+barbieQ::plotBarcodeHeatmap(C21, sampleMetadata = C21$sampleMetadata[,c(5,6,7,8)])
+```
+
+- PCA
+
+```{r}
+pca_results <- (assays(C21)$proportion) %>% sqrt() %>% asin() %>% 
+  t() %>% 
+  prcomp()
+
+var_pct <- pca_results$sdev^2 / sum(pca_results$sdev^2) * 100
+var_pct
+
+pca_df <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  C21$sampleMetadata
+)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Week)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Tissue)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Celltype)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+```
+
+## Donor C22
+
+```{r C22}
+## subet C21 Donor samples
+C22 <- xenoHSPC_recipient[, xenoHSPC_recipient$sampleMetadata$Donor == "C22"]
+
+## flag C22 samples of extremely low libsize
+colSums(assay(C22)) %>% sort()
+
+## tag top barcodes within C22
+C22$sampleMetadata %>% with(paste(Donor, Tissue, Celltype, Time)) %>% table()
+C22 <- tagTopBarcodes(C22, nSampleThreshold = 1)
+plotBarcodePareto(C22)
+plotBarcodeSankey(C22)
+## filter top barcodes
+C22 <- C22[C22@elementMetadata$isTopBarcode$isTop,]
+
+barbieQ::plotBarcodeHeatmap(C22, sampleMetadata = C22$sampleMetadata[,c(5,6,7,8)])
+```
+
+- PCA
+
+```{r}
+pca_results <- (assays(C22)$proportion) %>% sqrt() %>% asin() %>% 
+  t() %>% 
+  prcomp()
+
+var_pct <- pca_results$sdev^2 / sum(pca_results$sdev^2) * 100
+var_pct
+
+pca_df <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  C22$sampleMetadata
+)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Week)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Tissue)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Celltype)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+```
+
+## Donor C23
+
+```{r C23}
+## subet C23 Donor samples
+C23 <- xenoHSPC_recipient[, xenoHSPC_recipient$sampleMetadata$Donor == "C23"]
+
+## flag C23 samples of extremely low libsize
+colSums(assay(C23)) %>% sort()
+
+## tag top barcodes within C23
+C23$sampleMetadata %>% with(paste(Donor, Tissue, Celltype, Time)) %>% table()
+C23 <- tagTopBarcodes(C23, nSampleThreshold = 1)
+plotBarcodePareto(C23)
+plotBarcodeSankey(C23)
+## filter top barcodes
+C23 <- C23[C23@elementMetadata$isTopBarcode$isTop,]
+
+barbieQ::plotBarcodeHeatmap(C23, sampleMetadata = C23$sampleMetadata[,c(5,6,7,8)])
+```
+
+- PCA
+
+```{r}
+pca_results <- (assays(C23)$proportion) %>% sqrt() %>% asin() %>% 
+  t() %>% 
+  prcomp()
+
+var_pct <- pca_results$sdev^2 / sum(pca_results$sdev^2) * 100
+var_pct
+
+pca_df <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  C23$sampleMetadata
+)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Week)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Tissue)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Celltype)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+```
+
+# Plot proportion {.tabset}
+
+## Donor C21
+
+```{r}
+## order samples
+C21_id <- C21$sampleMetadata %>% with(paste(Tissue, Celltype, Position, Time, sep = "."))
+order_C21 <- order(C21$sampleMetadata %>% with(paste(Tissue, Celltype, Position, Week, sep = ".")))
+
+## create bartools object
+C21_count <- assay(C21)
+colnames(C21_count) <- C21_id
+
+C21_dge <- DGEList(
+  counts = C21_count, 
+  group = C21$sampleMetadata$Donor)
+
+## plot 
+plotBarcodeHistogram(C21_dge, orderSamples = C21_id[order_C21]) + 
+  labs(title = "HSPC xenograft: Donor C21") -> p_prop_C21
+```
+
+## Donor C22
+
+```{r}
+## order samples
+C22_id <- C22$sampleMetadata %>% with(paste(Tissue, Position, Celltype, Time, sep = "."))
+order_C22 <- order(C22$sampleMetadata %>% with(paste(Tissue, Position, Celltype, Week, sep = ".")))
+
+## create bartools object
+C22_count <- assay(C22)
+colnames(C22_count) <- C22_id
+
+C22_dge <- DGEList(
+  counts = C22_count, 
+  group = C22$sampleMetadata$Donor)
+
+## plot 
+plotBarcodeHistogram(C22_dge, orderSamples = C22_id[order_C22]) + 
+  labs(title = "HSPC xenograft: Donor C22") -> p_prop_C22
+```
+
+## Donor C23
+
+```{r}
+## order samples
+C23_id <- C23$sampleMetadata %>% with(paste(Tissue, Position, Celltype, Time, sep = "."))
+order_C23 <- order(C23$sampleMetadata %>% with(paste(Tissue, Position, Celltype, Week, sep = ".")))
+
+## create bartools object
+C23_count <- assay(C23)
+colnames(C23_count) <- C23_id
+
+C23_dge <- DGEList(
+  counts = C23_count, 
+  group = C23$sampleMetadata$Donor)
+
+## plot 
+plotBarcodeHistogram(C23_dge, orderSamples = C23_id[order_C23]) + 
+  labs(title = "HSPC xenograft: Donor C23") -> p_prop_C23
+```
+
+## FS2A,C,E: prop. of three donors
+
+```{r, fig.width= 4, fig.height=15}
+p_prop_C21 / p_prop_C22 / p_prop_C23
+```
+
+# Type I error rate {.tablet}
+
+## Donor C21
+
+- Negative simulation
+
+**avoid running this chunk during rendering. `global_all_loops` was saved from the first run.**
+
+```{r eval=FALSE, fig.height=8, fig.width=16, include=TRUE}
+results_negsi <- suppressMessages({
+  random_sampling(barbieQ = C21, loop_times = 100)
+  })
+
+## `random_sampling()` save the simulations to global environment as `global_all_loops`
+save(global_all_loops, file = "output/xenoC21_negative_simulation.rda")
+```
+
+- load results
+
+```{r}
+## loading random sampling results to avoid running it repeatedly
+load("output/xenoC21_negative_simulation.rda")
+
+# extract results from the loops
+end_sampling <- floor(ncol(C21)/2)
+
+## extract FPR
+all_FPR <- lapply(seq(3:end_sampling), function(n) {
+  global_all_loops[[n]]$FPR
+})
+df_FPR_C21 <- do.call(rbind, all_FPR)
+```
+
+- plot FPR
+
+```{r}
+df_FPR_C21$N_Samples <- as.factor(df_FPR_C21$N_Samples)
+
+## Diff_Prop
+## reshape the data to fit methods for testing
+df_FPR_C21_long <- df_FPR_C21 %>%
+  pivot_longer(cols = starts_with("Prop_"),
+               names_to = "Method",
+               values_to = "Pval_Prop") %>%
+  mutate(Method = factor(Method, levels = c("Prop_asin", "Prop_logit", "Prop_noTrans"),
+                         labels = c("asin-sqrt", "logit", "no trans.")))
+
+P_FPR_prop_C21 <- ggplot(
+  df_FPR_C21_long, aes(x = factor(N_Samples), y = Pval_Prop, color = Method)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       # title = "C21",
+       subtitle = "Differential proportion test") +
+  # facet_wrap(~Method, scales = "free_y") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+## Diff_Occ
+P_FPR_occ_C21 <- ggplot(
+  df_FPR_C21, aes(x = factor(N_Samples), y = Occ_firth)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("Differential occurrrence test" = "black")) +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       titlte = "",
+       subtitle = "Differential occurrence test") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+```
+
+## Donor C22
+
+- Negative simulation
+
+**avoid running this chunk during rendering. `global_all_loops` was saved from the first run.**
+
+```{r eval=FALSE, fig.height=8, fig.width=16, include=TRUE}
+results_negsi <- suppressMessages({
+  random_sampling(barbieQ = C22, loop_times = 100)
+  })
+
+## `random_sampling()` save the simulations to global environment as `global_all_loops`
+save(global_all_loops, file = "output/xenoC22_negative_simulation.rda")
+```
+
+- load results
+
+```{r}
+## loading random sampling results to avoid running it repeatedly
+load("output/xenoC22_negative_simulation.rda")
+
+# extract results from the loops
+end_sampling <- floor(ncol(C22)/2)
+
+## extract FPR
+all_FPR <- lapply(seq(3:end_sampling), function(n) {
+  global_all_loops[[n]]$FPR
+})
+df_FPR_C22 <- do.call(rbind, all_FPR)
+```
+
+- plot FPR
+
+```{r}
+df_FPR_C22$N_Samples <- as.factor(df_FPR_C22$N_Samples)
+
+## Diff_Prop
+## reshape the data to fit methods for testing
+df_FPR_C22_long <- df_FPR_C22 %>%
+  pivot_longer(cols = starts_with("Prop_"),
+               names_to = "Method",
+               values_to = "Pval_Prop") %>%
+  mutate(Method = factor(Method, levels = c("Prop_asin", "Prop_logit", "Prop_noTrans"),
+                         labels = c("asin-sqrt", "logit", "no trans.")))
+
+P_FPR_prop_C22 <- ggplot(
+  df_FPR_C22_long, aes(x = factor(N_Samples), y = Pval_Prop, color = Method)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       # title = "C22",
+       subtitle = "Differential proportion test") +
+  # facet_wrap(~Method, scales = "free_y") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+## Diff_Occ
+P_FPR_occ_C22 <- ggplot(
+  df_FPR_C22, aes(x = factor(N_Samples), y = Occ_firth)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("Differential occurrrence test" = "black")) +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       titlte = "",
+       subtitle = "Differential occurrence test") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+```
+
+## Donor C23
+
+- Negative simulation
+
+**avoid running this chunk during rendering. `global_all_loops` was saved from the first run.**
+
+```{r eval=FALSE, fig.height=8, fig.width=16, include=TRUE}
+results_negsi <- suppressMessages({
+  random_sampling(barbieQ = C23, loop_times = 100)
+  })
+
+## `random_sampling()` save the simulations to global environment as `global_all_loops`
+save(global_all_loops, file = "output/xenoC23_negative_simulation.rda")
+```
+
+- load results
+
+```{r}
+## loading random sampling results to avoid running it repeatedly
+load("output/xenoC23_negative_simulation.rda")
+
+# extract results from the loops
+end_sampling <- floor(ncol(C23)/2)
+
+## extract FPR
+all_FPR <- lapply(seq(3:end_sampling), function(n) {
+  global_all_loops[[n]]$FPR
+})
+df_FPR_C23 <- do.call(rbind, all_FPR)
+```
+
+- plot FPR
+
+```{r}
+df_FPR_C23$N_Samples <- as.factor(df_FPR_C23$N_Samples)
+
+## Diff_Prop
+## reshape the data to fit methods for testing
+df_FPR_C23_long <- df_FPR_C23 %>%
+  pivot_longer(cols = starts_with("Prop_"),
+               names_to = "Method",
+               values_to = "Pval_Prop") %>%
+  mutate(Method = factor(Method, levels = c("Prop_asin", "Prop_logit", "Prop_noTrans"),
+                         labels = c("asin-sqrt", "logit", "no trans.")))
+
+P_FPR_prop_C23 <- ggplot(
+  df_FPR_C23_long, aes(x = factor(N_Samples), y = Pval_Prop, color = Method)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       # title = "C23",
+       subtitle = "Differential proportion test") +
+  # facet_wrap(~Method, scales = "free_y") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+## Diff_Occ
+P_FPR_occ_C23 <- ggplot(
+  df_FPR_C23, aes(x = factor(N_Samples), y = Occ_firth)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("Differential occurrrence test" = "black")) +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       titlte = "",
+       subtitle = "Differential occurrence test") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+```
+
+## FS2B,D,F: FPR of three donors
+
+```{r, fig.width=8, fig.height=5}
+(P_FPR_prop_C21 + theme(legend.position = "top")) + (P_FPR_occ_C21) -> P_FPR_C21
+
+(P_FPR_prop_C22 + theme(legend.position = "top")) + (P_FPR_occ_C22) -> P_FPR_C22
+
+(P_FPR_prop_C23 + theme(legend.position = "top")) + (P_FPR_occ_C23) -> P_FPR_C23
+
+P_FPR_C21
+P_FPR_C22
+P_FPR_C23
+```
+
+# Figure S2-HSPC xenograft
+
+```{r, fig.width=12, fig.height=15}
+layout = "
+ABB
+CDD
+EFF
+"
+fs2_xeno <- (
+    wrap_elements(p_prop_C21 + theme(plot.margin = unit(c(0,0,0,0), "line"))) + 
+  wrap_elements(P_FPR_C21 + theme(legend.position = "top") + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(p_prop_C22 + theme(plot.margin = unit(c(0,0,0,0), "line"))) + 
+  wrap_elements(P_FPR_C22 + theme(legend.position = "top") + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(p_prop_C23 + theme(plot.margin = unit(c(0,0,0,0), "line"))) + 
+  wrap_elements(P_FPR_C23 + theme(legend.position = "top") + theme(plot.margin = unit(rep(0,4), "cm")))
+) + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c("A", "B", "C", "D", "E", "F"))) &
+  theme(
+    plot.tag = element_text(size = 20, face = "bold", family = "arial"),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+fs2_xeno
+```
+
+```{r}
+ggsave(
+  filename = "output/fs2_xeno.png",
+  plot = fs2_xeno,
+  width = 12,
+  height = 15,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )
+```
+
+Saving this figure in [fs2_xenoHSPC](../output/fs2_xeno.png)

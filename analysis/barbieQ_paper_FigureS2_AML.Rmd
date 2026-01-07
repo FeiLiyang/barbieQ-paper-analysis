@@ -1,0 +1,313 @@
+---
+title: "barbieQ_paper Supplementary 2: Type I error rate using `AML data`"
+author: "Liyang Fei"
+date: |
+  Initiate: 2025-04-04 
+  
+  Last update: `r format(Sys.Date(), '%Y-%m-%d')`
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Links to Type I error rate assessment using other datasets in the barbieQ paper: 
+ 
+ - [Mixture data](barbieQ_paper_Figure3.html)
+ 
+ - [AML data]()
+ 
+ - [HSPC xenograft data](barbieQ_paper_FigureS2_xenoHSPC.html)
+
+# Load Dependencies
+
+```{r load library, message=FALSE, warning=TRUE}
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(tidyr) # for pivot_longer
+library(tibble) # for rownames_to _column
+library(knitr) # for kable()
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(ggVennDiagram)
+library(ComplexHeatmap)
+library(limma)
+library(edgeR)
+library(SummarizedExperiment)
+library(SEtools)
+library(S4Vectors)
+library(devtools)
+# devtools::install_github("DaneVass/bartools", dependencies = TRUE, force = TRUE)
+# library(bartools)
+
+source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
+source("analysis/F3_simulation.R") ## for negative simulation
+source("analysis/ggplot_theme.R") ## setting ggplot theme
+```
+
+# Install `barbieQ`
+
+Installing the latest devel version of `barbieQ` from GitHub.
+
+```{r load barbieQ}
+if (!requireNamespace("barbieQ", quietly = TRUE)) {
+  remotes::install_github("Oshlack/barbieQ")
+}
+
+library(barbieQ)
+```
+
+Check the version of `barbieQ`.
+
+```{r}
+packageVersion("barbieQ")
+```
+
+# Set seeds
+
+```{r}
+set.seed(2025)
+```
+
+# Load preprocessed data
+
+Links to [AML data preprocessing](barbieQ_paper_FigureS1_AML.html)
+
+```{r save rds}
+load("output/AML_barbieQ.rda")
+```
+
+# Samples level QC
+
+## PCA
+
+```{r}
+pca_results <- (assays(AML_top)$proportion) %>% sqrt() %>% asin() %>% 
+  t() %>% 
+  prcomp()
+
+var_pct <- pca_results$sdev^2 / sum(pca_results$sdev^2) * 100
+var_pct
+
+pca_df <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  AML_top$sampleMetadata
+)
+```
+
+```{r}
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Treatment)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Dose)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Timepoint)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+```
+
+
+## Plot propportion
+
+```{r bartools}
+## order samples
+order_sample <- AML_top$sampleMetadata %>% with(order(Treatment, Dose, Timepoint))
+
+## create bartools object
+AML_dge <- DGEList(
+  counts = assay(AML_top), 
+  group = AML_top$sampleMetadata$Treatment)
+
+## plot 
+plotBarcodeHistogram(AML_dge, orderSamples = colnames(AML_top)[order_sample])
+```
+
+## Subet DMSO
+
+```{r subset dmso}
+DMSO <- AML_top[, AML_top$sampleMetadata$Treatment == "DMSO"]
+```
+
+```{r}
+pca_results <- (assays(DMSO)$proportion) %>% sqrt() %>% asin() %>% 
+  t() %>% 
+  prcomp()
+
+var_pct <- pca_results$sdev^2 / sum(pca_results$sdev^2) * 100
+var_pct
+
+pca_dmso <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  DMSO$sampleMetadata
+)
+
+ggplot(pca_dmso, aes(x = PC1, y = PC2, color = Timepoint)) +
+  geom_point(size = 3) +
+  labs(title = "PCA on asin-sqrt prop.", 
+       x = paste0("PC1 (", round(var_pct[1], 2), " %)"), 
+       y = paste0("PC2 (", round(var_pct[2], 2), " %)")) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+```
+
+## FS2G: prop. DMSO
+
+```{r, fig.width= 4, fig.height=5}
+## order samples
+order_sample <- DMSO$sampleMetadata %>% with(order(Timepoint))
+
+## create bartools object
+DMSO_dge <- DGEList(
+  counts = assay(DMSO), 
+  group = DMSO$sampleMetadata$Timepoint)
+
+## plot 
+plotBarcodeHistogram(DMSO_dge, orderSamples = colnames(DMSO)[order_sample]) + 
+  labs(title = "AML: DMSO") -> p_prop_DMSO
+
+p_prop_DMSO
+```
+
+# Type I error rate
+
+## Negative simulation
+
+**avoid running this chunk during rendering. `global_all_loops` was saved from the first run.**
+
+```{r eval=FALSE, fig.height=8, fig.width=16, include=TRUE}
+results_negsi <- suppressMessages({
+  random_sampling(barbieQ = DMSO, loop_times = 100)
+  })
+
+## `random_sampling()` save the simulations to global environment as `global_all_loops`
+save(global_all_loops, file = "output/AML_negative_simulation.rda")
+```
+
+- load results
+
+```{r}
+## loading random sampling results to avoid running it repeatedly
+load("output/AML_negative_simulation.rda")
+
+# extract results from the loops
+end_sampling <- floor(ncol(DMSO)/2)
+
+## extract FPR
+all_FPR <- lapply(seq(3:end_sampling), function(n) {
+  global_all_loops[[n]]$FPR
+})
+df_FPR_DMSO <- do.call(rbind, all_FPR)
+```
+
+- plot FPR
+
+```{r}
+df_FPR_DMSO$N_Samples <- as.factor(df_FPR_DMSO$N_Samples)
+
+## Diff_Prop
+## reshape the data to fit methods for testing
+df_FPR_DMSO_long <- df_FPR_DMSO %>%
+  pivot_longer(cols = starts_with("Prop_"),
+               names_to = "Method",
+               values_to = "Pval_Prop") %>%
+  mutate(Method = factor(Method, levels = c("Prop_asin", "Prop_logit", "Prop_noTrans"),
+                         labels = c("asin-sqrt", "logit", "no trans.")))
+
+P_FPR_prop_DMSO <- ggplot(
+  df_FPR_DMSO_long, aes(x = factor(N_Samples), y = Pval_Prop, color = Method)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       # title = "DMSO",
+       subtitle = "Differential proportion test") +
+  # facet_wrap(~Method, scales = "free_y") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+## Diff_Occ
+P_FPR_occ_DMSO <- ggplot(
+  df_FPR_DMSO, aes(x = factor(N_Samples), y = Occ_firth)) +
+  geom_boxplot(outlier.shape = 1, position = position_dodge(width = 0.7)) +
+  # geom_jitter(size = 1, position = position_dodge(width = 0.7)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("Differential occurrrence test" = "black")) +
+  # coord_cartesian(ylim = c(0, 0.2)) + 
+  labs(
+       y = "Fraction of P-Value < 0.05",
+       x = "Number of samples per group",
+       titlte = "",
+       subtitle = "Differential occurrence test") +
+  theme_classic() +
+  theme(legend.position = "top")
+
+```
+
+## FS2H: FPR
+
+```{r, fig.width=8, fig.height=5}
+(P_FPR_prop_DMSO + theme(legend.position = "top")) + (P_FPR_occ_DMSO) -> P_FPR_DMSO
+
+P_FPR_DMSO
+```
+
+
+# Figure S2-AML
+
+```{r, fig.width=12, fig.height=5}
+layout = "
+GHH
+"
+fs2_aml <- (
+    wrap_elements(p_prop_DMSO + theme(plot.margin = unit(c(0,0,0,0), "line"))) + 
+  wrap_elements(P_FPR_DMSO + theme(legend.position = "top") + theme(plot.margin = unit(rep(0,4), "cm")))
+) + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c("G", "H"))) &
+  theme(
+    plot.tag = element_text(size = 20, face = "bold", family = "arial"),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+fs2_aml
+```
+
+```{r}
+ggsave(
+  filename = "output/fs2_aml.png",
+  plot = fs2_aml,
+  width = 12,
+  height = 5,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )
+```
+
+Saving this figure in [fs2_AML](../output/fs2_aml.png)

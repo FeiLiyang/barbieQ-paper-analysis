@@ -1,9 +1,10 @@
 ---
-title: "barbieQ_paper Supplementary 1: Preprocessing"
+title: "barbieQ_paper Supplementary 1: Preprocessing `Mixture data`"
 author: "Liyang Fei"
 date: |
-  Initiated: 2025-09-07  
-  Rendered: `r format(Sys.Date(), '%Y-%m-%d')`
+  Initiate: 2025-09-07
+  
+  Last update: `r format(Sys.Date(), '%Y-%m-%d')`
 output: workflowr::wflow_html
 editor_options:
   chunk_output_type: inline
@@ -13,13 +14,13 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Linked to Preprocessing analyses of all datasets in the barbieQ paper: 
+Links to preprocessing other datasets in the barbieQ paper: 
  
- - [Monkey HSPC]("barbieQ_paper_Figure2.html")
+ - [Monkey HSPC](barbieQ_paper_Figure2.html)
  
- - [AML data]()
+ - [AML data](barbieQ_paper_FigureS1_AML.html)
  
- - [Mouse HSPC]()
+ - [HSPC xenograft data](barbieQ_paper_FigureS1_xenoHSPC.html)
  
  - [Mixture data]()
 
@@ -48,6 +49,7 @@ library(eulerr)
 library(edgeR)
 
 source("analysis/plotBarcodeHistogram.R") ## accommodated from bartools::plotBarcodehistogram
+source("analysis/ggplot_theme.R") ## setting ggplot theme
 ```
 
 # Install `barbieQ`
@@ -234,10 +236,16 @@ Barcode detection in the two premix samples.
 
 # Detect correlating barcodes
 
+## FS1D: pairwise correlation
+
 No correlating barcodes detected.Actually, 
 
-```{r}
-plotBarcodePairCorrelation(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = "none")
+```{r, fig.width=4, fig.height=4}
+plotBarcodePairCorrelation(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = "none") + 
+  theme(legend.position = "top") + 
+  labs(title = "Mixture data") -> fs1d
+
+fs1d 
 ```
 
 - looking weird if using "asin-sqrt" transformation here.
@@ -249,21 +257,48 @@ clusterCorrelatingBarcodes(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopB
 
 # Filter top barcodes
 
-```{r}
-plotBarcodePareto(mixture_plus1)
-plotBarcodeSankey(mixture_plus1)
+## FS1I,L: inspect top/bottom
+
+```{r, fig.width=5, fig.height=4}
+plotBarcodePareto(mixture_plus1) +
+  ylim(-8, 7) + 
+  annotate("text", x = c(pi * 0.05), y = c(7), 
+           label = c("Relative proportion %"), color = "#999966", 
+           size = 3, angle = 0, fontface = "bold", hjust = 1) -> fs1i
+
+fs1i
 ```
+
+```{r, fig.width=3, fig.height=4}
+plotBarcodeSankey(mixture_plus1) + 
+  theme(legend.position = "top") -> fs1l
+
+fs1l
+```
+
+## Filter "top" barcodes
 
 ```{r}
 mixture_plus1_top <- mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,]
 ```
 
-# Supplementary 1
+## Heatmap
 
-```{r}
-
+```{r echo=TRUE}
+## pre-filtering
+Heatmap(name = "asin-sqrt prop.",
+  matrix = asin(sqrt(assays(mixture_plus1)$proportion)), 
+  row_title = paste0(nrow(mixture_plus1), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
 ```
 
+```{r hp}
+## post-filtering
+Heatmap(name = "asin-sqrt prop.",
+  matrix = asin(sqrt(assays(mixture_plus1_top)$proportion)), 
+  row_title = paste0(nrow(mixture_plus1_top), " Barcodes"), 
+  show_row_names = FALSE, show_column_names = FALSE)
+```
 
 # Save to rda
 
@@ -271,4 +306,42 @@ mixture_plus1_top <- mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,]
 save(mixture_plus1, mixture_plus1_top, file = "output/mixture_barbieQ.rda")
 ```
 
+# FigureS1-Mixture
 
+```{r, fig.width=4, fig.height=16}
+layout = "
+DDDD
+####
+IIII
+LLLL
+"
+fs1_mixture <- (
+  wrap_elements(fs1d + theme(plot.margin = unit(c(0,0,0,0), "line"))) + 
+    wrap_elements(fs1i + theme(plot.margin = unit(rep(0,4), "cm"))) + 
+    wrap_elements(fs1l + theme(plot.margin = unit(rep(0,4), "cm")))
+  ) + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = list(c("D"," ", "I","L"))) &
+  theme(
+    plot.tag = element_text(size = 20, face = "bold", family = "arial"),
+    axis.title = element_text(size = 17),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 11))
+
+fs1_mixture
+```
+
+
+```{r}
+ggsave(
+  filename = "output/fs1_mixture.png",
+  plot = fs1_mixture,
+  width = 4,
+  height = 16,
+  units = "in", # for Rmd r chunk fig size, unit default to inch
+  dpi = 350
+  )
+```
+
+Saving this figure in [fs1_mixture](../output/fs1_mixture.png)

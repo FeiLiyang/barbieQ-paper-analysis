@@ -2,8 +2,9 @@
 title: "barbieQ_paper_Figure3_FigureS3"
 author: "Liyang Fei"
 date: |
-  Initiated: 2025-09-07  
-  Rendered: `r format(Sys.Date(), '%Y-%m-%d')`
+  Initiate: 2025-09-07
+  
+  Last update: `r format(Sys.Date(), '%Y-%m-%d')`
 output: workflowr::wflow_html
 editor_options:
   chunk_output_type: inline

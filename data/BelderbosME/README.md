@@ -1,5 +1,10 @@
-This data is part of the barcodetrackRData, included and analysed in the barcodetrackR paper. - Liyang
+*Mouse HSPC Data*
 
-Below is the information provided by the source.
+This data is part of the barcodetrackRData, included and analysed in the barcodetrackR paper. -- Liyang
 
-For using the Belderbos et al sample data in the create_SE function or the barcodetrackR app, use the counts data file "count_matrix_mouse_C21.txt" and the metadata file "metadata_mouse_C21.txt". <br /> The publicly available raw data from the published manuscript is available at https://www.bbmt.org/article/S1083-8791(19)30566-X/fulltext#supplementaryMaterial <br /> The script preprocessing.R reads in this raw data and outputs counts and metadata files in the format amenable to barcodetrackR. 
+Below is the information provided by the source:
+
+For using the Belderbos et al sample data in the create_SE function or the barcodetrackR app, 
+use the counts data file "count_matrix_mouse_C21.txt" and the metadata file "metadata_mouse_C21.txt". <br /> 
+The publicly available raw data from the published manuscript is available at https://www.bbmt.org/article/S1083-8791(19)30566-X/fulltext#supplementaryMaterial <br /> 
+The script preprocessing.R reads in this raw data and outputs counts and metadata files in the format amenable to barcodetrackR. 

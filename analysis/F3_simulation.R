@@ -220,7 +220,7 @@ random_sampling <- function(barbieQ, loop_times = 100) {
   end_sampling <- floor(num_samples / 2)
 
   # stop running loop if end_sampling <= 3
-  if(num_samples < 3) {stop("not enough samples!")}
+  if(end_sampling < 3) {stop("not enough samples!")}
 
   set.seed(2025) # for reproducibility
 
@@ -341,7 +341,7 @@ get_random_sampling_loops <- function(barbieQ, loop_times = 100) {
   end_sampling <- floor(num_samples / 2)
   
   # stop running loop if end_sampling <= 3
-  if(num_samples < 3) {stop("not enough samples!")}
+  if(end_sampling < 3) {stop("not enough samples!")}
   
   set.seed(2025) # for reproducibility
   
