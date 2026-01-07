@@ -21,12 +21,12 @@ Files in the `*filtered` branch are in line with the analyses in the barbieQ pap
 |**Figure**|**Content** |**Source** |
 |---|------|----|
 |Figure 1 |Package flowchart |output/barbieQ_figure1.drawio.png |
-|Figure 2 |Preprocessing Monkey HSPC data |analysis/barbieQ_paper_Figure2.html |
-|Figure S1 AML |Preprocessing AML data |analysis/barbieQ_paper_FigureS1_AML.html|
-|Figure S1 HSPC xeno |Preprocessing HSPC xenograft data |analysis/barbieQ_paper_FigureS1_xenoHSPC.html |
-|Figure S1 Mixture |Preprocessing Mixture data |analysis/barbieQ_paper_FigureS1_Mixture.html |
-|Figure 3 and Figure S3 |Assessing Type I error rate and power of statistical tests using Mixture data |analysis/barbieQ_paper_Figure3.html |
-|Figure S2 AML |Assessing Type I error rate using AML data |analysis/barbieQ_paper_FigureS2_AML.html |
-|Figure S2 HSPC xenograft |Assessing Type I error rate using HSPC xenograft data |analysis/barbieQ_paper_FigureS2_xenoHSPC.html |
-|Figure 4 |Case study using Monkey HSPC data |analysis/barbieQ_paper_Figure4.html |
+|Figure 2 |Preprocessing Monkey HSPC data |docs/barbieQ_paper_Figure2.html |
+|Figure S1 AML |Preprocessing AML data |docs/barbieQ_paper_FigureS1_AML.html|
+|Figure S1 HSPC xeno |Preprocessing HSPC xenograft data |docs/barbieQ_paper_FigureS1_xenoHSPC.html |
+|Figure S1 Mixture |Preprocessing Mixture data |docs/barbieQ_paper_FigureS1_Mixture.html |
+|Figure 3 and Figure S3 |Assessing Type I error rate and power of statistical tests using Mixture data |docs/barbieQ_paper_Figure3.html |
+|Figure S2 AML |Assessing Type I error rate using AML data |docs/barbieQ_paper_FigureS2_AML.html |
+|Figure S2 HSPC xenograft |Assessing Type I error rate using HSPC xenograft data |docs/barbieQ_paper_FigureS2_xenoHSPC.html |
+|Figure 4 |Case study using Monkey HSPC data |docs/barbieQ_paper_Figure4.html |
 | | | |
