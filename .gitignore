@@ -8,3 +8,4 @@
 **/analysis/*_cache
 **/docs/site_libs/
 .Rproj.user
+output/*.rda
