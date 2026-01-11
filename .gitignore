@@ -8,4 +8,17 @@
 **/analysis/*_cache
 **/docs/site_libs/
 .Rproj.user
+## .rda files in output
 output/*.rda
+## secondary folders in analysis
+analysis/BelderbosME/
+analysis/DEBRA/
+analysis/WuC/
+analysis/bartools_dose_escalation/
+## secondary folders in docs
+docs/WuC/
+## secondary folders in docs
+docs/BelderbosME/
+docs/DEBRA/
+docs/WuC/
+docs/bartools_dose_escalation/
