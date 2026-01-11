@@ -1,5 +1,5 @@
 ---
-title: "barbieQ_paper_Figure4: Case study on monkey HSPC"
+title: "barbieQ_paper_Figure4: Case study of `monkey HSPC`"
 author: "Liyang Fei"
 date: |
   Initiate: 2025-09-07
@@ -451,7 +451,7 @@ p_box_coef <- ggplot(long_FC_top10each, aes(x = factor(Barcode, levels = barcode
   geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "snow4") +
   labs(x = "",
        y = "LFC",
-       title = "Barocdes selected by top10each filtration") +
+       title = "Barocdes selected by top10each filtering") +
   scale_color_manual(
     values = c("both" = "slateblue", "barbieQ only" = "hotpink", "heuristics only" = "steelblue1", "neither" = "slategray"),
     drop = FALSE)
@@ -609,7 +609,7 @@ p_box_0 <- ggplot(long_FC_filter_sig, aes(x = factor(Barcode, levels = barcode_o
   geom_abline(slope = 0, intercept = 0, linetype = 2, colour = "grey") +
   labs(x = "",
        y = "LFC",
-       title = "Barcodes significant in barbieQ test, from the union cohort selected by barbieQ and top10each filtration") +
+       title = "Barcodes significant in barbieQ test, selected by either barbieQ or top10each filtering") +
   scale_color_manual(values = c("both" = "slateblue", "barbieQ" = "hotpink", "top10each" = "steelblue1"))
 
 f4i <- p_box_0 / p_AMean_0 + plot_layout(heights = c(3, 1))
