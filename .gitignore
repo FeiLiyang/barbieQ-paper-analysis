@@ -17,8 +17,8 @@ analysis/WuC/
 analysis/bartools_dose_escalation/
 ## secondary folders in docs
 docs/WuC/
-## secondary folders in docs
-docs/BelderbosME/
-docs/DEBRA/
-docs/WuC/
-docs/bartools_dose_escalation/
+## secondary folders in output
+output/BelderbosME/
+output/DEBRA/
+output/WuC/
+output/bartools_dose_escalation/
