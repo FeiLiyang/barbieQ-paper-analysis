@@ -265,7 +265,7 @@ f3c <- (P_FPR_add1_prop + theme_barbieQ_size() + theme(legend.position = "top"))
 f3c
 ```
 
-## F3G_left: Type I Error Rate as a function to N_BC
+## F3H: Type I Error Rate as a function to N_BC
 
 ### Generate subsets of barcodes
 
@@ -443,15 +443,15 @@ rbind(
         legend.position = "top",
         strip.placement = "outside", strip.text.y = element_text(size = 12),
         strip.text.x = element_blank(), strip.background.x = element_blank()) +
-  scale_y_continuous(limits = c(0,0.2)) -> f3g1
+  scale_y_continuous(limits = c(0,0.2)) -> f3h
   ## scale_x_discrete(limits = rev) ## reverse x axis
 
-f3g1
+f3h
   
 ```
 
 
-## F3F: Density to N_Barcodes
+## F3G: Density to N_Barcodes
 
 ### Updated proportion
 
@@ -478,9 +478,9 @@ ggplot(BC_set_prop_filter) +
   geom_density(aes(x = prop, color = as.factor(N_BC), group = as.factor(N_BC))) +
   scale_x_log10(breaks = 10^seq(-6, -1, by = 1), labels = strip_zeros) +
   coord_cartesian(xlim = c(1e-6, 3e-1)) +
-  labs(color = "N_Barcodes", x = "Barcode Proportion", y = "Density", subtitle = "with updated proportion") +
+  labs(color = "Num. BC", x = "Barcode Proportion", y = "Density", subtitle = "with updated proportion") +
   theme_barbieQ() +
-  theme(aspect.ratio = 0.9) -> f3f1
+  theme(aspect.ratio = 0.9) -> f3g1
 ```
 
 
@@ -507,9 +507,9 @@ ggplot(BC_set_prop_filter_raw) +
   scale_x_log10(breaks = 10^seq(-6, -1, by = 1), labels = strip_zeros) +
   coord_cartesian(xlim = c(1e-6, 3e-1)) +
   theme_linedraw() +
-  labs(color = "N_Barcodes", x = "Barcode Proportion", y = "Density", subtitle = "with raw proportion") +
+  labs(color = "Num. BC", x = "Barcode Proportion", y = "Density", subtitle = "with raw proportion") +
   theme_barbieQ() +
-  theme(aspect.ratio = 0.9) -> f3f2
+  theme(aspect.ratio = 0.9) -> f3g2
 ```
 
 ```{r fig.width=4, fig.height=7}
@@ -532,9 +532,9 @@ rbind(
         legend.title = element_text(size = 11), legend.text  = element_text(size = 10), 
         strip.placement = "outside", strip.text.y = element_text(size = 12),
         strip.text.x = element_blank(), strip.background.x = element_blank()) ->  ## disable column label
-  f3f
+  f3g
   
-f3f
+f3g
 ```
 
 ## F3D: Quantile distribution
@@ -548,12 +548,13 @@ data.frame(x = (stats_barcodes_all_levels %>% filter(filter_level==0.95))$Amean_
   scale_y_log10(breaks = 10^seq(-5, -1, by = 1), labels = strip_zeros) +
   theme_barbieQ() +
   labs(x = "Quantiles of barcode mean proportion", y = "Barcode mean proportion",
-       title = "Barcode proportion distribution", subtitle = " ") -> f3d
+       title = "Barcode proportion distribution", subtitle = " ") +
+  theme(axis.text.y = element_text(angle = 90, vjust = 0.5, hjust = 0.5)) -> f3d
 
 f3d
 ```
 
-## F3E_left: False positives in quantiles
+## F3E: False positives in quantiles
 
 - For diff_prop
 
@@ -570,7 +571,7 @@ f3d
 
 plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.95), num_quantiles = 10) + 
   theme_barbieQ() +
-  labs(title = "Type I error rate in quanties") -> f3e1
+  labs(title = "Type I error rate in quanties") -> f3e
 ```
 
 # TPR
@@ -695,7 +696,7 @@ es_de_df <- rbind(es_de_none_df, es_de_asin_df, es_de_logit_df)
 
 ```
 
-## fs3a: Validate estimates
+## FS3A: Validate estimates
 
 ```{r}
 regression_stats_none <- es_de_none_df %>%
@@ -796,7 +797,7 @@ fs3a <- (p_es_de_asin + theme(legend.title = element_text(size = 12), legend.tex
         axis.title = element_text(size = 13), axis.text = element_text(size = 12))) 
 fs3a
 ```
-## F3G_right: TPR as a function to N_BC
+## F3I: TPR as a function to N_BC
 
 ### Updated proportion
 
@@ -922,13 +923,13 @@ rbind(
   theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 0.5), 
         legend.position = "top",
         strip.placement = "outside", strip.text.y = element_text(size = 12),
-        strip.text.x = element_blank(), strip.background.x = element_blank()) + guides(color = "none") -> f3g2
+        strip.text.x = element_blank(), strip.background.x = element_blank()) + guides(color = "none") -> f3i
 
-f3g2
+f3i
 ```
 
 
-## F3E_right: TPR in quantiles
+## F3F: TPR in quantiles
 
 ```{r}
 # plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.1), num_quantiles = 4)
@@ -943,11 +944,11 @@ f3g2
 
 plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.95), num_quantiles = 10) +
   theme_barbieQ() +
-  labs(title = "True positive rate in quanties") -> f3e2
+  labs(title = "True positive rate in quanties") -> f3f
 ```
 
 
-## fs3b: Residules
+## FS3B: Residules
 
 ```{r}
 resi_none <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = "none"))
@@ -1092,16 +1093,16 @@ f3 <- ((wrap_elements(full = f3a) + theme(plot.margin = unit(c(0,0,0,0), "cm")))
     wrap_elements(f3b + theme(plot.margin = unit(rep(0,4), "cm"))) + 
     wrap_elements(f3c + theme(plot.margin = unit(c(0,0,0,0), "cm"))) +
     wrap_elements(f3d + theme(legend.position = "top", plot.margin = unit(rep(0,4), "cm"))) +
-    wrap_elements(f3e1 + theme(legend.position = "top", plot.margin = unit(rep(0,4), "cm"))) +
-    wrap_elements(f3e2 + theme(legend.position = "top", plot.margin = unit(rep(0,4), "cm")) + guides(color = "none")) +
-    wrap_elements(f3f + theme(legend.position = "top", plot.margin = unit(c(0,0,0,0), "cm"))) +
-    wrap_elements(f3g1 + theme(legend.position = "top",plot.margin = unit(rep(0,4), "cm"))) +
-    wrap_elements(f3g2 + theme(legend.position = "top",plot.margin = unit(rep(0,4), "cm"))) 
+    wrap_elements(f3e + theme(legend.position = "top", plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_elements(f3f + theme(legend.position = "top", plot.margin = unit(rep(0,4), "cm")) + guides(color = "none")) +
+    wrap_elements(f3g + theme(legend.position = "top", plot.margin = unit(c(0,0,0,0), "cm"))) +
+    wrap_elements(f3h + theme(legend.position = "top",plot.margin = unit(rep(0,4), "cm"))) +
+    wrap_elements(f3i + theme(legend.position = "top",plot.margin = unit(rep(0,4), "cm"))) 
       
     )+ 
   plot_layout(design = layout) +
   ## space is okay but must be unique
-  plot_annotation(tag_levels = list(c("A", "B","C", "D", "E", "  ", "F", "G", " "))) &
+  plot_annotation(tag_levels = list(c("A", "B","C", "D", "E", "F", "G", "H", "I"))) &
   theme(plot.tag = element_text(size = 24, face = "bold", family = "arial"))
 
 f3
