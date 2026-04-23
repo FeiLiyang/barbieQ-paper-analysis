@@ -18,7 +18,9 @@ theme_barbieQ <- theme_barbie <- function(base_size = 12, base_family = "") {
       legend.text  = element_text(size = base_size * 0.9),
       legend.key = element_blank(),
       plot.title = element_text(size = base_size * 1.1),
-      plot.subtitle = element_text(size = base_size)
+      plot.subtitle = element_text(size = base_size),
+      strip.background = element_rect(fill = "grey85", color = "grey50"),
+      strip.text = element_text(color = "black", size = base_size * 1.1)
     )
 }
 

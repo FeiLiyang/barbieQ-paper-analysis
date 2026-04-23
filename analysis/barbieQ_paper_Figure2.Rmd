@@ -5,7 +5,7 @@ date: |
   Initiate: 2025-09-07 
   
   Last update: `r format(Sys.Date(), '%Y-%m-%d')`
-output: html_document
+output: workflowr::wflow_html
 editor_options:
   chunk_output_type: inline
 ---
@@ -42,6 +42,8 @@ library(patchwork)
 library(scales)
 library(ggVennDiagram)
 library(ComplexHeatmap)
+
+source("analysis/ggplot_theme.R") ## setting ggplot theme
 ```
 
 # Install `barbieQ`
@@ -196,7 +198,7 @@ Compute barcode pair-wise correlation. Default to Pearson correlation.
 
 ```{r, fig.width=5, fig.height=4}
 p_monkey_pair_cor <- plotBarcodePairCorrelation(barbieQ = monkeyHSPC[rowData(monkeyHSPC)$isTopBarcode$isTop,])
-f2a <- p_monkey_pair_cor + theme(legend.position = "top")
+f2a <- p_monkey_pair_cor + theme_barbieQ_size() + theme(legend.position = "top")
 f2a
 ```
 
@@ -222,15 +224,68 @@ p_cluster_list <- barbieQ::inspectCorrelatingBarcodes(monkeyHSPC_top)
 layer_index <- which(sapply(p_cluster_list$p_cluster$layers, function(x) inherits(x$geom, "GeomTextRepel")))
 ## update the size for that layer
 p_cluster_list$p_cluster$layers[[layer_index]]$aes_params$size <- 1.4  # new size
-f2b <- p_cluster_list$p_cluster + theme(legend.position = "none")
+f2b <- p_cluster_list$p_cluster + theme(legend.position = "none") 
 
 f2b
 ```
 
 ## F2C: inspect clusters
 
+Visualize barcode proportion per sample per cluster.
+
+```{r}
+flag_cluster_BC <- monkeyHSPC_top@elementMetadata$barcodeCorrelatedCluster$cluster > 0
+
+cluster_BC <- monkeyHSPC_top[flag_cluster_BC,]
+
+cluster_group <- cluster_BC@elementMetadata$barcodeCorrelatedCluster$cluster
+
+cluster_BC_prop <- cluster_BC@assays@data$proportion
+
+## pivot to long
+df_long <- as.data.frame(cluster_BC_prop) %>%
+  rownames_to_column("barcode") %>%
+  pivot_longer(
+    cols = -barcode,
+    names_to = "sample",
+    values_to = "prop"
+  )
+## add group info
+df_long$cluster_group <- paste0("Cluster ", cluster_group[df_long$barcode])
+## order samples
+df_long <- df_long %>%
+  group_by(cluster_group, sample) %>%
+  mutate(sample_mean = mean(prop)) %>%
+  ungroup() %>%
+  group_by(cluster_group) %>%
+  ## reorder samples.
+  mutate(sample = forcats::fct_reorder(sample, prop, .fun = mean)) %>%
+  ungroup()
+## plot
+ggplot(df_long, aes(x = sample, y = prop, group = barcode)) +
+  geom_line(alpha = 0.7, aes(colour = cluster_group)) +
+  geom_point(size = 0.8) +
+  facet_wrap(~ cluster_group, scales = "free_y", ncol = 1) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(
+    x = "Sample",
+    y = "Barcode proportion"
+  ) +
+  theme_barbieQ() +
+  theme(axis.text.x = element_blank(), legend.position = "none") -> f2c
+```
+
+```{r fig.width=4, fig.height=8}
+f2c
+```
+
+Check number of barcodes per cluster and mean proportion.
+
 ```{r include=FALSE}
-f2c <- (((p_cluster_list$p_cluster_size + theme(axis.text.x = element_blank(),
+f_old_3 <- (((p_cluster_list$p_cluster_size + theme(axis.text.x = element_blank(),
                                          axis.title.x = element_blank(),
                                          axis.ticks.x = element_blank(),
                                          axis.line.x = element_blank(),
@@ -240,10 +295,8 @@ f2c <- (((p_cluster_list$p_cluster_size + theme(axis.text.x = element_blank(),
 ```
 
 ```{r fig.width=4, fig.height=8}
-f2c
+f_old_3
 ```
-
-
 
 # Merge correlating barcodes
 
@@ -281,7 +334,7 @@ monkeyHSPC_merged@elementMetadata$isTopBarcode %>% table()
 f2d <- barbieQ::plotBarcodePareto(barbieQ = monkeyHSPC_merged) +
   ylim(-8, 7) + 
   annotate("text", x = c(pi * 0.05), y = c(7), label = c("Relative proportion %"), color = "#999966", size = 3, angle = 0, fontface = "bold", hjust = 1)
-f2e <- barbieQ::plotBarcodeSankey(barbieQ = monkeyHSPC_merged)
+f2e <- barbieQ::plotBarcodeSankey(barbieQ = monkeyHSPC_merged) + theme_barbieQ_size()
 
 f2d
 f2e
