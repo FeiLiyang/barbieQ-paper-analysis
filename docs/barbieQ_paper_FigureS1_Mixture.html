@@ -363,7 +363,7 @@ div.tocify {
 Preprocessing <code>Mixture data</code></h1>
 <h4 class="author">Liyang Fei</h4>
 <h4 class="date"><p>Initiate: 2025-09-07</p>
-<p>Last update: 2026-01-11</p></h4>
+<p>Last update: 2026-04-26</p></h4>
 
 </div>
 
@@ -392,13 +392,13 @@ aria-hidden="true"></span> </a>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-01-11
+<strong>Last updated:</strong> 2026-04-26
 </p>
 <p>
 <strong>Checks:</strong> <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 5
 <span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> 1
+aria-hidden="true"></span> 2
 </p>
 <p>
 <strong>Knit directory:</strong> <code>public_barcode_count/</code>
@@ -421,18 +421,21 @@ versions</em> tab lists the development history.
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
-<span class="glyphicon glyphicon-ok text-success"
-aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
-</a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
+changes </a>
 </p>
 </div>
-<div id="strongRMarkdownfilestronguptodate"
+<div id="strongRMarkdownfilestronguncommittedchanges"
 class="panel-collapse collapse">
 <div class="panel-body">
-<p>Great! Since the R Markdown file has been committed to the Git
-repository, you know the exact version of the code that produced these
-results.</p>
+<p>The R Markdown file has unstaged changes. To know which version of
+the R Markdown file created these results, you’ll want to first commit
+it to the Git repo. If you’re still working on the analysis, you can
+ignore this warning. When you’re finished, you can run
+<code>wflow_publish</code> to commit the R Markdown file and build the
+HTML.</p>
 </div>
 </div>
 </div>
@@ -561,15 +564,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttree670258ca7e5176b6784c7377c3707cb87dd8080btargetblank670258ca">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttree44080feddd47a2a79ab4733601d70fd2d2ba4342targetblank44080fea">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/670258ca7e5176b6784c7377c3707cb87dd8080b" target="_blank">670258c</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/44080feddd47a2a79ab4733601d70fd2d2ba4342" target="_blank">44080fe</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttree670258ca7e5176b6784c7377c3707cb87dd8080btargetblank670258ca"
+id="strongRepositoryversionstrongahrefhttpsatlassianpetermacorgaubitbucketscmospublicbarcodecounttree44080feddd47a2a79ab4733601d70fd2d2ba4342targetblank44080fea"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -579,7 +582,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/670258ca7e5176b6784c7377c3707cb87dd8080b" target="_blank">670258c</a>.
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/tree/44080feddd47a2a79ab4733601d70fd2d2ba4342" target="_blank">44080fe</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -597,7 +600,18 @@ Ignored files:
     Ignored:    .RData
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
+    Ignored:    output/fdr_by_Nbc.rda
+    Ignored:    output/mixture_barbieQ.rda
+    Ignored:    output/mixture_negative_simulation.rda
+    Ignored:    output/monkeyHSPC_barbieQ.rda
+    Ignored:    output/monkeyHSPC_raw_barbieQ.rda
     Ignored:    public_barcode_count.Rproj
+
+Unstaged changes:
+    Modified:   analysis/F3_simulation.R
+    Modified:   analysis/barbieQ_paper_Figure3.Rmd
+    Modified:   analysis/barbieQ_paper_FigureS1_Mixture.Rmd
+    Modified:   output/fs1_mixture.png
 
 </code></pre>
 <p>
@@ -648,7 +662,24 @@ Message
 html
 </td>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/barbieQ_paper_FigureS1_Mixture.html" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/833739f838d52f2d4888e2d103ed974ba090b212/docs/barbieQ_paper_FigureS1_Mixture.html" target="_blank">833739f</a>
+</td>
+<td>
+FeiLiyang
+</td>
+<td>
+2026-01-11
+</td>
+<td>
+render mixture preprocessing
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/barbieQ_paper_FigureS1_Mixture.html" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -665,7 +696,7 @@ update readme
 Rmd
 </td>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/f48add2cc6523ba366f7129b01aa4f45514adfc7/analysis/barbieQ_paper_FigureS1_Mixture.Rmd" target="_blank">f48add2</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/54a5a003fe4e9fc212bf225e764456cbfd597289/analysis/barbieQ_paper_FigureS1_Mixture.Rmd" target="_blank">54a5a00</a>
 </td>
 <td>
 FeiLiyang
@@ -895,7 +926,7 @@ of noisy barcodes, and gets close sets of selected barcodes between
 <li><p>Set <code>proportionThreshold=0.95</code> for subsequent
 filtering.</p></li>
 </ul>
-<pre class="r"><code>## tag top barcodes, `proportionThreshold` set to 0.97
+<pre class="r"><code>## tag top barcodes, `proportionThreshold` set to 0.95
 mixture &lt;- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = 0.95)
 mixture_plus1 &lt;- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = 0.95)
 
@@ -970,7 +1001,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-7-1.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-7-1.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1012,7 +1043,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-7-2.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-7-2.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1036,7 +1067,7 @@ barcodes</h1>
 <h2><span class="header-section-number">8.1</span> FS1D: pairwise
 correlation</h2>
 <p>No correlating barcodes detected.Actually,</p>
-<pre class="r"><code>plotBarcodePairCorrelation(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = &quot;none&quot;) + 
+<pre class="r"><code>plotBarcodePairCorrelation(barbieQ = mixture[rowData(mixture)$isTopBarcode$isTop,], transformation = &quot;none&quot;) + 
   theme(legend.position = &quot;top&quot;) + 
   labs(title = &quot;Mixture data&quot;) -&gt; fs1d</code></pre>
 <pre><code>processing Barcode pairwise pearson correlation on propotion (none transformation).</code></pre>
@@ -1075,7 +1106,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-8-1.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-8-1.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1091,10 +1122,10 @@ FeiLiyang
 <ul>
 <li>looking weird if using “asin-sqrt” transformation here.</li>
 </ul>
-<pre class="r"><code>clusterCorrelatingBarcodes(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = &quot;asin-sqrt&quot;) %&gt;% 
+<pre class="r"><code>clusterCorrelatingBarcodes(barbieQ = mixture[rowData(mixture)$isTopBarcode$isTop,], transformation = &quot;asin-sqrt&quot;) %&gt;% 
   inspectCorrelatingBarcodes()</code></pre>
 <pre><code>processing Barcode pairwise pearson correlation on propotion (asin-sqrt transformation).</code></pre>
-<pre><code>identified 3 clusters, including 32 Barcodes.</code></pre>
+<pre><code>identified 3 clusters, including 34 Barcodes.</code></pre>
 <pre><code>$p_cluster</code></pre>
 <p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
 <p>
@@ -1121,7 +1152,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-1.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-1.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1161,7 +1192,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-2.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-2.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1201,7 +1232,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-3.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-9-3.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1222,7 +1253,7 @@ barcodes</h1>
 <div id="fs1il-inspect-topbottom" class="section level2" number="9.1">
 <h2><span class="header-section-number">9.1</span> FS1I,L: inspect
 top/bottom</h2>
-<pre class="r"><code>plotBarcodePareto(mixture_plus1) +
+<pre class="r"><code>plotBarcodePareto(mixture) +
   ylim(-8, 7) + 
   annotate(&quot;text&quot;, x = c(pi * 0.05), y = c(7), 
            label = c(&quot;Relative proportion %&quot;), color = &quot;#999966&quot;, 
@@ -1265,7 +1296,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-10-1.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-10-1.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1278,7 +1309,7 @@ FeiLiyang
 </table>
 </div>
 </div>
-<pre class="r"><code>plotBarcodeSankey(mixture_plus1) + 
+<pre class="r"><code>plotBarcodeSankey(mixture) + 
   theme(legend.position = &quot;top&quot;) -&gt; fs1l
 
 fs1l</code></pre>
@@ -1307,7 +1338,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-11-1.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-11-1.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1320,18 +1351,22 @@ FeiLiyang
 </table>
 </div>
 </div>
+<pre class="r"><code>plotBarcodeSankey(mixture) + 
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-12-1.png" width="288" style="display: block; margin: auto;" /></p>
 </div>
 <div id="filter-top-barcodes-1" class="section level2" number="9.2">
 <h2><span class="header-section-number">9.2</span> Filter “top”
 barcodes</h2>
-<pre class="r"><code>mixture_plus1_top &lt;- mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,]</code></pre>
+<pre class="r"><code>mixture_top &lt;- mixture[rowData(mixture)$isTopBarcode$isTop,]
+mixture_plus1_top &lt;- mixture_plus1[rowData(mixture)$isTopBarcode$isTop,]</code></pre>
 </div>
 <div id="heatmap" class="section level2" number="9.3">
 <h2><span class="header-section-number">9.3</span> Heatmap</h2>
 <pre class="r"><code>## pre-filtering
 Heatmap(name = &quot;asin-sqrt prop.&quot;,
-  matrix = asin(sqrt(assays(mixture_plus1)$proportion)), 
-  row_title = paste0(nrow(mixture_plus1), &quot; Barcodes&quot;), 
+  matrix = asin(sqrt(assays(mixture)$proportion)), 
+  row_title = paste0(nrow(mixture), &quot; Barcodes&quot;), 
   show_row_names = FALSE, show_column_names = FALSE)</code></pre>
 <pre><code>The automatically generated colors map from the 1^st and 99^th of the
 values in the matrix. There are outliers in the matrix whose patterns
@@ -1344,48 +1379,11 @@ Use `suppressMessages()` to turn off this message.</code></pre>
 TRUE/FALSE to it.
 
 Set `ht_opt$message = FALSE` to turn off this message.</code></pre>
-<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-1">
-Past versions of unnamed-chunk-13-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-13-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-13-1.png" target="_blank">4226c0f</a>
-</td>
-<td>
-FeiLiyang
-</td>
-<td>
-2026-01-07
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>## post-filtering
 Heatmap(name = &quot;asin-sqrt prop.&quot;,
-  matrix = asin(sqrt(assays(mixture_plus1_top)$proportion)), 
-  row_title = paste0(nrow(mixture_plus1_top), &quot; Barcodes&quot;), 
+  matrix = asin(sqrt(assays(mixture_top)$proportion)), 
+  row_title = paste0(nrow(mixture_top), &quot; Barcodes&quot;), 
   show_row_names = FALSE, show_column_names = FALSE)</code></pre>
 <pre><code>The automatically generated colors map from the 1^st and 99^th of the
 values in the matrix. There are outliers in the matrix whose patterns
@@ -1418,7 +1416,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/hp-1.png" target="_blank">4226c0f</a>
+<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/c116ed9bcb006ee774fd8a63fe21dd3ac69b4de0/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/hp-1.png" target="_blank">c116ed9</a>
 </td>
 <td>
 FeiLiyang
@@ -1435,15 +1433,15 @@ FeiLiyang
 </div>
 <div id="save-to-rda" class="section level1" number="10">
 <h1><span class="header-section-number">10</span> Save to rda</h1>
-<pre class="r"><code>save(mixture_plus1, mixture_plus1_top, file = &quot;output/mixture_barbieQ.rda&quot;)</code></pre>
+<pre class="r"><code>save(mixture, mixture_top, mixture_plus1, mixture_plus1_top, file = &quot;output/mixture_barbieQ.rda&quot;)</code></pre>
 </div>
 <div id="figures1-mixture" class="section level1" number="11">
 <h1><span class="header-section-number">11</span> FigureS1-Mixture</h1>
 <pre class="r"><code>layout = &quot;
-DDDD
-####
-IIII
-LLLL
+D
+#
+I
+L
 &quot;
 fs1_mixture &lt;- (
   wrap_elements(fs1d + theme(plot.margin = unit(c(0,0,0,0), &quot;line&quot;))) + 
@@ -1451,7 +1449,7 @@ fs1_mixture &lt;- (
     wrap_elements(fs1l + theme(plot.margin = unit(rep(0,4), &quot;cm&quot;)))
   ) + 
   plot_layout(design = layout) +
-  plot_annotation(tag_levels = list(c(&quot;D&quot;,&quot; &quot;, &quot;I&quot;,&quot;L&quot;))) &amp;
+  plot_annotation(tag_levels = list(c(&quot;D&quot;,&quot;I&quot;,&quot;L&quot;))) &amp;
   theme(
     plot.tag = element_text(size = 20, face = &quot;bold&quot;, family = &quot;arial&quot;),
     axis.title = element_text(size = 17),
@@ -1472,44 +1470,7 @@ Removed 1 row containing missing values or values outside the scale range
 (`geom_segment()`).</code></pre>
 <pre><code>Warning: Removed 4 rows containing missing values or values outside the scale range
 (`geom_text()`).</code></pre>
-<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-15-1.png" width="384" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-15-1">
-Past versions of unnamed-chunk-15-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-15-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://atlassian.petermac.org.au/bitbucket/scm/os/public_barcode_count/blob/4226c0f6c591d473085409c4d9dc8650e0ee4535/docs/figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-15-1.png" target="_blank">4226c0f</a>
-</td>
-<td>
-FeiLiyang
-</td>
-<td>
-2026-01-07
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/barbieQ_paper_FigureS1_Mixture.Rmd/unnamed-chunk-16-1.png" width="384" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>ggsave(
   filename = &quot;output/fs1_mixture.png&quot;,
   plot = fs1_mixture,
@@ -1610,7 +1571,7 @@ loaded via a namespace (and not attached):
  [79] later_1.4.4             circlize_0.4.16         splines_4.5.0          
  [82] tweenr_2.0.3            lattice_0.22-6          survival_3.8-3         
  [85] tidyselect_1.2.1        locfit_1.5-9.12         git2r_0.36.2           
- [88] reformulas_0.4.1        gridExtra_2.3           xfun_0.53              
+ [88] reformulas_0.4.1        gridExtra_2.3           xfun_0.57              
  [91] graphlayouts_1.2.2      statmod_1.5.0           stringi_1.8.7          
  [94] UCSC.utils_1.4.0        boot_1.3-31             ggfun_0.2.0            
  [97] yaml_2.3.10             evaluate_1.0.5          codetools_0.2-20       

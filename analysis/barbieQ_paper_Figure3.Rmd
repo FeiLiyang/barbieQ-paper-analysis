@@ -87,22 +87,22 @@ wrap_elements(full = f3a)
 
 ```{r, fig.width=7, fig.height=4}
 ## pull out sample designs
-design_mixed <- mixture_plus1_top$sampleMetadata %>% as.data.frame()
-design_mixed$sample <- colnames(mixture_plus1_top)
+design_mixed <- mixture_top$sampleMetadata %>% as.data.frame()
+design_mixed$sample <- colnames(mixture_top)
 str(design_mixed)
 
 design_mixed$y = 1.05
-color_mapping <- mixture_plus1_top@metadata$factorColors
+color_mapping <- mixture_top@metadata$factorColors
 
 ## order samples
 order_sample <- design_mixed %>% with(order(Subset, Perturbation, BarcodeSize))
 
 mixed_dge <- DGEList(
-  counts = assay(mixture_plus1_top), 
-  group = mixture_plus1_top$sampleMetadata$Subset)
+  counts = assay(mixture_top), 
+  group = mixture_top$sampleMetadata$Subset)
 
 ## pull out ggplot data
-p_mixed <- plotBarcodeHistogram(mixed_dge, orderSamples = colnames(mixture_plus1_top)[order_sample])
+p_mixed <- plotBarcodeHistogram(mixed_dge, orderSamples = colnames(mixture_top)[order_sample])
 
 p_mixed_illus <- p_mixed +
   ## label subset
@@ -138,7 +138,7 @@ f3b
 
 # FPR
 
-Using [mixture_plus1_top](barbieQ_paper_S1.html) data, where an offset (one) was added to the raw count, based on which proportion was calculated. However the "top" barcodes were filtered based on the raw count data.
+Using [mixture_top](barbieQ_paper_S1.html) data, where an offset (one) was added to the raw count, based on which proportion was calculated. However the "top" barcodes were filtered based on the raw count data.
 
 Here we subset the 12 "null" samples for evaluating FPR of diff_prop, and diff_occ methods.
 
@@ -147,7 +147,7 @@ Three transformations with dif_prop were evaluated separately.
  - **avoid running this chunk during rendering. `global_all_loops` was saved from the first run.**
 
 ```{r eval=FALSE, fig.height=8, fig.width=16, include=TRUE}
-nulls <- mixture_plus1_top[, mixture_plus1_top$sampleMetadata$Subset == "null"]
+nulls <- mixture_top[, mixture_top$sampleMetadata$Subset == "null"]
 
 results_negsi <- suppressMessages({
   random_sampling(barbieQ = nulls, loop_times = 100)
@@ -275,12 +275,12 @@ f3c
 lapply(
   c(1:9/10, 0.95), 
   function(filter_level) {
-    mixture_plus1 <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
-    paste0("filter_thresh=", filter_level, "; N_barcodes=", sum(rowData(mixture_plus1)$isTopBarcode$isTop)) %>% print()
+    mixture <- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = filter_level)
+    paste0("filter_thresh=", filter_level, "; N_barcodes=", sum(rowData(mixture)$isTopBarcode$isTop)) %>% print()
     # plotBarcodeSankey(mixture)
     
     return(
-      sum(rowData(mixture_plus1)$isTopBarcode$isTop)
+      sum(rowData(mixture)$isTopBarcode$isTop)
     )
   }
   ) %>% unlist() %>% 
@@ -309,7 +309,7 @@ method_labels <- c(
 stats_barcodes_all_levels <- lapply(
   c(1:9/10, 0.95),
   function(i) {
-    stats_barcodes_i <- get_null_sample_by_filter(mixture_plus1, i, loop_times = 100)
+    stats_barcodes_i <- get_null_sample_by_filter(mixture, i, loop_times = 100)
     stats_barcodes_i$filter_level <- i
     stats_barcodes_i$N_BC <- filter_to_N[i %>% as.character()]
     return(stats_barcodes_i)
@@ -358,12 +358,12 @@ load("output/fdr_by_Nbc.rda")
 ```{r}
 ## saving all p.vals from the N=1553 simulation
 # df_P.Val
-mixture_plus1 <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = 0.95)
+mixture <- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = 0.95)
 ## get the subset of barcodes
 lapply(c(1:9/10, 0.95), function(filter_level) {
-  barbieQ <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  barbieQ <- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = filter_level)
   tag <- rowData(barbieQ)$isTopBarcode$isTop
-  tag <- tag[mixture_plus1@elementMetadata$isTopBarcode$isTop]
+  tag <- tag[mixture@elementMetadata$isTopBarcode$isTop]
   return(tag)
 }) -> BC_set_by_filter
 
@@ -372,7 +372,7 @@ colnames(BC_set_by_filter) <- filter_to_N[c(1:9/10, 0.95) %>% as.character()]
 ## check
 colSums(BC_set_by_filter)
 
-mean_prop <- rowMeans(mixture_plus1[mixture_plus1@elementMetadata$isTopBarcode$isTop,mixture_plus1$sampleMetadata$Subset=="null"]@assays@data$proportion)
+mean_prop <- rowMeans(mixture[mixture@elementMetadata$isTopBarcode$isTop,mixture$sampleMetadata$Subset=="null"]@assays@data$proportion)
 
 ## testing results obtained from raw proportin in stats_barcodes
 df_P.Val_filter_tag <- cbind(
@@ -458,10 +458,10 @@ f3h
 ```{r}
 ## get the subset of barcodes
 lapply(c(1:9/10, 0.95), function(filter_level) {
-  barbieQ <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  barbieQ <- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = filter_level)
   tag <- rowData(barbieQ)$isTopBarcode$isTop
   
-  prop_mat <- mixture_plus1[tag,mixture_plus1$sampleMetadata$Subset=="null"]@assays@data$proportion
+  prop_mat <- mixture[tag,mixture$sampleMetadata$Subset=="null"]@assays@data$proportion
   ## update prop
   prop_mat <- t(t(prop_mat) / colSums(prop_mat))
   
@@ -489,10 +489,10 @@ ggplot(BC_set_prop_filter) +
 ```{r}
 ## get the subset of barcodes
 lapply(c(1:9/10, 0.95), function(filter_level) {
-  barbieQ <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = filter_level)
+  barbieQ <- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = filter_level)
   tag <- rowData(barbieQ)$isTopBarcode$isTop
   ## keep raw prop
-  prop_mat <- mixture_plus1[tag,mixture_plus1$sampleMetadata$Subset=="null"]@assays@data$proportion
+  prop_mat <- mixture[tag,mixture$sampleMetadata$Subset=="null"]@assays@data$proportion
   df <- data.frame(
     prop = as.vector(prop_mat), 
     N_BC=filter_to_N[as.character(filter_level)]
@@ -581,9 +581,9 @@ plot_fdr_on_quantile(stats_barcodes_all_levels %>% filter(filter_level==0.95), n
 - confirming an equal mixture of pool1 and pool2 in baseline samples (the "null" samples).
 
 ```{r}
-colnames(mixture_plus1_top)
+colnames(mixture_top)
 
-prop_raw <- mixture_plus1_top@assays@data$proportion
+prop_raw <- mixture_top@assays@data$proportion
 
 pool1_vec <- prop_raw[,1]
 pool2_vec <- prop_raw[,2]
@@ -648,9 +648,9 @@ calc_theory(a = 0.35, trans = "logit")
 ## Model perturbations
 
 ```{r}
-mixture_plus1_top$sampleMetadata %>% as.data.frame() %>% summary()
+mixture_top$sampleMetadata %>% as.data.frame() %>% summary()
 
-mixed <- mixture_plus1_top[, mixture_plus1_top$sampleMetadata$Subset %in% c("perturb", "null")]
+mixed <- mixture_top[, mixture_top$sampleMetadata$Subset %in% c("perturb", "null")]
 mixed$sampleMetadata %>% as.data.frame() %>%  data.table()
 
 mixed_target <- mixed$sampleMetadata %>% as.data.frame()
@@ -823,7 +823,7 @@ test_perturb <- function(mixed, mixed_target, mixed_design, myblock, trans = "no
 ```{r}
 test_all_levels <- lapply(
   c(1:9/10, 0.95),
-  function(i) {get_mixted_by_filter(barbieQ = mixture_plus1, filter_level = i)}
+  function(i) {get_mixted_by_filter(barbieQ = mixture, filter_level = i)}
 )
 
 test_all_levels <- do.call(rbind, test_all_levels)
@@ -857,7 +857,7 @@ ggplot(test_TPR, aes(x = as.factor(N_BC), y = Frac_signif, color = Method, linet
 
 ```{r}
 ## test on raw proportion
-test_0.95_raw <- get_mixted_by_filter(barbieQ = mixture_plus1, filter_level = 0.95, update_prop = FALSE)
+test_0.95_raw <- get_mixted_by_filter(barbieQ = mixture, filter_level = 0.95, update_prop = FALSE)
 
 test_all_levels_raw <- cbind(
   test_0.95_raw,  
@@ -948,7 +948,7 @@ plot_tpr_on_quantile(test_all_levels %>% filter(filter_level==0.95), num_quantil
 ```
 
 
-## FS3B: Residules
+## FS3B: Residule Normality
 
 ```{r}
 resi_none <- lapply(c(0.18, 0.27, 0.35), function(i) get_residules(mixed, mixed_design, myblock, a = i, trans = "none"))
@@ -976,16 +976,21 @@ p_resid_qq_35 <- ggplot(resi_df %>% filter(Contrast == "0.35 - 0"),
   stat_qq() +
   stat_qq_line(color = "black", linetype = "dashed") +
   labs(x = "Normal Quantiles", y = "\n Residual Quuantiles") +
-  facet_wrap(~Method, scales = "free", ncol = 1) +
-  theme_bw() +
-  theme(legend.position = "none", strip.text = element_blank(), plot.title.position = "panel")
+  facet_wrap(~Method, scales = "free", ncol = 1, strip.position = "left") +
+  theme_barbieQ() +
+  theme(legend.position = "none", plot.title.position = "panel") ##strip.text = element_blank()
 ```
 
-```{r, fig.width=8, fig.height=9}
-fs3b <- (p_resid_distr_35 + 
+```{r, fig.width=4, fig.height=9}
+(p_resid_distr_35 + 
   theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), strip.text = element_text(size = 12),
         axis.title = element_text(size = 13), axis.text = element_text(size = 10))
-  ) +
+  )
+```
+
+
+```{r, fig.width=4, fig.height=9}
+fs3b <-
 (p_resid_qq_35 + 
   theme(legend.title = element_text(size = 12), legend.text = element_text(size = 11), 
         axis.title = element_text(size = 13), axis.text = element_text(size = 10)))
@@ -1031,8 +1036,59 @@ p_resid_distr_35 + p_resid_distr_27 + p_resid_distr_18
 p_resid_qq_35 + p_resid_qq_27 + p_resid_qq_18
 ```
 
+## FS3C: Residule Variance
 
-## Consistency
+ - Residual standard deviation vs. mean to check homosdecasticity
+ 
+```{r}
+plot_residuals(mixed, mixed_design, myblock, a = 0.35, trans = "asin-sqrt")
+plot_residuals(mixed, mixed_design, myblock, a = 0.35, trans = "logit")
+plot_residuals(mixed, mixed_design, myblock, a = 0.35, trans = "none")
+```
+
+```{r, fig.width=4, fig.height=8}
+## capture limma SA plot
+make_sa_grob <- function(trans, a = 0.35) {
+  grid::grid.grabExpr({
+    gridGraphics::grid.echo(function() {
+      limma::plotSA(
+        fit = plot_residuals(mixed, mixed_design, myblock, a = a, trans = trans),
+        xlab = "",
+        ylab = ""
+      )
+    })
+  })
+}
+
+sa_asin <- make_sa_grob("asin-sqrt")
+sa_logit <- make_sa_grob("logit")
+sa_none <- make_sa_grob("none")
+
+fs3c_core <- (
+  wrap_elements(full = sa_asin) /
+  wrap_elements(full = sa_logit) /
+  wrap_elements(full = sa_none)
+)
+
+ylab_plot <- ggplot() +
+  annotate("text", x = 0.5, y = 0.5, label = "Residual SD", angle = 90, size = 4) +
+  theme_void()
+
+xlab_plot <- ggplot() +
+  annotate("text", x = 0.5, y = 0.5, label = "Average transformed barcode proportion", size = 4) +
+  theme_void()
+
+fs3c <- (
+  ylab_plot + fs3c_core +
+    plot_layout(widths = c(0.1, 1))
+) / xlab_plot +
+  plot_layout(heights = c(1, 0.02))
+
+fs3c
+
+```
+
+## Result consistency
 
 ```{r}
 asin_adjP_3con <- es_de_asin_df %>%
@@ -1123,19 +1179,19 @@ Saving this figure in [f3](../output/f3.png)
 
 # Figure S3
 
-```{r, fig.width=15, fig.height=8}
+```{r, fig.width=9, fig.height=16}
 layoutS4 = "
-AAABB
-AAABB
-AAABB
+AAAAAAAAA
+BBBBCCCC#
 "
 fs3 <- (
     wrap_elements(fs3a + theme(plot.margin = unit(rep(0,4), "cm"))) + 
-    wrap_elements(fs3b + theme(plot.margin = unit(c(0,0,0,0), "cm")))
+    wrap_elements(fs3b + theme(plot.margin = unit(c(0,0,0,0.2), "cm"))) +
+    (fs3c & theme(plot.margin = unit(c(0,0,1,0), "cm")))
     )+ 
   plot_layout(design = layoutS4) +
   ## space is okay but must be unique
-  plot_annotation(tag_levels = list(c("A", "B"))) &
+  plot_annotation(tag_levels = list(c("A", "B", "C"))) &
   theme(plot.tag = element_text(size = 24, face = "bold", family = "arial"))
 
 fs3
@@ -1145,8 +1201,8 @@ fs3
 ggsave(
   filename = "output/fs3.png",
   plot = fs3,
-  width = 15,
-  height = 8,
+  width = 9,
+  height = 16,
   units = "in", # for Rmd r chunk fig size, unit default to inch
   dpi = 350
   )

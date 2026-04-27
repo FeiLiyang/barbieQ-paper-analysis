@@ -190,7 +190,7 @@ mixture_plus1@assays@data$isTopAssay[mixture_plus1@elementMetadata$isTopBarcode$
 - Set `proportionThreshold=0.95` for subsequent filtering.
 
 ```{r}
-## tag top barcodes, `proportionThreshold` set to 0.97
+## tag top barcodes, `proportionThreshold` set to 0.95
 mixture <- tagTopBarcodes(mixture, nSampleThreshold = 8, proportionThreshold = 0.95)
 mixture_plus1 <- tagTopBarcodes(mixture_plus1, nSampleThreshold = 8, proportionThreshold = 0.95)
 
@@ -241,7 +241,7 @@ Barcode detection in the two premix samples.
 No correlating barcodes detected.Actually, 
 
 ```{r, fig.width=4, fig.height=4}
-plotBarcodePairCorrelation(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = "none") + 
+plotBarcodePairCorrelation(barbieQ = mixture[rowData(mixture)$isTopBarcode$isTop,], transformation = "none") + 
   theme(legend.position = "top") + 
   labs(title = "Mixture data") -> fs1d
 
@@ -251,7 +251,7 @@ fs1d
 - looking weird if using "asin-sqrt" transformation here.
 
 ```{r}
-clusterCorrelatingBarcodes(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,], transformation = "asin-sqrt") %>% 
+clusterCorrelatingBarcodes(barbieQ = mixture[rowData(mixture)$isTopBarcode$isTop,], transformation = "asin-sqrt") %>% 
   inspectCorrelatingBarcodes()
 ```
 
@@ -260,7 +260,7 @@ clusterCorrelatingBarcodes(barbieQ = mixture_plus1[rowData(mixture_plus1)$isTopB
 ## FS1I,L: inspect top/bottom
 
 ```{r, fig.width=5, fig.height=4}
-plotBarcodePareto(mixture_plus1) +
+plotBarcodePareto(mixture) +
   ylim(-8, 7) + 
   annotate("text", x = c(pi * 0.05), y = c(7), 
            label = c("Relative proportion %"), color = "#999966", 
@@ -270,7 +270,7 @@ fs1i
 ```
 
 ```{r, fig.width=3, fig.height=4}
-plotBarcodeSankey(mixture_plus1) + 
+plotBarcodeSankey(mixture) + 
   theme(legend.position = "top") -> fs1l
 
 fs1l
@@ -279,7 +279,8 @@ fs1l
 ## Filter "top" barcodes
 
 ```{r}
-mixture_plus1_top <- mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,]
+mixture_top <- mixture[rowData(mixture)$isTopBarcode$isTop,]
+mixture_plus1_top <- mixture_plus1[rowData(mixture)$isTopBarcode$isTop,]
 ```
 
 ## Heatmap
@@ -287,33 +288,33 @@ mixture_plus1_top <- mixture_plus1[rowData(mixture_plus1)$isTopBarcode$isTop,]
 ```{r echo=TRUE}
 ## pre-filtering
 Heatmap(name = "asin-sqrt prop.",
-  matrix = asin(sqrt(assays(mixture_plus1)$proportion)), 
-  row_title = paste0(nrow(mixture_plus1), " Barcodes"), 
+  matrix = asin(sqrt(assays(mixture)$proportion)), 
+  row_title = paste0(nrow(mixture), " Barcodes"), 
   show_row_names = FALSE, show_column_names = FALSE)
 ```
 
 ```{r hp}
 ## post-filtering
 Heatmap(name = "asin-sqrt prop.",
-  matrix = asin(sqrt(assays(mixture_plus1_top)$proportion)), 
-  row_title = paste0(nrow(mixture_plus1_top), " Barcodes"), 
+  matrix = asin(sqrt(assays(mixture_top)$proportion)), 
+  row_title = paste0(nrow(mixture_top), " Barcodes"), 
   show_row_names = FALSE, show_column_names = FALSE)
 ```
 
 # Save to rda
 
 ```{r}
-save(mixture_plus1, mixture_plus1_top, file = "output/mixture_barbieQ.rda")
+save(mixture, mixture_top, mixture_plus1, mixture_plus1_top, file = "output/mixture_barbieQ.rda")
 ```
 
 # FigureS1-Mixture
 
 ```{r, fig.width=4, fig.height=16}
 layout = "
-DDDD
-####
-IIII
-LLLL
+D
+#
+I
+L
 "
 fs1_mixture <- (
   wrap_elements(fs1d + theme(plot.margin = unit(c(0,0,0,0), "line"))) + 
@@ -321,7 +322,7 @@ fs1_mixture <- (
     wrap_elements(fs1l + theme(plot.margin = unit(rep(0,4), "cm")))
   ) + 
   plot_layout(design = layout) +
-  plot_annotation(tag_levels = list(c("D"," ", "I","L"))) &
+  plot_annotation(tag_levels = list(c("D","I","L"))) &
   theme(
     plot.tag = element_text(size = 20, face = "bold", family = "arial"),
     axis.title = element_text(size = 17),

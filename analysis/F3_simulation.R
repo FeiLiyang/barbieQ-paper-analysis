@@ -430,7 +430,7 @@ apply_model <- function(mixed, mixed_design, myblock, a = 0.18, trans = "none", 
   
 }
 
-get_residules <- function(mixed, mixed_design, myblock, a = 0.18, trans = "none") {
+get_residules <- function(mixed, mixed_design, myblock, a = 0.18, trans = "none", return_residual = "raw") {
   
   ## get props
   props <- mixed@assays@data$proportion
@@ -444,7 +444,7 @@ get_residules <- function(mixed, mixed_design, myblock, a = 0.18, trans = "none"
   mydata <- trans_fun(props)
   if(is.null(myblock)) {
     myfit1 <- limma::lmFit(
-      object = mydata, design = mixed_design, block = myblock)
+      object = mydata, design = mixed_design)
   } else {
     dup <- limma::duplicateCorrelation(object = mydata, design = mixed_design, block = myblock)
     myfit1 <- limma::lmFit(
@@ -459,19 +459,89 @@ get_residules <- function(mixed, mixed_design, myblock, a = 0.18, trans = "none"
   ## fit eBayes, moderated p.values obtained after applying empirical Bayes
   myfit3 <- limma::eBayes(myfit2)
   
-  ## extract residuals
-  resi <- limma::residuals.MArrayLM(object = myfit1, y = mydata)
+  if(return_residual == "raw"){
+    ## extract residuals - a matrix
+    resi <- limma::residuals.MArrayLM(object = myfit1, y = mydata)
+    ## extrat fitted values
+    fitted_vals <- limma::fitted.MArrayLM(object = myfit1)
+    colnames(fitted_vals) <- colnames(resi)
+    
+    ## convert to long format
+    resi_df <- as.data.frame(as.table(resi))
+    colnames(resi_df) <- c("BC", "Sample", "Residual")
+    
+    fitted_df <- as.data.frame(as.table(fitted_vals))
+    colnames(fitted_df) <- c("BC", "Sample", "Fitted")
+    
+    ## merge
+    resi_df <- left_join(resi_df, fitted_df, by = c("BC", "Sample"))
+    
+    resi_df$Contrast <- paste0(a, " - 0")
+    
+    resi_df$Method <- trans
+    
+    final <- resi_df
+  } else if (return_residual == "eBayes_var") {
+    ## get residule standard deviation from myfit3
+    sa_df <- data.frame(
+      Amean = myfit3$Amean,
+      SD = if (!is.null(myfit3$s2.post)) sqrt(myfit3$s2.post) else myfit3$sigma
+    )
+    
+    final <- sa_df
+  } else if (return_residual == "plot") {
+    fig <- plotSA(myfit3,
+                  xlab = "Average transformed barcode proportion",
+                  ylab = "Residual SD",
+                  main = paste0("method=", trans, ", contrast=", a, "-0"))
+    
+    return(invisible(NULL))
+  } else {
+    final <- NULL
+  }
   
-  resi_df <- as.data.frame(as.table(resi))
+  return(final)
   
-  colnames(resi_df) <- c("BC", "Sample", "Residual")
+}
+
+plot_residuals <- function(mixed, mixed_design, myblock, a = 0.18, trans = "none", plot_type = "SA"){
+  ## get props
+  props <- mixed@assays@data$proportion
   
-  resi_df$Contrast <- paste0(a, " - 0")
+  ## set trans fun
+  trans_fun = ifelse(
+    trans == "none", function(x) {x},
+    ifelse(trans == "asin-sqrt", function(x) {asin(sqrt(x))}, 
+           ifelse(trans == "logit", function(x) {log((x)/(1-x))}, NA))) ## {log((x+1e-10)/(1-x+1e-10))},or {logit(x)}
   
-  resi_df$Method <- trans
+  mydata <- trans_fun(props)
+  if(is.null(myblock)) {
+    myfit1 <- limma::lmFit(
+      object = mydata, design = mixed_design)
+  } else {
+    dup <- limma::duplicateCorrelation(object = mydata, design = mixed_design, block = myblock)
+    myfit1 <- limma::lmFit(
+      object = mydata, design = mixed_design, block = myblock, correlation = dup$consensus.correlation)
+  }
   
-  return(resi_df)
+  mycontrast <- limma::makeContrasts(contrasts = paste0("Perturbation", a, " - Perturbation0"), levels = colnames(mixed_design))
   
+  ## fit contrast
+  myfit2 <- limma::contrasts.fit(fit = myfit1, contrasts = mycontrast)
+  
+  ## fit eBayes, moderated p.values obtained after applying empirical Bayes
+  myfit3 <- limma::eBayes(myfit2)
+  
+  if(plot_type == "SA") {
+    # plotSA(myfit3, xlab = "Average transformed barcode proportion", ylab = "Residual SD")
+    return(myfit3)
+  }else if (plot_type == "MV") {
+    means <- apply(mydata, 1, mean)
+    vars <- apply(mydata, 1, var)
+    plot(means, vars, main="Mean-Variance Plot", xlab="Mean transformed proportion", ylab="Variance")
+  }
+   
+  invisible(NULL)
 }
 
 # -----------------Function to N_BC --------------
