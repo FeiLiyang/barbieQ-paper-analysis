@@ -2,7 +2,7 @@
 
 Author: "Liyang Fei"
 
-Last update: 2026 Jan.
+Last update: 2026 April.
 
 This repository saves the analysis of several public barcode count datasets using the barbieQ package.
 
