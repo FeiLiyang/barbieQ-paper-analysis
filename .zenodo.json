@@ -1,0 +1,37 @@
+{
+  "title": "Analysis code for barbieQ: An R software package for analysing barcode count data from clonal tracking experiments",
+  "description": "Code used to produce figures and results in the barbieQ paper.",
+  "creators": [
+    {
+      "name": "Fei, Liyang",
+      "affiliation": "Peter MacCallum Cancer Centre; Sir Peter MacCallum Department of Oncology, The University of Melbourne",
+      "orcid": "0000-0002-3293-2094"
+    },
+    {
+      "name": "Maksimovic, Jovana",
+      "affiliation": "Peter MacCallum Cancer Centre; Sir Peter MacCallum Department of Oncology, The University of Melbourne",
+      "orcid": "0000-0002-9458-3061"
+    },
+    {
+      "name": "Oshlack, Alicia",
+      "affiliation": "Peter MacCallum Cancer Centre; Sir Peter MacCallum Department of Oncology, The University of Melbourne",
+      "orcid": "0000-0001-9788-5690"
+    }
+  ],
+  "license": "MIT",
+  "keywords": ["clonal analysis", "lineage tracing", "differential abundance", "linear model"],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo", 
+      "identifier": "10.1101/2025.09.11.675529", 
+      "scheme": "doi".
+      "resource_type": "publication-preprint"
+    },
+    {
+      "relation": "references",
+      "identifier": "10.18129/B9.bioc.barbieQ",
+      "scheme": "doi",
+      "resource_type": "software"
+    }
+  ]
+}
